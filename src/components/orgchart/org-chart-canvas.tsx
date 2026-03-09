@@ -1633,7 +1633,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      setFlowNodes((prev) => applyNodeChanges(changes, prev));
+      setFlowNodes((prev) => applyNodeChanges(changes, prev) as OrgFlowNode[]);
       if (positionsLocked) return;
       let changed = false;
       const positionUpdates: Record<string, { x: number; y: number }> = {};
