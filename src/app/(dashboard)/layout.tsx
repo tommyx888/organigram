@@ -111,10 +111,16 @@ export default function DashboardLayout(props: DashboardLayoutProps) {
   if (isSupabasePublicConfigured && !authState.authenticated) {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-12">
-        <div className="absolute right-6 top-6">
+        <div className="absolute right-6 top-6 flex items-center gap-3">
+          <a
+            href="#login-form"
+            className="rounded-lg border border-[var(--artifex-navy)] bg-white px-3 py-2 text-sm font-semibold text-[var(--artifex-navy)] transition hover:bg-slate-50"
+          >
+            {t("auth.loginButton")}
+          </a>
           <LanguageSwitcher />
         </div>
-        <section className="mx-auto max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section id="login-form" className="mx-auto max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm scroll-mt-24">
           <h1 className="text-xl font-semibold text-[var(--artifex-navy)]">{t("auth.loginTitle")}</h1>
           <p className="text-sm text-slate-600">{t("auth.loginDesc")}</p>
           <input
