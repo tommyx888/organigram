@@ -14,6 +14,9 @@ type EmployeeDetailProps = {
   onClose: () => void;
   onPhotoChange?: (employeeId: string, dataUrl: string) => void;
   onPhotoClear?: (employeeId: string) => void;
+  photoOffset?: { x: number; y: number } | null;
+  onPhotoOffsetChange?: (employeeId: string, offset: { x: number; y: number }) => void;
+  onPhotoOffsetReset?: (employeeId: string) => void;
   /** Možnosti pre výber nadriadeného (zamestnanci + vacancy). */
   managerOptions?: ManagerOption[];
   onManagerChange?: (managerId: string | null) => void;
@@ -42,6 +45,9 @@ export function EmployeeDetailPanel(props: EmployeeDetailProps) {
     onClose,
     onPhotoChange,
     onPhotoClear,
+    photoOffset,
+    onPhotoOffsetChange,
+    onPhotoOffsetReset,
     managerOptions = [],
     onManagerChange,
     accentColor,
@@ -140,6 +146,58 @@ export function EmployeeDetailPanel(props: EmployeeDetailProps) {
                 </>
               )}
             </div>
+            {(onPhotoOffsetChange || onPhotoOffsetReset) && (
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-slate-500">Posun X (px)</span>
+                  <input
+                    type="range"
+                    min={-40}
+                    max={40}
+                    step={1}
+                    value={photoOffset?.x ?? 0}
+                    onChange={(e) =>
+                      onPhotoOffsetChange?.(record.employeeId, {
+                        x: Number(e.target.value),
+                        y: photoOffset?.y ?? 0,
+                      })
+                    }
+                    className="h-2 w-full accent-[var(--artifex-navy)]"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-slate-500">Posun Y (px)</span>
+                  <input
+                    type="range"
+                    min={-40}
+                    max={40}
+                    step={1}
+                    value={photoOffset?.y ?? 0}
+                    onChange={(e) =>
+                      onPhotoOffsetChange?.(record.employeeId, {
+                        x: photoOffset?.x ?? 0,
+                        y: Number(e.target.value),
+                      })
+                    }
+                    className="h-2 w-full accent-[var(--artifex-navy)]"
+                  />
+                </label>
+                <div className="sm:col-span-2 flex items-center gap-2">
+                  <span className="text-xs text-slate-600">
+                    X: {photoOffset?.x ?? 0}px, Y: {photoOffset?.y ?? 0}px
+                  </span>
+                  {onPhotoOffsetReset && ((photoOffset?.x ?? 0) !== 0 || (photoOffset?.y ?? 0) !== 0) && (
+                    <button
+                      type="button"
+                      onClick={() => onPhotoOffsetReset(record.employeeId)}
+                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                    >
+                      Reset posunu
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
         <div>
@@ -314,6 +372,9 @@ type CellDetailPanelProps = {
   onCloseEmployee?: () => void;
   onPhotoChange?: (employeeId: string, dataUrl: string) => void;
   onPhotoClear?: (employeeId: string) => void;
+  employeePhotoOffset?: { x: number; y: number } | null;
+  onPhotoOffsetChange?: (employeeId: string, offset: { x: number; y: number }) => void;
+  onPhotoOffsetReset?: (employeeId: string) => void;
   /** Možnosti pre nadriadeného (pre EmployeeDetailPanel). */
   managerOptions?: { value: string; label: string }[];
   onManagerChange?: (managerId: string | null) => void;
@@ -344,6 +405,9 @@ export function CellDetailPanel(props: CellDetailPanelProps) {
     onCloseEmployee,
     onPhotoChange,
     onPhotoClear,
+    employeePhotoOffset,
+    onPhotoOffsetChange,
+    onPhotoOffsetReset,
     managerOptions,
     onManagerChange,
     employeeAccentColor,
@@ -374,6 +438,9 @@ export function CellDetailPanel(props: CellDetailPanelProps) {
         onClose={onCloseEmployee ?? (() => {})}
         onPhotoChange={onPhotoChange}
         onPhotoClear={onPhotoClear}
+        photoOffset={employeePhotoOffset ?? null}
+        onPhotoOffsetChange={onPhotoOffsetChange}
+        onPhotoOffsetReset={onPhotoOffsetReset}
         managerOptions={managerOptions}
         onManagerChange={onManagerChange}
         accentColor={employeeAccentColor ?? null}

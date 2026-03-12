@@ -23,6 +23,8 @@ export interface OrgChartSettingsPayload {
   strediskoColors?: Record<string, string>;
   hiddenStrediska?: string[];
   employeeColors?: Record<string, string>;
+  /** Individuálne posuny fotiek: employee_id -> { x, y } (px). */
+  employeePhotoOffsets?: Record<string, { x: number; y: number }>;
   /** Farby pre kategórie KAT (SAL, INDIR1, INDIR2, INDIR3…) – prepisujú východzie z brand tokens. */
   katColors?: Record<string, string>;
   employeeChildLayout?: Record<string, string>;

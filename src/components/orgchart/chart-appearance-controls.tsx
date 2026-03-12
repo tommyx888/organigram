@@ -4,7 +4,6 @@ import { useState } from "react";
 import type {
   CellFieldsConfig,
   ChartAppearanceState,
-  ChartLayoutType,
   ColorScheme,
   ConnectionLineStyle,
   ExpansionStyle,
@@ -32,6 +31,11 @@ const NODE_STYLE_KEYS: Record<NodeVisualStyle, string> = {
   gradient: "orgChart.nodeStyleGradient",
   pill: "orgChart.nodeStylePill",
   bubble: "orgChart.nodeStyleBubble",
+  executive: "orgChart.nodeStyleExecutive",
+  banner: "orgChart.nodeStyleBanner",
+  hexBadge: "orgChart.nodeStyleHexBadge",
+  stackedCorporate: "orgChart.nodeStyleStackedCorporate",
+  classicBoard: "orgChart.nodeStyleClassicBoard",
 };
 
 const CONNECTION_STYLE_KEYS: Record<ConnectionLineStyle, string> = {
@@ -64,12 +68,6 @@ const NODE_ROLE_KEYS: Record<NodeRole, string> = {
 
 const STYLE_OPTION_GLOBAL = "__global__";
 
-const LAYOUT_KEYS: Record<ChartLayoutType, string> = {
-  vertical: "orgChart.layoutClassic",
-  horizontal: "orgChart.layoutClassicHoriz",
-  compact: "orgChart.layoutClassicCompact",
-};
-
 const EXPANSION_STYLE_KEYS: Record<ExpansionStyle, string> = {
   tree: "orgChart.expansionTreeShort",
   layers: "orgChart.expansionLayersShort",
@@ -96,7 +94,6 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
   const isColorVisible = (hex: string) =>
     !isFilterActive || visibleCardColors.includes(hex);
 
-  const layoutType = appearance.layoutType ?? "vertical";
   const expansionStyle = appearance.expansionStyle ?? "tree";
 
   const setConnection = (patch: Partial<ChartAppearanceState["connection"]>) => {
@@ -175,30 +172,6 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
       </div>
 
       <div className="space-y-5">
-        {/* Rozloženie */}
-        <section>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {t("orgChart.layoutSectionTitle")}
-          </h4>
-          <p className="mb-2 text-xs text-slate-500">{t("orgChart.layoutSectionHint")}</p>
-          <div className="flex flex-wrap gap-2">
-            {(Object.keys(LAYOUT_KEYS) as ChartLayoutType[]).map((layout) => (
-              <button
-                key={layout}
-                type="button"
-                onClick={() => onAppearanceChange({ ...appearance, layoutType: layout })}
-                className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
-                  layoutType === layout
-                    ? "border-[var(--artifex-navy)] bg-[var(--artifex-navy)] text-white"
-                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {t(LAYOUT_KEYS[layout])}
-              </button>
-            ))}
-          </div>
-        </section>
-
         {/* Štýl rozbalovania */}
         <section>
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -280,6 +253,274 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
                 onChange={(e) => {
                   const v = Math.min(96, Math.max(12, Number(e.target.value) || 24));
                   onAppearanceChange({ ...appearance, nodeGapX: v });
+                }}
+                className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
+              />
+            </label>
+          </div>
+        </section>
+
+        {/* Veľkosť buniek, písma a fotky */}
+        <section>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Veľkosť buniek a obsahu
+          </h4>
+          <p className="mb-2 text-xs text-slate-500">
+            Nastav mierku bunky, písma a fotky v bunke.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-slate-600">Veľkosť bunky (%)</span>
+              <input
+                type="range"
+                min={60}
+                max={220}
+                step={5}
+                value={Math.round((appearance.nodeScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isNaN(v)) onAppearanceChange({ ...appearance, nodeScale: v / 100 });
+                }}
+                className="h-2 w-full accent-[var(--artifex-navy)]"
+              />
+              <input
+                type="number"
+                min={60}
+                max={220}
+                step={5}
+                value={Math.round((appearance.nodeScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const raw = Number(e.target.value) || 100;
+                  const v = Math.min(220, Math.max(60, raw));
+                  onAppearanceChange({ ...appearance, nodeScale: v / 100 });
+                }}
+                className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-slate-600">Veľkosť písma (%)</span>
+              <input
+                type="range"
+                min={70}
+                max={220}
+                step={5}
+                value={Math.round((appearance.fontScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isNaN(v)) onAppearanceChange({ ...appearance, fontScale: v / 100 });
+                }}
+                className="h-2 w-full accent-[var(--artifex-navy)]"
+              />
+              <input
+                type="number"
+                min={70}
+                max={220}
+                step={5}
+                value={Math.round((appearance.fontScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const raw = Number(e.target.value) || 100;
+                  const v = Math.min(220, Math.max(70, raw));
+                  onAppearanceChange({ ...appearance, fontScale: v / 100 });
+                }}
+                className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-slate-600">Veľkosť fotky (%)</span>
+              <input
+                type="range"
+                min={50}
+                max={450}
+                step={5}
+                value={Math.round((appearance.photoScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isNaN(v)) onAppearanceChange({ ...appearance, photoScale: v / 100 });
+                }}
+                className="h-2 w-full accent-[var(--artifex-navy)]"
+              />
+              <input
+                type="number"
+                min={50}
+                max={450}
+                step={5}
+                value={Math.round((appearance.photoScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const raw = Number(e.target.value) || 100;
+                  const v = Math.min(450, Math.max(50, raw));
+                  onAppearanceChange({ ...appearance, photoScale: v / 100 });
+                }}
+                className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
+              />
+            </label>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-5">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-slate-600">Šírka bunky (%)</span>
+              <input
+                type="range"
+                min={60}
+                max={240}
+                step={5}
+                value={Math.round((appearance.nodeWidthScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isNaN(v)) onAppearanceChange({ ...appearance, nodeWidthScale: v / 100 });
+                }}
+                className="h-2 w-full accent-[var(--artifex-navy)]"
+              />
+              <input
+                type="number"
+                min={60}
+                max={240}
+                step={5}
+                value={Math.round((appearance.nodeWidthScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const raw = Number(e.target.value) || 100;
+                  const v = Math.min(240, Math.max(60, raw));
+                  onAppearanceChange({ ...appearance, nodeWidthScale: v / 100 });
+                }}
+                className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-slate-600">Výška bunky (%)</span>
+              <input
+                type="range"
+                min={60}
+                max={260}
+                step={5}
+                value={Math.round((appearance.nodeHeightScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isNaN(v)) onAppearanceChange({ ...appearance, nodeHeightScale: v / 100 });
+                }}
+                className="h-2 w-full accent-[var(--artifex-navy)]"
+              />
+              <input
+                type="number"
+                min={60}
+                max={260}
+                step={5}
+                value={Math.round((appearance.nodeHeightScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const raw = Number(e.target.value) || 100;
+                  const v = Math.min(260, Math.max(60, raw));
+                  onAppearanceChange({ ...appearance, nodeHeightScale: v / 100 });
+                }}
+                className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-slate-600">Veľkosť rámca fotky (%)</span>
+              <input
+                type="range"
+                min={50}
+                max={350}
+                step={5}
+                value={Math.round((appearance.photoFrameScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isNaN(v)) onAppearanceChange({ ...appearance, photoFrameScale: v / 100 });
+                }}
+                className="h-2 w-full accent-[var(--artifex-navy)]"
+              />
+              <input
+                type="number"
+                min={50}
+                max={350}
+                step={5}
+                value={Math.round((appearance.photoFrameScale ?? 1) * 100)}
+                onChange={(e) => {
+                  const raw = Number(e.target.value) || 100;
+                  const v = Math.min(350, Math.max(50, raw));
+                  onAppearanceChange({ ...appearance, photoFrameScale: v / 100 });
+                }}
+                className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-slate-600">Hrúbka rámu (px)</span>
+              <input
+                type="range"
+                min={0}
+                max={8}
+                step={0.5}
+                value={appearance.photoFrameBorderWidth ?? 3}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isNaN(v)) onAppearanceChange({ ...appearance, photoFrameBorderWidth: v });
+                }}
+                className="h-2 w-full accent-[var(--artifex-navy)]"
+              />
+              <input
+                type="number"
+                min={0}
+                max={8}
+                step={0.5}
+                value={appearance.photoFrameBorderWidth ?? 3}
+                onChange={(e) => {
+                  const raw = Number(e.target.value);
+                  const v = Math.min(8, Math.max(0, Number.isNaN(raw) ? 3 : raw));
+                  onAppearanceChange({ ...appearance, photoFrameBorderWidth: v });
+                }}
+                className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-slate-600">Posun fotky X (px)</span>
+              <input
+                type="range"
+                min={-80}
+                max={80}
+                step={1}
+                value={appearance.photoOffsetX ?? 0}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isNaN(v)) onAppearanceChange({ ...appearance, photoOffsetX: v });
+                }}
+                className="h-2 w-full accent-[var(--artifex-navy)]"
+              />
+              <input
+                type="number"
+                min={-80}
+                max={80}
+                step={1}
+                value={appearance.photoOffsetX ?? 0}
+                onChange={(e) => {
+                  const raw = Number(e.target.value) || 0;
+                  const v = Math.min(80, Math.max(-80, raw));
+                  onAppearanceChange({ ...appearance, photoOffsetX: v });
+                }}
+                className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
+              />
+            </label>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-slate-600">Posun fotky Y (px)</span>
+              <input
+                type="range"
+                min={-80}
+                max={80}
+                step={1}
+                value={appearance.photoOffsetY ?? 0}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isNaN(v)) onAppearanceChange({ ...appearance, photoOffsetY: v });
+                }}
+                className="h-2 w-full accent-[var(--artifex-navy)]"
+              />
+              <input
+                type="number"
+                min={-80}
+                max={80}
+                step={1}
+                value={appearance.photoOffsetY ?? 0}
+                onChange={(e) => {
+                  const raw = Number(e.target.value) || 0;
+                  const v = Math.min(80, Math.max(-80, raw));
+                  onAppearanceChange({ ...appearance, photoOffsetY: v });
                 }}
                 className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
               />

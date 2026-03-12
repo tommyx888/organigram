@@ -93,14 +93,14 @@ export function DepartmentBar({
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <p className="mb-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-normal text-slate-500">
         Oddelenia – výber zobrazenia
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => onSelectDepartment("all")}
-          className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+          className={`rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
             selectedDepartment === "all"
               ? "bg-[var(--artifex-navy)] text-white"
               : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -118,7 +118,7 @@ export function DepartmentBar({
               <button
                 type="button"
                 onClick={() => onSelectDepartment(dep)}
-                className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
                   isSelected
                     ? "bg-[var(--artifex-navy)] text-white"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"

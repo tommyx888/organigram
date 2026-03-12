@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChartLayoutType, ExpansionStyle } from "@/lib/org/chart-appearance";
+import type { ExpansionStyle } from "@/lib/org/chart-appearance";
 import type { MaxVisibleLayers } from "@/lib/org/hierarchy-settings";
 import type { EmployeeRecord } from "@/lib/org/types";
 import type { VacancyPlaceholder } from "@/lib/org/types";
@@ -178,8 +178,6 @@ export type HierarchySidebarProps = {
   /** Štýl zobrazenia vetiev: strom (deti pod rodičom) vs. vrstvy (jedna línia na úroveň). */
   expansionStyle: ExpansionStyle;
   onExpansionStyleChange: (value: ExpansionStyle) => void;
-  layoutType: ChartLayoutType;
-  onLayoutTypeChange: (layout: ChartLayoutType) => void;
   onAddVacancy: (title: string, parentId: string | null) => void;
   onResetTemplate?: () => void;
   contentHeight?: string;
@@ -205,12 +203,6 @@ function saveCollapsed(value: boolean) {
   } catch {}
 }
 
-const LAYOUT_KEYS: Record<ChartLayoutType, string> = {
-  vertical: "orgChart.layoutVertical",
-  horizontal: "orgChart.layoutHorizontal",
-  compact: "orgChart.layoutCompact",
-};
-
 const EXPANSION_KEYS: Record<ExpansionStyle, string> = {
   tree: "orgChart.expansionTree",
   layers: "orgChart.expansionLayers",
@@ -229,8 +221,6 @@ export function HierarchySidebar(props: HierarchySidebarProps) {
     onMaxVisibleLayersChange,
     expansionStyle,
     onExpansionStyleChange,
-    layoutType,
-    onLayoutTypeChange,
     onAddVacancy,
     onResetTemplate,
     contentHeight,
@@ -352,23 +342,6 @@ export function HierarchySidebar(props: HierarchySidebarProps) {
             ))}
           </select>
           <p className="mt-1 text-xs text-slate-500">{t("orgChart.expansionHelp")}</p>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {t("orgChart.layout")}
-          </label>
-          <select
-            value={layoutType}
-            onChange={(e) => onLayoutTypeChange(e.target.value as ChartLayoutType)}
-            className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800"
-          >
-            {(Object.keys(LAYOUT_KEYS) as ChartLayoutType[]).map((l) => (
-              <option key={l} value={l}>
-                {t(LAYOUT_KEYS[l])}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div>

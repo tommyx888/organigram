@@ -6,8 +6,17 @@
 export type ConnectionLineStyle = "straight" | "step" | "smoothstep";
 export type ConnectionMarker = "arrow" | "arrowClosed" | "none";
 
-export type NodeVisualStyle = "card" | "gradient" | "pill" | "bubble";
-/** card = klasická karta s hlavičkou; gradient = hexagon + zaoblený obdĺžnik s gradientom; pill = kruh (avatar) + kapsula; bubble = zaoblená bublina s ikonou */
+export type NodeVisualStyle =
+  | "card"
+  | "gradient"
+  | "pill"
+  | "bubble"
+  | "executive"
+  | "banner"
+  | "hexBadge"
+  | "stackedCorporate"
+  | "classicBoard";
+/** card = klasická karta s hlavičkou; gradient = hexagon + zaoblený obdĺžnik s gradientom; pill = kruh (avatar) + kapsula; bubble = zaoblená bublina s ikonou; executive = minimalistická karta s avatarom hore; banner = farebný pásikový blok; hexBadge = hexagon avatar + štítok; stackedCorporate = svetlá karta s avatarom v hornej časti; classicBoard = starší „board“ štýl s ľavým avatarom */
 
 export type ColorScheme = "byPosition" | "byBranch" | "byLevel" | "unified";
 /** byPosition = podľa KAT/position type; byBranch = podľa oddelenia/strediska; byLevel = root / 2. úroveň / 3. úroveň; unified = jedna farba */
@@ -76,6 +85,24 @@ export interface ChartAppearanceState {
   nodeGapX?: number;
   /** Ak je neprázdne, zobrazia sa len karty s touto farbou (hex). Prázdne/undefined = zobraziť všetky. */
   visibleCardColors?: string[];
+  /** Globálna mierka bunky (karty). 1 = 100 %. */
+  nodeScale?: number;
+  /** Dodatočná mierka šírky bunky (detailný tuning). 1 = 100 %. */
+  nodeWidthScale?: number;
+  /** Dodatočná mierka výšky bunky (detailný tuning). 1 = 100 %. */
+  nodeHeightScale?: number;
+  /** Globálna mierka písma v bunke. 1 = 100 %. */
+  fontScale?: number;
+  /** Globálna mierka fotky/avatara v bunke. 1 = 100 %. */
+  photoScale?: number;
+  /** Globálna mierka rámca (kruhu) fotky v bunke. 1 = 100 %. */
+  photoFrameScale?: number;
+  /** Hrúbka rámu fotky v px. */
+  photoFrameBorderWidth?: number;
+  /** Horizontálny posun fotky vo vnútri rámca (px). */
+  photoOffsetX?: number;
+  /** Vertikálny posun fotky vo vnútri rámca (px). */
+  photoOffsetY?: number;
 }
 
 const DEFAULT_CELL_FIELDS: CellFieldsConfig = {
@@ -124,6 +151,15 @@ export const DEFAULT_CHART_APPEARANCE: ChartAppearanceState = {
   rowGap: 28,
   nodeGapX: 24,
   visibleCardColors: undefined,
+  nodeScale: 1,
+  nodeWidthScale: 1,
+  nodeHeightScale: 1,
+  fontScale: 1,
+  photoScale: 1,
+  photoFrameScale: 1,
+  photoFrameBorderWidth: 3,
+  photoOffsetX: 0,
+  photoOffsetY: 0,
 };
 
 const STORAGE_KEY = "org-chart-appearance";
@@ -166,6 +202,15 @@ function mergeAppearance(
     rowGap: partial.rowGap ?? base.rowGap ?? 28,
     nodeGapX: partial.nodeGapX ?? base.nodeGapX ?? 24,
     visibleCardColors: partial.visibleCardColors !== undefined ? partial.visibleCardColors : base.visibleCardColors,
+    nodeScale: partial.nodeScale ?? base.nodeScale ?? 1,
+    nodeWidthScale: partial.nodeWidthScale ?? base.nodeWidthScale ?? 1,
+    nodeHeightScale: partial.nodeHeightScale ?? base.nodeHeightScale ?? 1,
+    fontScale: partial.fontScale ?? base.fontScale ?? 1,
+    photoScale: partial.photoScale ?? base.photoScale ?? 1,
+    photoFrameScale: partial.photoFrameScale ?? base.photoFrameScale ?? 1,
+    photoFrameBorderWidth: partial.photoFrameBorderWidth ?? base.photoFrameBorderWidth ?? 3,
+    photoOffsetX: partial.photoOffsetX ?? base.photoOffsetX ?? 0,
+    photoOffsetY: partial.photoOffsetY ?? base.photoOffsetY ?? 0,
   };
 }
 

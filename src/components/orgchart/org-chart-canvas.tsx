@@ -28,7 +28,6 @@ import { ExpandCollapseButton } from "@/components/orgchart/expand-collapse-butt
 import { HierarchySidebar } from "@/components/orgchart/hierarchy-sidebar";
 import { DepartmentBar } from "@/components/orgchart/department-bar";
 import { CellDetailPanel } from "@/components/orgchart/cell-detail-panel";
-import { ViewControls } from "@/components/orgchart/view-controls";
 import {
   CARD_COLOR_PALETTE,
   getNodeAccent,
@@ -134,6 +133,14 @@ type OrgNodeData = {
   hideHandles?: boolean;
   /** Farby KAT z nastavení (pre fallback v NodeCard). */
   effectiveKatColors?: Record<string, string>;
+  nodeWidth: number;
+  nodeHeight: number;
+  fontScale: number;
+  photoScale: number;
+  photoFrameScale: number;
+  photoFrameBorderWidth: number;
+  photoOffsetX: number;
+  photoOffsetY: number;
 };
 
 type OrgFlowNode = Node<OrgNodeData, "orgNode"> | Node<VacancyNodeData, "vacancy"> | Node<RootNodeData, "root">;
@@ -199,10 +206,36 @@ function loadDepartmentManagers(): Record<string, string> {
   }
 }
 
+function loadEmployeePhotoOffsets(): Record<string, { x: number; y: number }> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem("org-chart-employee-photo-offsets");
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, { x?: number; y?: number }>;
+    if (typeof parsed !== "object" || parsed === null) return {};
+    const next: Record<string, { x: number; y: number }> = {};
+    Object.entries(parsed).forEach(([id, value]) => {
+      if (typeof value?.x === "number" || typeof value?.y === "number") {
+        next[id] = { x: Number(value.x ?? 0), y: Number(value.y ?? 0) };
+      }
+    });
+    return next;
+  } catch {
+    return {};
+  }
+}
+
 function saveCollapsedNodes(set: Set<string>) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_COLLAPSED_NODES, JSON.stringify([...set]));
+  } catch {}
+}
+
+function saveEmployeePhotoOffsets(value: Record<string, { x: number; y: number }>) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("org-chart-employee-photo-offsets", JSON.stringify(value));
   } catch {}
 }
 
@@ -506,7 +539,7 @@ function OrgNode({ data }: NodeProps<Node<OrgNodeData, "orgNode">>) {
       {showHandles && <Handle type="target" position={Position.Top} id={TARGET_HANDLE_ID} />}
       <div
         className="flex flex-col items-center justify-start pt-2"
-        style={{ width: NODE_WIDTH, minHeight: NODE_HEIGHT }}
+        style={{ width: data.nodeWidth, minHeight: data.nodeHeight }}
       >
         <div className="relative">
           <NodeCard
@@ -528,6 +561,14 @@ function OrgNode({ data }: NodeProps<Node<OrgNodeData, "orgNode">>) {
             photoUrl={data.photoUrl ?? null}
             totalSubordinateCount={data.totalSubordinateCount}
             effectiveKatColors={data.effectiveKatColors}
+            fontScale={data.fontScale}
+            photoScale={data.photoScale}
+            photoFrameScale={data.photoFrameScale}
+            photoFrameBorderWidth={data.photoFrameBorderWidth}
+            photoOffsetX={data.photoOffsetX}
+            photoOffsetY={data.photoOffsetY}
+            nodeWidth={data.nodeWidth}
+            nodeHeight={data.nodeHeight}
           />
           {showExpand && (
             <div className="absolute bottom-2 right-2">
@@ -545,8 +586,8 @@ function OrgNode({ data }: NodeProps<Node<OrgNodeData, "orgNode">>) {
 }
 
 /** Pevná šírka/výška karty zamestnanca – používa sa pre rozloženie aj obal OrgNode (bez prekrývania). */
-const NODE_WIDTH = 280;
-const NODE_HEIGHT = 160;
+const BASE_NODE_WIDTH = 280;
+const BASE_NODE_HEIGHT = 160;
 /** Minimálna medzera medzi kartami zamestnancov (rovnako ako medzi strediskami – žiadne prekrývanie). */
 const MIN_NODE_GAP_X = 24;
 const MIN_NODE_GAP_Y = 24;
@@ -557,17 +598,17 @@ const LAYOUT_ROW_GAP = 28;
 const LAYOUT_NODE_GAP_X = 24;
 const STREDISKO_Y = 200;
 /** Klasické: priestranné, žiadne prekrývanie. */
-const TREE_STEP_X = NODE_WIDTH + MIN_NODE_GAP_X + 4;       // 308
-const TREE_STEP_Y = NODE_HEIGHT + MIN_NODE_GAP_Y + 4;      // 188
+const TREE_STEP_X = BASE_NODE_WIDTH + MIN_NODE_GAP_X + 4;       // 308
+const TREE_STEP_Y = BASE_NODE_HEIGHT + MIN_NODE_GAP_Y + 4;      // 188
 /** Jedno oddelenie. */
-const TREE_STEP_X_SINGLE = NODE_WIDTH + MIN_NODE_GAP_X;    // 304
-const TREE_STEP_Y_SINGLE = NODE_HEIGHT + MIN_NODE_GAP_Y;   // 184
+const TREE_STEP_X_SINGLE = BASE_NODE_WIDTH + MIN_NODE_GAP_X;    // 304
+const TREE_STEP_Y_SINGLE = BASE_NODE_HEIGHT + MIN_NODE_GAP_Y;   // 184
 /** Kompaktný: minimálne rozostupy bez prekrývania. */
-const TREE_STEP_X_COMPACT = NODE_WIDTH + MIN_NODE_GAP_X;   // 304
-const TREE_STEP_Y_COMPACT = NODE_HEIGHT + MIN_NODE_GAP_Y;  // 184
+const TREE_STEP_X_COMPACT = BASE_NODE_WIDTH + MIN_NODE_GAP_X;   // 304
+const TREE_STEP_Y_COMPACT = BASE_NODE_HEIGHT + MIN_NODE_GAP_Y;  // 184
 /** Horizontálne: čisté úrovne, väčšie kroky. */
-const TREE_STEP_X_HORIZ = NODE_WIDTH + MIN_NODE_GAP_X + 16; // 320
-const TREE_STEP_Y_HORIZ = NODE_HEIGHT + MIN_NODE_GAP_Y + 4;  // 188
+const TREE_STEP_X_HORIZ = BASE_NODE_WIDTH + MIN_NODE_GAP_X + 16; // 320
+const TREE_STEP_Y_HORIZ = BASE_NODE_HEIGHT + MIN_NODE_GAP_Y + 4;  // 188
 const HORIZ_GAP = 28;
 
 const EDGE_TYPE_MAP: Record<ConnectionLineStyle, "straight" | "step" | "smoothstep"> = {
@@ -637,9 +678,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const onSettingsChangeRef = useRef(onSettingsChange);
   onSettingsChangeRef.current = onSettingsChange;
 
-  const [showEmployeeId, setShowEmployeeId] = useState(true);
-  const [showDepartment, setShowDepartment] = useState(true);
+  const showEmployeeId = true;
+  const showDepartment = true;
   const [showCellSettings, setShowCellSettings] = useState(false);
+  const [showKatColorsSettings, setShowKatColorsSettings] = useState(false);
   const [chartAppearance, setChartAppearanceState] = useState<ChartAppearanceState>(() =>
     useDbSettings && initialSettings?.appearance
       ? { ...DEFAULT_CHART_APPEARANCE, ...initialSettings.appearance }
@@ -653,6 +695,22 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     },
     [onSettingsChange],
   );
+  const nodeScale = Math.min(2.2, Math.max(0.6, chartAppearance.nodeScale ?? 1));
+  const nodeWidthScale = Math.min(2.4, Math.max(0.6, chartAppearance.nodeWidthScale ?? 1));
+  const nodeHeightScale = Math.min(2.6, Math.max(0.6, chartAppearance.nodeHeightScale ?? 1));
+  const fontScale = Math.min(2.2, Math.max(0.7, chartAppearance.fontScale ?? 1));
+  const photoScale = Math.min(4.5, Math.max(0.5, chartAppearance.photoScale ?? 1));
+  const photoFrameScale = Math.min(3.5, Math.max(0.5, chartAppearance.photoFrameScale ?? 1));
+  const photoFrameBorderWidth = Math.min(8, Math.max(0, chartAppearance.photoFrameBorderWidth ?? 3));
+  const photoOffsetX = Math.min(80, Math.max(-80, chartAppearance.photoOffsetX ?? 0));
+  const photoOffsetY = Math.min(80, Math.max(-80, chartAppearance.photoOffsetY ?? 0));
+  // Keď sa zväčší písmo alebo fotka, bunka sa automaticky dorovná,
+  // aby zostali všetky bunky rovnako veľké a nič nepretieklo.
+  const autoScaleFromContent = Math.max(fontScale, photoScale, photoFrameScale);
+  const effectiveWidthScale = Math.max(nodeScale * nodeWidthScale, autoScaleFromContent * 0.9);
+  const effectiveHeightScale = Math.max(nodeScale * nodeHeightScale, autoScaleFromContent);
+  const nodeWidth = Math.round(BASE_NODE_WIDTH * effectiveWidthScale);
+  const nodeHeight = Math.round(BASE_NODE_HEIGHT * effectiveHeightScale);
   const [generalManagerId, setGeneralManagerIdState] = useState<string | null>(() =>
     getInitialFromSettings(initialSettings, "generalManagerId", loadGeneralManagerId) ?? FALLBACK_GM_EMPLOYEE_ID,
   );
@@ -749,6 +807,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const [employeeColors, setEmployeeColorsState] = useState<Record<string, string>>(() =>
     getInitialFromSettings(initialSettings, "employeeColors", loadEmployeeColors),
   );
+  const [employeePhotoOffsets, setEmployeePhotoOffsetsState] = useState<
+    Record<string, { x: number; y: number }>
+  >(() => getInitialFromSettings(initialSettings, "employeePhotoOffsets", loadEmployeePhotoOffsets));
   const [childLayoutByNodeId, setChildLayoutByNodeIdState] = useState<Record<string, ChildLayoutStyle>>(() => {
     const fromSettings = initialSettings?.employeeChildLayout;
     if (fromSettings && typeof fromSettings === "object") {
@@ -1058,7 +1119,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         : (rootChildStyle === "pairs" || rootChildStyle === "fours")
           ? layoutRowGap * 0.65
           : layoutRowGap;
-    const firstRowY = ROOT_Y + NODE_HEIGHT + firstRowGap;
+    const firstRowY = ROOT_Y + nodeHeight + firstRowGap;
     switch (expansionStyle) {
       case "horizontal": {
         const startX = 80;
@@ -1067,8 +1128,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           getChildrenForLayout,
           startX,
           centerY,
-          NODE_WIDTH,
-          NODE_HEIGHT,
+          nodeWidth,
+          nodeHeight,
           layoutRowGap,
           layoutNodeGapX,
         );
@@ -1078,8 +1139,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           getChildrenForLayout,
           centerX,
           firstRowY,
-          NODE_WIDTH,
-          NODE_HEIGHT,
+          nodeWidth,
+          nodeHeight,
           layoutRowGap,
           layoutNodeGapX,
         );
@@ -1088,8 +1149,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           getChildrenForLayout,
           centerX,
           firstRowY,
-          NODE_WIDTH,
-          NODE_HEIGHT,
+          nodeWidth,
+          nodeHeight,
           layoutRowGap,
           layoutNodeGapX,
         );
@@ -1099,14 +1160,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           getChildrenForLayout,
           centerX,
           firstRowY,
-          NODE_WIDTH,
-          NODE_HEIGHT,
+          nodeWidth,
+          nodeHeight,
           layoutRowGap,
           layoutNodeGapX,
           (nodeId) => childLayoutByNodeId[nodeId === "root" ? effectiveRootId ?? "" : nodeId],
         );
     }
-  }, [getChildrenForLayout, expansionStyle, childLayoutByNodeId, effectiveRootId, layoutRowGap, layoutNodeGapX]);
+  }, [getChildrenForLayout, expansionStyle, childLayoutByNodeId, effectiveRootId, layoutRowGap, layoutNodeGapX, nodeWidth, nodeHeight]);
 
   /** Všetky id v strome (GM + jeho potomkovia). */
   /** Len uzly skutočne zobrazené – pri zbalenej vetve sa jej podriadení nezahrnú (schovajú). */
@@ -1151,8 +1212,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     const centerX = 520;
     const rootPos =
       expansionStyle === "horizontal"
-        ? { x: 80, y: 360 - NODE_HEIGHT / 2 }
-        : { x: centerX - 140, y: ROOT_Y };
+        ? { x: 80, y: 360 - nodeHeight / 2 }
+        : { x: centerX - nodeWidth / 2, y: ROOT_Y };
     const template: Record<string, { x: number; y: number }> = { root: rootPos };
     hierarchyLayoutPositions.forEach((pos, id) => {
       template[id] = pos;
@@ -1164,7 +1225,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       else savePositions(next);
       return next;
     });
-  }, [hierarchyLayoutPositions, expansionStyle]);
+  }, [hierarchyLayoutPositions, expansionStyle, nodeHeight, nodeWidth]);
 
   /** Pri zmene zbalenia, rozloženia alebo štýlu vždy prepočítať pozície podľa šablóny, aby sa sekcie neprekrývali. */
   const didMountRef = useRef(false);
@@ -1179,8 +1240,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     const centerX = 520;
     const rootPos =
       expansionStyle === "horizontal"
-        ? { x: 80, y: 360 - NODE_HEIGHT / 2 }
-        : { x: centerX - 140, y: ROOT_Y };
+        ? { x: 80, y: 360 - nodeHeight / 2 }
+        : { x: centerX - nodeWidth / 2, y: ROOT_Y };
     const template: Record<string, { x: number; y: number }> = { root: rootPos };
     hierarchyLayoutPositions.forEach((pos, id) => {
       template[id] = pos;
@@ -1200,6 +1261,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     hierarchyLayoutPositions,
     layoutRowGap,
     layoutNodeGapX,
+    nodeHeight,
+    nodeWidth,
   ]);
 
   /** Zbaliť všetky vetvy okrem root – zostane len vrchol a priama línia pod ním. Potom prirítniť pohľad. */
@@ -1229,8 +1292,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     const rootPos =
       nodePositions["root"] ??
       (expansionStyle === "horizontal"
-        ? { x: 80, y: 360 - NODE_HEIGHT / 2 }
-        : { x: centerX - 140, y: ROOT_Y });
+        ? { x: 80, y: 360 - nodeHeight / 2 }
+        : { x: centerX - nodeWidth / 2, y: ROOT_Y });
     const appearance = chartAppearance;
     const rootAccent = getNodeAccent(appearance, { levelIndex: 0 });
     const hideHandles = hideHandlesBubble(appearance);
@@ -1243,6 +1306,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         kat: record.kat ?? undefined,
       });
       const customColor = employeeColors[record.employeeId];
+      const customPhotoOffset = employeePhotoOffsets[record.employeeId];
       const resolvedAccent =
         customColor
           ? { type: "solid" as const, color: customColor }
@@ -1271,6 +1335,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           onToggleCollapse: () => toggleCollapsed("root"),
           hideHandles,
           effectiveKatColors,
+          nodeWidth,
+          nodeHeight,
+          fontScale,
+          photoScale,
+          photoFrameScale,
+          photoFrameBorderWidth,
+          photoOffsetX: photoOffsetX + (customPhotoOffset?.x ?? 0),
+          photoOffsetY: photoOffsetY + (customPhotoOffset?.y ?? 0),
         },
       });
     } else if (rootDisplay.type === "vacancy") {
@@ -1347,6 +1419,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           kat: record.kat ?? undefined,
         });
         const customColor = employeeColors[record.employeeId];
+        const customPhotoOffset = employeePhotoOffsets[record.employeeId];
         const resolvedAccent =
           customColor
             ? { type: "solid" as const, color: customColor }
@@ -1379,6 +1452,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             onToggleCollapse: () => toggleCollapsed(record.employeeId),
             hideHandles,
             effectiveKatColors,
+          nodeWidth,
+          nodeHeight,
+          fontScale,
+          photoScale,
+          photoFrameScale,
+          photoFrameBorderWidth,
+          photoOffsetX: photoOffsetX + (customPhotoOffset?.x ?? 0),
+          photoOffsetY: photoOffsetY + (customPhotoOffset?.y ?? 0),
           },
         });
       }
@@ -1405,7 +1486,17 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     rootHasChildren,
     rootIsCollapsed,
     employeeColors,
+    employeePhotoOffsets,
     effectiveKatColors,
+    t,
+    nodeWidth,
+    nodeHeight,
+    fontScale,
+    photoScale,
+    photoFrameScale,
+    photoFrameBorderWidth,
+    photoOffsetX,
+    photoOffsetY,
   ]);
 
   /** Pre vybraného zamestnanca: zoznam priamych podriadených v aktuálnom poradí (pre panel „Poradie podriadených“). */
@@ -1515,8 +1606,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
     const defaultRootPos =
       expansionStyle === "horizontal"
-        ? { x: 80, y: 360 - NODE_HEIGHT / 2 }
-        : { x: 520 - 140, y: ROOT_Y };
+        ? { x: 80, y: 360 - nodeHeight / 2 }
+        : { x: 520 - nodeWidth / 2, y: ROOT_Y };
     const getNodePosition = (id: string) => {
       if (id === "root") return nodePositions["root"] ?? defaultRootPos;
       return nodePositions[id] ?? hierarchyLayoutPositions.get(id) ?? { x: 0, y: 0 };
@@ -1525,7 +1616,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       parentId === "root"
         ? (childLayoutByNodeId[effectiveRootId ?? ""] ?? "row")
         : (childLayoutByNodeId[parentId] ?? "row");
-    const useTreeBranchLines = (parentId: string, childCount: number) => {
+    const shouldUseTreeBranchLines = (parentId: string, childCount: number) => {
       if (childCount === 0) return false;
       const style = getChildLayoutStyle(parentId);
       return style === "pairs" || style === "fours";
@@ -1570,7 +1661,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       visibleIds !== null && (!visibleIds.has(source) || !visibleIds.has(target));
 
     const rootKids = getChildrenForLayout("root");
-    const rootUseTreeBranch = useTreeBranchLines("root", rootKids.length);
+    const rootUseTreeBranch = shouldUseTreeBranchLines("root", rootKids.length);
     const rootRowSize = getRowSize("root");
     const pairsRowGap = layoutRowGap / 2;
     rootKids.forEach((childId, idx) => {
@@ -1595,7 +1686,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     nodeIdsInTree.forEach((parentId) => {
       const children = getChildrenForLayout(parentId);
       const sourceHandle = isVacancyId(parentId) ? vacancyHandleIds.source : SOURCE_HANDLE_ID;
-      const useTreeBranch = useTreeBranchLines(parentId, children.length);
+      const useTreeBranch = shouldUseTreeBranchLines(parentId, children.length);
       const rowSize = getRowSize(parentId);
       children.forEach((childId, idx) => {
         if (skipEdge(parentId, childId)) return;
@@ -1629,6 +1720,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     expansionStyle,
     layoutRowGap,
     visibleNodeIdsByColor,
+    nodeWidth,
+    nodeHeight,
   ]);
 
   const onNodesChange = useCallback(
@@ -1773,32 +1866,93 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         import("html-to-image"),
         import("jspdf"),
       ]);
+      const exportBackground = "#f8fafc";
       const canvas = await toCanvas(container, {
         pixelRatio: 4,
         cacheBust: true,
-        backgroundColor: "#f8fafc",
+        backgroundColor: exportBackground,
         skipFonts: false,
         filter: (node) => {
           const el = node as HTMLElement;
           return !el.classList?.contains("react-flow__controls");
         },
       });
-      const imgData = canvas.toDataURL("image/png");
+      const cropCanvasToContent = (source: HTMLCanvasElement): HTMLCanvasElement => {
+        const ctx = source.getContext("2d");
+        if (!ctx) return source;
+
+        const { width, height } = source;
+        const image = ctx.getImageData(0, 0, width, height);
+        const pixels = image.data;
+        const bg = { r: 248, g: 250, b: 252 };
+        const colorTolerance = 8;
+        const alphaThreshold = 8;
+
+        let minX = width;
+        let minY = height;
+        let maxX = -1;
+        let maxY = -1;
+
+        for (let y = 0; y < height; y += 1) {
+          for (let x = 0; x < width; x += 1) {
+            const i = (y * width + x) * 4;
+            const r = pixels[i];
+            const g = pixels[i + 1];
+            const b = pixels[i + 2];
+            const a = pixels[i + 3];
+            if (
+              a > alphaThreshold &&
+              (Math.abs(r - bg.r) > colorTolerance ||
+                Math.abs(g - bg.g) > colorTolerance ||
+                Math.abs(b - bg.b) > colorTolerance)
+            ) {
+              if (x < minX) minX = x;
+              if (y < minY) minY = y;
+              if (x > maxX) maxX = x;
+              if (y > maxY) maxY = y;
+            }
+          }
+        }
+
+        if (maxX < minX || maxY < minY) return source;
+
+        const padding = 24;
+        const cropX = Math.max(0, minX - padding);
+        const cropY = Math.max(0, minY - padding);
+        const cropW = Math.min(width - cropX, maxX - minX + 1 + padding * 2);
+        const cropH = Math.min(height - cropY, maxY - minY + 1 + padding * 2);
+
+        if (cropW <= 0 || cropH <= 0) return source;
+
+        const cropped = document.createElement("canvas");
+        cropped.width = cropW;
+        cropped.height = cropH;
+        const croppedCtx = cropped.getContext("2d");
+        if (!croppedCtx) return source;
+        croppedCtx.fillStyle = exportBackground;
+        croppedCtx.fillRect(0, 0, cropW, cropH);
+        croppedCtx.drawImage(source, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+        return cropped;
+      };
+
+      const croppedCanvas = cropCanvasToContent(canvas);
+      const imgData = croppedCanvas.toDataURL("image/png");
       const doc = new jsPDF({
-        orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+        orientation: croppedCanvas.width > croppedCanvas.height ? "landscape" : "portrait",
         unit: "mm",
         format: "a4",
       });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
       const pixelToMm = 25.4 / 96;
-      let w = canvas.width * pixelToMm;
-      let h = canvas.height * pixelToMm;
-      if (w > pageW || h > pageH) {
-        const scale = Math.min(pageW / w, pageH / h);
-        w *= scale;
-        h *= scale;
-      }
+      const pageMarginMm = 6;
+      const availableW = Math.max(pageW - pageMarginMm * 2, 1);
+      const availableH = Math.max(pageH - pageMarginMm * 2, 1);
+      const sourceW = croppedCanvas.width * pixelToMm;
+      const sourceH = croppedCanvas.height * pixelToMm;
+      const scale = Math.min(availableW / sourceW, availableH / sourceH);
+      const w = sourceW * scale;
+      const h = sourceH * scale;
       const x = (pageW - w) / 2;
       const y = (pageH - h) / 2;
       doc.addImage(imgData, "PNG", x, y, w, h);
@@ -1989,15 +2143,6 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
       {showCellSettings && (
         <div className="space-y-4">
-          <ViewControls
-            showEmployeeId={showEmployeeId}
-            showDepartment={showDepartment}
-            selectedDepartment="all"
-            departments={[]}
-            onShowEmployeeIdChange={setShowEmployeeId}
-            onShowDepartmentChange={setShowDepartment}
-            onDepartmentChange={() => {}}
-          />
           <ChartAppearanceControls
             appearance={chartAppearance}
             onAppearanceChange={setChartAppearance}
@@ -2007,65 +2152,77 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             onSettingsChange &&
             chartAppearance.colorScheme === "byPosition" && (
               <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-3">
-                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Farby kategórií (KAT)
-                </h4>
-                <p className="mb-3 text-xs text-slate-600">
-                  Jednotná farba pre všetky bunky danej kategórie (SAL, INDIR1, INDIR2, INDIR3).
-                </p>
-                <div className="space-y-2">
-                  {(["SAL", "INDIR1", "INDIR2", "INDIR3"] as const).map((katKey) => {
-                    const currentHex =
-                      effectiveKatColors[katKey] ??
-                      (brandTokens.katColors as Record<string, string>)[katKey] ??
-                      "#64748b";
-                    return (
-                      <div key={katKey} className="flex items-center gap-2">
-                        <span className="w-14 shrink-0 text-sm font-medium text-slate-700">{katKey}</span>
-                        <input
-                          type="color"
-                          value={currentHex}
-                          onChange={(e) => {
-                            const next = {
-                              ...(initialSettings?.katColors ?? {}),
-                              [katKey]: e.target.value,
-                            };
-                            onSettingsChange({ katColors: next });
-                          }}
-                          className="h-9 w-14 cursor-pointer rounded border border-slate-300"
-                        />
-                        <input
-                          type="text"
-                          value={currentHex}
-                          onChange={(e) => {
-                            const v = e.target.value.trim();
-                            if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
-                              onSettingsChange({
-                                katColors: {
+                <button
+                  type="button"
+                  onClick={() => setShowKatColorsSettings((v) => !v)}
+                  className="flex w-full items-center justify-between text-left"
+                  aria-expanded={showKatColorsSettings}
+                >
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Farby kategórií (KAT)
+                  </span>
+                  <span className="text-slate-400">{showKatColorsSettings ? "▼" : "▶"}</span>
+                </button>
+                {showKatColorsSettings && (
+                  <>
+                    <p className="mb-3 mt-2 text-xs text-slate-600">
+                      Jednotná farba pre všetky bunky danej kategórie (SAL, INDIR1, INDIR2, INDIR3).
+                    </p>
+                    <div className="space-y-2">
+                      {(["SAL", "INDIR1", "INDIR2", "INDIR3"] as const).map((katKey) => {
+                        const currentHex =
+                          effectiveKatColors[katKey] ??
+                          (brandTokens.katColors as Record<string, string>)[katKey] ??
+                          "#64748b";
+                        return (
+                          <div key={katKey} className="flex items-center gap-2">
+                            <span className="w-14 shrink-0 text-sm font-medium text-slate-700">{katKey}</span>
+                            <input
+                              type="color"
+                              value={currentHex}
+                              onChange={(e) => {
+                                const next = {
                                   ...(initialSettings?.katColors ?? {}),
-                                  [katKey]: v,
-                                },
-                              });
-                            }
-                          }}
-                          className="w-24 rounded border border-slate-300 px-2 py-1 text-sm font-mono"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = { ...(initialSettings?.katColors ?? {}) };
-                            delete next[katKey];
-                            onSettingsChange({ katColors: Object.keys(next).length ? next : undefined });
-                          }}
-                          className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
-                          title={t("orgChart.resetColor")}
-                        >
-                          Obnoviť
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+                                  [katKey]: e.target.value,
+                                };
+                                onSettingsChange({ katColors: next });
+                              }}
+                              className="h-9 w-14 cursor-pointer rounded border border-slate-300"
+                            />
+                            <input
+                              type="text"
+                              value={currentHex}
+                              onChange={(e) => {
+                                const v = e.target.value.trim();
+                                if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+                                  onSettingsChange({
+                                    katColors: {
+                                      ...(initialSettings?.katColors ?? {}),
+                                      [katKey]: v,
+                                    },
+                                  });
+                                }
+                              }}
+                              className="w-24 rounded border border-slate-300 px-2 py-1 text-sm font-mono"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = { ...(initialSettings?.katColors ?? {}) };
+                                delete next[katKey];
+                                onSettingsChange({ katColors: Object.keys(next).length ? next : undefined });
+                              }}
+                              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
+                              title={t("orgChart.resetColor")}
+                            >
+                              Obnoviť
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </section>
             )}
         </div>
@@ -2092,10 +2249,6 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           onExpansionStyleChange={(style) =>
             setChartAppearance({ ...chartAppearance, expansionStyle: style })
           }
-          layoutType={chartAppearance.layoutType ?? "vertical"}
-          onLayoutTypeChange={(layout) =>
-            setChartAppearance({ ...chartAppearance, layoutType: layout })
-          }
           onAddVacancy={(title, parentId) => {
             const id = generateVacancyId();
             const v: VacancyPlaceholder = { id, title, parentId };
@@ -2111,9 +2264,25 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         />
         <div
           ref={chartContainerRef}
-          className="relative min-w-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-[#f8fafc]"
+          className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[#f8fafc]"
           style={{ height: "72vh" }}
         >
+          <div className="flex shrink-0 flex-col items-center justify-center gap-1 border-b border-slate-200 bg-white px-4 py-2">
+            <img
+              src="/artifex-logo.png"
+              alt="Artifex"
+              className="h-8 w-auto object-contain"
+              width={96}
+              height={32}
+            />
+            <span
+              className="text-sm font-semibold tracking-wide text-[#21394F]"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Artifex Systems Slovakia
+            </span>
+          </div>
+          <div className="relative min-h-0 flex-1 overflow-hidden">
           <ReactFlow
             onInit={(instance) => {
               reactFlowInstanceRef.current = instance;
@@ -2174,6 +2343,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             )}
             <Controls />
           </ReactFlow>
+          </div>
         </div>
 
         {rightPanelCollapsed ? (
@@ -2292,6 +2462,42 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                         ...rawRecords.map((e) => ({ value: e.employeeId, label: `${e.fullName} (#${e.employeeId})` })),
                         ...vacancies.map((v) => ({ value: v.id, label: `[Voľná] ${v.title}` })),
                       ]
+                    : undefined
+                }
+                employeePhotoOffset={
+                  selectedEmployeeId ? (employeePhotoOffsets[selectedEmployeeId] ?? { x: 0, y: 0 }) : null
+                }
+                onPhotoOffsetChange={
+                  allowEdit && selectedEmployeeId
+                    ? (id, offset) => {
+                        setEmployeePhotoOffsetsState((prev) => {
+                          const next = {
+                            ...prev,
+                            [id]: {
+                              x: Math.min(40, Math.max(-40, Number(offset.x) || 0)),
+                              y: Math.min(40, Math.max(-40, Number(offset.y) || 0)),
+                            },
+                          };
+                          const cb = onSettingsChangeRef.current;
+                          if (cb) queueMicrotask(() => cb({ employeePhotoOffsets: next }));
+                          else saveEmployeePhotoOffsets(next);
+                          return next;
+                        });
+                      }
+                    : undefined
+                }
+                onPhotoOffsetReset={
+                  allowEdit && selectedEmployeeId
+                    ? (id) => {
+                        setEmployeePhotoOffsetsState((prev) => {
+                          const next = { ...prev };
+                          delete next[id];
+                          const cb = onSettingsChangeRef.current;
+                          if (cb) queueMicrotask(() => cb({ employeePhotoOffsets: next }));
+                          else saveEmployeePhotoOffsets(next);
+                          return next;
+                        });
+                      }
                     : undefined
                 }
                 onManagerChange={
