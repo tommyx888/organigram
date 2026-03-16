@@ -15,8 +15,10 @@ export type NodeVisualStyle =
   | "banner"
   | "hexBadge"
   | "stackedCorporate"
-  | "classicBoard";
-/** card = klasická karta s hlavičkou; gradient = hexagon + zaoblený obdĺžnik s gradientom; pill = kruh (avatar) + kapsula; bubble = zaoblená bublina s ikonou; executive = minimalistická karta s avatarom hore; banner = farebný pásikový blok; hexBadge = hexagon avatar + štítok; stackedCorporate = svetlá karta s avatarom v hornej časti; classicBoard = starší „board“ štýl s ľavým avatarom */
+  | "classicBoard"
+  | "profileRibbon"
+  | "infoPill";
+/** card = klasická karta s hlavičkou; gradient = hexagon + zaoblený obdĺžnik s gradientom; pill = kruh (avatar) + kapsula; bubble = zaoblená bublina s ikonou; executive = minimalistická karta s avatarom hore; banner = farebný pásikový blok; hexBadge = hexagon avatar + štítok; stackedCorporate = svetlá karta s avatarom v hornej časti; classicBoard = starší „board“ štýl s ľavým avatarom; profileRibbon = veľký avatar vľavo + horný ribbon + číslo v badge */
 
 export type ColorScheme = "byPosition" | "byBranch" | "byLevel" | "unified";
 /** byPosition = podľa KAT/position type; byBranch = podľa oddelenia/strediska; byLevel = root / 2. úroveň / 3. úroveň; unified = jedna farba */
@@ -41,6 +43,8 @@ export const CARD_COLOR_PALETTE: { hex: string; label: string }[] = [
   { hex: "#6b21a8", label: "Fialová" },
   { hex: "#15803d", label: "Zelená" },
   { hex: "#4f46e5", label: "Indigo" },
+  { hex: "#21394F", label: "Artifex Navy" },
+  { hex: "#949C58", label: "Artifex Olive" },
 ];
 
 /** Štýl rozloženia pri rozbalení: deti priamo pod rodičom, vrstvy, vedľa seba, dva stĺpce. */
@@ -130,12 +134,24 @@ const DEFAULT_BRANCH_COLORS = [
 
 export const DEFAULT_UNIFIED_COLOR = "#21394F";
 
+/** Artifex guideline paleta pre rýchle nastavenie vzhľadu organigramu. */
+export const ARTIFEX_GUIDELINE_BRANCH_COLORS = [
+  "#21394F", // navy
+  "#949C58", // olive
+];
+
+export const ARTIFEX_GUIDELINE_LEVEL_COLORS: [string, string][] = [
+  ["#21394F", "#949C58"], // root
+  ["#21394F", "#949C58"], // level 2
+  ["#21394F", "#949C58"], // level 3
+];
+
 export const DEFAULT_CHART_APPEARANCE: ChartAppearanceState = {
   connection: {
-    lineStyle: "straight",
+    lineStyle: "step",
     strokeWidth: 2,
     marker: "arrowClosed",
-    strokeColor: "#94A3B8",
+    strokeColor: null,
     useBranchColorOnEdges: false,
   },
   nodeStyle: "card",
@@ -161,6 +177,27 @@ export const DEFAULT_CHART_APPEARANCE: ChartAppearanceState = {
   photoOffsetX: 0,
   photoOffsetY: 0,
 };
+
+export function applyArtifexGuidelineColors(
+  state: ChartAppearanceState,
+  mode: "byBranch" | "byLevel" | "unified" = "byBranch",
+): ChartAppearanceState {
+  const unified = "#21394F";
+  const nextScheme: ColorScheme =
+    mode === "byLevel" ? "byLevel" : mode === "unified" ? "unified" : "byBranch";
+  return {
+    ...state,
+    colorScheme: nextScheme,
+    unifiedColor: unified,
+    branchColors: [...ARTIFEX_GUIDELINE_BRANCH_COLORS],
+    levelColors: [...ARTIFEX_GUIDELINE_LEVEL_COLORS],
+    connection: {
+      ...state.connection,
+      strokeColor: "#949C58",
+      useBranchColorOnEdges: nextScheme === "byBranch",
+    },
+  };
+}
 
 const STORAGE_KEY = "org-chart-appearance";
 

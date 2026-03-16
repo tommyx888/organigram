@@ -12,6 +12,7 @@ import type {
   NodeVisualStyle,
 } from "@/lib/org/chart-appearance";
 import {
+  applyArtifexGuidelineColors,
   DEFAULT_CHART_APPEARANCE,
   DEFAULT_UNIFIED_COLOR,
 } from "@/lib/org/chart-appearance";
@@ -36,6 +37,8 @@ const NODE_STYLE_KEYS: Record<NodeVisualStyle, string> = {
   hexBadge: "orgChart.nodeStyleHexBadge",
   stackedCorporate: "orgChart.nodeStyleStackedCorporate",
   classicBoard: "orgChart.nodeStyleClassicBoard",
+  profileRibbon: "orgChart.nodeStyleProfileRibbon",
+  infoPill: "orgChart.nodeStyleInfoPill",
 };
 
 const CONNECTION_STYLE_KEYS: Record<ConnectionLineStyle, string> = {
@@ -652,6 +655,34 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
                 {t(COLOR_SCHEME_KEYS[scheme])}
               </button>
             ))}
+          </div>
+          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/80 p-2.5">
+            <p className="mb-2 text-xs font-medium text-slate-600">
+              Artifex guideline preset
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => onAppearanceChange(applyArtifexGuidelineColors(appearance, "byBranch"))}
+                className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                Artifex vetvy
+              </button>
+              <button
+                type="button"
+                onClick={() => onAppearanceChange(applyArtifexGuidelineColors(appearance, "byLevel"))}
+                className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                Artifex úrovne
+              </button>
+              <button
+                type="button"
+                onClick={() => onAppearanceChange(applyArtifexGuidelineColors(appearance, "unified"))}
+                className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                Artifex jednotná
+              </button>
+            </div>
           </div>
         </section>
 

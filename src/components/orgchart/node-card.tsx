@@ -614,6 +614,291 @@ export function NodeCard(props: NodeCardProps) {
     );
   }
 
+  if (style === "profileRibbon") {
+    const accent = headerColor === "transparent" ? "#2563eb" : headerColor;
+    const badgeValue =
+      props.totalSubordinateCount != null
+        ? `${Math.max(0, Math.min(99, props.totalSubordinateCount))}`
+        : "1";
+    return (
+      <div className="relative" style={{ width: nodeWidth, height: nodeHeight }}>
+        <div
+          className="absolute inset-y-2 right-0 overflow-hidden rounded-[26px] border border-slate-200/70 bg-white"
+          style={{
+            left: Math.round(nodeWidth * 0.17),
+            boxShadow: "0 10px 22px rgba(15,23,42,0.18)",
+          }}
+        >
+          <div
+            className="absolute left-[20%] right-[12%] top-0 h-10 rounded-b-[22px] rounded-t-[22px] text-white"
+            style={{ background: `linear-gradient(90deg, ${accent}, #4f46e5)` }}
+          />
+          <div className="relative flex h-full flex-col px-4 pb-3 pt-2">
+            {fields.name && (
+              <p
+                className="self-center truncate font-bold uppercase text-white"
+                style={{ maxWidth: "70%", fontSize: fs(12), letterSpacing: "0.04em", lineHeight: 1.1 }}
+                title={props.fullName}
+              >
+                {props.fullName}
+              </p>
+            )}
+            <div className="mt-3 pl-[22%]">
+              {fields.position && (
+                <p
+                  className="line-clamp-1 font-extrabold uppercase"
+                  style={{ color: accent, fontSize: fs(11), letterSpacing: "0.02em" }}
+                  title={props.positionName}
+                >
+                  {props.positionName}
+                </p>
+              )}
+              <p className="mt-1 line-clamp-2 text-slate-500" style={{ fontSize: fs(10), lineHeight: 1.15 }}>
+                {fields.department && props.department}
+                {fields.department && fields.employeeId ? " · " : ""}
+                {fields.employeeId ? `#${props.employeeId}` : ""}
+              </p>
+            </div>
+          </div>
+          <div className="absolute right-3 top-2">
+            <div
+              className="flex items-center justify-center rounded-full text-white"
+              style={{
+                width: Math.round(30 * photoFrameScale),
+                height: Math.round(30 * photoFrameScale),
+                background: `linear-gradient(135deg, ${accent}, #4f46e5)`,
+                boxShadow: "0 4px 10px rgba(79,70,229,0.35)",
+                fontSize: fs(12),
+                fontWeight: 700,
+              }}
+            >
+              {badgeValue}
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="absolute left-0 top-1/2 z-10 -translate-y-1/2 overflow-hidden rounded-full border-[7px] border-white bg-slate-100 shadow-lg"
+          style={{
+            width: Math.round(nodeHeight * 0.72 * photoFrameScale),
+            height: Math.round(nodeHeight * 0.72 * photoFrameScale),
+            borderWidth: Math.max(2, Math.round(photoFrameBorderWidth + 2)),
+          }}
+        >
+          {props.photoUrl ? (
+            <img
+              src={props.photoUrl}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover object-top"
+              style={{ transform: photoTransform, transformOrigin: "center" }}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-slate-400">
+              <svg className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (style === "infoPill") {
+    // ── infoPill v2: veľký kruhový avatar + biela pill + meno ako malý label tag + badge s počtom ──
+    const accent = headerColor === "transparent" ? "#3d5fe0" : headerColor;
+    const bg = gradientBg ?? `linear-gradient(135deg, ${accent} 0%, ${accent}cc 100%)`;
+
+    // Rozmery
+    const avatarD      = Math.round(nodeHeight * 0.88);   // priemer vonkajšieho bieleho kruhu
+    const avatarInner  = avatarD - 10;                    // priemer farebného disku
+    const avatarLeft   = Math.round(-avatarD * 0.1);      // avatar presahuje doľava
+    const pillLeft     = Math.round(avatarD * 0.52);      // pill začína tu
+    const pillR        = nodeHeight / 2;                  // zaoblenie pill
+    // meno label: malý tag na vrchu pill (nie celý header)
+    const labelH       = Math.round(nodeHeight * 0.34);   // výška name labelu
+    // label štartuje od začiatku pill, text je paddingom posunutý za avatar
+    const labelLeft    = 0;                               // label začína od okraja pill
+    const labelPadL    = Math.round(avatarD * 0.52) + 10; // text začína za stredom avatara
+    const bodyTop      = labelH + 4;                      // obsah pod labelom
+    const badgeD       = Math.round(nodeHeight * 0.30);   // badge s počtom podriadených — trochu väčší
+    // +50 % písmo pre infoPill — aplikuje sa na všetky fs() volania nižšie
+    const fsP = (px: number) => `${Math.round(px * fontScale * 1.5)}px`;
+
+    const subCount = props.totalSubordinateCount;
+
+    return (
+      <div className="relative" style={{ width: nodeWidth, height: nodeHeight }}>
+
+        {/* ── BIELA PILL — základ ── */}
+        <div
+          className="absolute"
+          style={{
+            left: pillLeft,
+            top: 0, right: 0, bottom: 0,
+            background: "#ffffff",
+            borderRadius: pillR,
+            boxShadow: "0 8px 28px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        />
+
+        {/* ── MENO — malý farebný label tag na vrchu pill ── */}
+        {fields.name && (
+          <div
+            className="absolute overflow-hidden flex items-center"
+            style={{
+              left: pillLeft + labelLeft,
+              top: Math.round(nodeHeight * 0.06),
+              right: badgeD / 2 + 14,
+              height: labelH,
+              background: bg,
+              borderRadius: `${labelH / 2}px`,
+              paddingLeft: labelPadL,
+              paddingRight: 10,
+              zIndex: 5,
+              boxShadow: `0 3px 12px ${accent}40`,
+            }}
+          >
+            {/* gloss */}
+            <div className="absolute inset-0 rounded-full" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 60%)" }} />
+            <span
+              className="relative truncate font-black uppercase text-white"
+              style={{ fontSize: fsP(12), letterSpacing: "0.08em", zIndex: 1 }}
+              title={props.fullName}
+            >
+              {props.fullName}
+            </span>
+          </div>
+        )}
+
+        {/* ── OBSAH — pozícia, oddelenie, emp ID ── */}
+        <div
+          className="absolute flex flex-col justify-center"
+          style={{
+            left: pillLeft + labelPadL,
+            top: bodyTop + Math.round(nodeHeight * 0.06),
+            right: 18,
+            bottom: Math.round(nodeHeight * 0.08),
+            gap: 3,
+            zIndex: 5,
+          }}
+        >
+          {fields.position && (
+            <p
+              className="truncate font-extrabold uppercase"
+              style={{ color: accent, fontSize: fsP(11), letterSpacing: "0.05em", lineHeight: 1.1 }}
+              title={props.positionName}
+            >
+              {props.positionName}
+            </p>
+          )}
+          {(fields.department || fields.employeeId) && (
+            <p className="truncate text-slate-400" style={{ fontSize: fsP(9), lineHeight: 1.4 }}>
+              {fields.department && props.department}
+              {fields.department && fields.employeeId ? " · " : ""}
+              {fields.employeeId && `#${props.employeeId}`}
+            </p>
+          )}
+          {fields.typeLabel && (
+            <span
+              className="inline-block self-start rounded-full font-bold uppercase tracking-wide text-white"
+              style={{
+                background: accent,
+                fontSize: fsP(8),
+                padding: `2px 8px`,
+                lineHeight: 1.5,
+                marginTop: 1,
+              }}
+            >
+              {headerLabel}
+            </span>
+          )}
+        </div>
+
+        {/* ── AVATAR KRUH — vľavo, vertikálne centrovaný ── */}
+        <div
+          className="absolute"
+          style={{
+            left: avatarLeft,
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: avatarD,
+            height: avatarD,
+            borderRadius: "50%",
+            background: "#ffffff",
+            boxShadow: `0 6px 20px ${accent}44, 0 0 0 3px #fff`,
+            zIndex: 10,
+          }}
+        >
+          {/* farebný disk */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 4,
+              borderRadius: "50%",
+              background: bg,
+              overflow: "hidden",
+            }}
+          >
+            {props.photoUrl ? (
+              /* fotka — kruhový orez, cover */
+              <img
+                src={props.photoUrl}
+                alt=""
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center top",
+                  transform: photoTransform,
+                  transformOrigin: "center",
+                  borderRadius: "50%",
+                }}
+              />
+            ) : (
+              /* fallback SVG ikona */
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg
+                  width={Math.round(avatarInner * 0.5)}
+                  height={Math.round(avatarInner * 0.5)}
+                  viewBox="0 0 40 46"
+                  fill="none"
+                  aria-hidden
+                >
+                  <ellipse cx="20" cy="13" rx="8.5" ry="9.5" fill="rgba(255,255,255,0.9)" />
+                  <path d="M2 44c0-9.941 8.059-16 18-16s18 6.059 18 16" fill="rgba(255,255,255,0.85)" />
+                </svg>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── BADGE — počet podriadených, pravý horný roh ── */}
+        {fields.subordinateCount && subCount !== undefined && (
+          <div
+            className="absolute flex items-center justify-center font-black text-white"
+            style={{
+              top: -Math.round(badgeD * 0.1),
+              right: -Math.round(badgeD * 0.1),
+              width: badgeD,
+              height: badgeD,
+              borderRadius: "50%",
+              background: bg,
+              border: "3px solid #fff",
+              boxShadow: `0 3px 10px ${accent}55`,
+              fontSize: fsP(subCount !== undefined && subCount > 99 ? 8 : 10),
+              zIndex: 20,
+            }}
+          >
+            {subCount}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // card (default) – jedna osoba, čisté linie, dostatok medzier
   return (
     <div

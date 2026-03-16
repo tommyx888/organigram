@@ -188,6 +188,8 @@
     "nodeStyleHexBadge": "Hex badge (hexagon + štítok)",
     "nodeStyleStackedCorporate": "Stacked corporate (svetlá karta)",
     "nodeStyleClassicBoard": "Classic board (retro panel)",
+    "nodeStyleProfileRibbon": "Profile ribbon (avatar + pásik)",
+    "nodeStyleInfoPill": "Info Pill (gradient pill + veľký avatar)",
     "connectionStraight": "Priame",
     "connectionStep": "Pravouhlé (kroky)",
     "connectionSmooth": "Zaoblené kroky",
@@ -249,7 +251,9 @@
     "color4": "Červená",
     "color5": "Fialová",
     "color6": "Zelená",
-    "color7": "Indigo"
+    "color7": "Indigo",
+    "color8": "Artifex Navy",
+    "color9": "Artifex Olive"
   },
   "jobDescriptions": {
     "pageTitle": "Job Description knižnica",

@@ -141,6 +141,8 @@ type OrgNodeData = {
   photoFrameBorderWidth: number;
   photoOffsetX: number;
   photoOffsetY: number;
+  /** Farby priamych detí – pre kruhový prechod na source handle. */
+  childAccentColors?: string[];
 };
 
 type OrgFlowNode = Node<OrgNodeData, "orgNode"> | Node<VacancyNodeData, "vacancy"> | Node<RootNodeData, "root">;
@@ -526,6 +528,46 @@ const hideHandlesBubble =
   (appearance: ChartAppearanceState) =>
     appearance.nodeStyle === "bubble" && (appearance.bubbleSectionsDisconnected ?? false);
 
+/** Farebný kruhový prechod na mieste source handle – zobrazuje farby priamych detí. */
+function BranchHandle({ colors, handleId }: { colors: string[]; handleId: string }) {
+  if (colors.length === 0) return <Handle type="source" position={Position.Bottom} id={handleId} />;
+  const unique = [...new Set(colors)];
+  const size = 14;
+  // conic-gradient: každej farbe rovnaký podiel
+  const stops = unique.map((c, i) => {
+    const from = (i / unique.length) * 100;
+    const to = ((i + 1) / unique.length) * 100;
+    return `${c} ${from}% ${to}%`;
+  }).join(', ');
+  return (
+    <div
+      className="nodrag"
+      style={{
+        position: 'absolute',
+        bottom: -size / 2,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: unique.length === 1 ? unique[0] : `conic-gradient(${stops})`,
+        border: '2px solid #fff',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+        zIndex: 10,
+        pointerEvents: 'none',
+      }}
+    >
+      {/* skrytý ReactFlow handle na rovnakom mieste */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id={handleId}
+        style={{ opacity: 0, width: '100%', height: '100%', bottom: 0, top: 'unset', transform: 'none', borderRadius: '50%' }}
+      />
+    </div>
+  );
+}
+
 function OrgNode({ data }: NodeProps<Node<OrgNodeData, "orgNode">>) {
   const cellFields = {
     ...data.cellFields,
@@ -534,12 +576,13 @@ function OrgNode({ data }: NodeProps<Node<OrgNodeData, "orgNode">>) {
   };
   const showExpand = data.hasChildren && data.onToggleCollapse;
   const showHandles = !data.hideHandles;
+  const childColors = data.childAccentColors ?? [];
   return (
     <>
       {showHandles && <Handle type="target" position={Position.Top} id={TARGET_HANDLE_ID} />}
       <div
         className="flex flex-col items-center justify-start pt-2"
-        style={{ width: data.nodeWidth, minHeight: data.nodeHeight }}
+        style={{ width: data.nodeWidth, minHeight: data.nodeHeight, position: 'relative' }}
       >
         <div className="relative">
           <NodeCard
@@ -633,7 +676,9 @@ function TreeBranchEdge({
   style,
   markerEnd,
 }: EdgeProps) {
-  const branchY = (data?.branchY as number) ?? (sourceY + targetY) / 2;
+  const hasBranchData = data?.branchY != null;
+  // Ak nie je explicitný branchY (row layout), použijeme stred – klasická L-čiara
+  const branchY = hasBranchData ? (data?.branchY as number) : (sourceY + targetY) / 2;
   const connectToCenter = data?.connectToCenter !== false && data?.nodeHeight != null;
   const nodeHeight = (data?.nodeHeight as number) ?? 160;
   const endY = connectToCenter ? targetY + nodeHeight / 2 : targetY;
@@ -661,7 +706,20 @@ function TreeBranchEdge({
         ` L ${targetX},${endY}`;
     }
   }
-  return <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} />;
+  const DOT_R = 5.5;
+  // Dot siedí na ohybe smerom ku child nodu (targetX, branchY) – križovatka H a V čiary
+  const dotY = branchY;
+  return (
+    <g>
+      <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} />
+      {(data?.targetDotColor as string | undefined) && (
+        <>
+          <circle cx={targetX} cy={dotY} r={DOT_R} fill={data?.targetDotColor as string} />
+          <circle cx={targetX} cy={dotY} r={DOT_R} fill="none" stroke="#fff" strokeWidth={1.5} />
+        </>
+      )}
+    </g>
+  );
 }
 
 function getInitialFromSettings<T>(s: OrgChartSettingsPayload | null | undefined, key: keyof OrgChartSettingsPayload, fallback: () => T): T {
@@ -1298,6 +1356,32 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     const rootAccent = getNodeAccent(appearance, { levelIndex: 0 });
     const hideHandles = hideHandlesBubble(appearance);
 
+    /** Pomocná funkcia: vypočíta accent farbu pre daný záznam rovnako ako v hlavnej slučke. */
+    const resolveAccentColor = (record: EmployeeRecord, levelIdx: 0 | 1 | 2): string => {
+      const customColor = employeeColors[record.employeeId];
+      if (customColor) return customColor;
+      if (appearance.colorScheme === "byPosition" && (record.kat || record.positionType)) {
+        return record.kat
+          ? (effectiveKatColors[record.kat] ?? brandTokens.positionTypeColors[record.positionType])
+          : brandTokens.positionTypeColors[record.positionType];
+      }
+      const a = getNodeAccent(appearance, { levelIndex: levelIdx, positionType: record.positionType, kat: record.kat ?? undefined });
+      return a?.type === "solid" && a.color ? a.color : (brandTokens.colors.navy as string);
+    };
+
+    /** Pre každý parentId: zoznam accent farieb priamych viditeľných detí (len orgNode záznamy). */
+    const getChildAccentColors = (parentId: string): string[] => {
+      const childIds = getChildrenForLayout(parentId);
+      return childIds
+        .map((id) => {
+          if (isVacancyId(id)) return null;
+          const r = rawRecords.find((rec) => rec.employeeId === id);
+          if (!r) return null;
+          return resolveAccentColor(r, 1);
+        })
+        .filter((c): c is string => c !== null);
+    };
+
     if (rootDisplay.type === "employee") {
       const record = rootDisplay.record;
       const accent = getNodeAccent(appearance, {
@@ -1343,6 +1427,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           photoFrameBorderWidth,
           photoOffsetX: photoOffsetX + (customPhotoOffset?.x ?? 0),
           photoOffsetY: photoOffsetY + (customPhotoOffset?.y ?? 0),
+          childAccentColors: getChildAccentColors("root"),
         },
       });
     } else if (rootDisplay.type === "vacancy") {
@@ -1460,6 +1545,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           photoFrameBorderWidth,
           photoOffsetX: photoOffsetX + (customPhotoOffset?.x ?? 0),
           photoOffsetY: photoOffsetY + (customPhotoOffset?.y ?? 0),
+          childAccentColors: getChildAccentColors(record.employeeId),
           },
         });
       }
@@ -1591,8 +1677,23 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     const conn = chartAppearance.connection;
     const edgeType = EDGE_TYPE_MAP[conn.lineStyle];
     const defaultColor = conn.strokeColor ?? "#94A3B8";
+
+    /** Mapa nodeId → accent farba (solid) pre farebné čiary podľa cieľového nodu. */
+    const nodeAccentColorMap = new Map<string, string>();
+    nodes.forEach((n) => {
+      const d = n.data as { accent?: { type: string; color?: string } };
+      if (d?.accent?.type === "solid" && d.accent.color) {
+        nodeAccentColorMap.set(n.id, d.accent.color);
+      }
+    });
+
     const strokeColor = (targetId: string, branchIndex: number): string => {
       if (conn.useBranchColorOnEdges) return getBranchColor(branchIndex, chartAppearance);
+      // Ak nie je nastavená manuálna farba, použi accent farbu cieľového nodu
+      if (!conn.strokeColor) {
+        const nodeColor = nodeAccentColorMap.get(targetId);
+        if (nodeColor) return nodeColor;
+      }
       return defaultColor;
     };
     const markerEnd = (color: string) =>
@@ -1601,8 +1702,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         : conn.marker === "arrow"
           ? { type: MarkerType.Arrow, color }
           : { type: MarkerType.ArrowClosed, color };
-    /** Pri step/smoothstep používame vlastnú TreeBranchEdge (jedna zvislá – vodorovná – zvislá), nie zigzag. */
-    const useSimpleBranchLines = conn.lineStyle === "step" || conn.lineStyle === "smoothstep";
+    /** Vždy používame vlastnú TreeBranchEdge (správna L-čiara: dole → vodorovne → dole). */
+    const useSimpleBranchLines = true;
 
     const defaultRootPos =
       expansionStyle === "horizontal"
@@ -1626,7 +1727,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     const getFirstInRowIndex = (idx: number, rowSize: number) =>
       Math.floor(idx / rowSize) * rowSize;
 
-    type TreeBranchData = { branchY: number; connectToCenter?: boolean; nodeHeight?: number };
+    type TreeBranchData = { branchY: number; connectToCenter?: boolean; nodeHeight?: number; targetDotColor?: string };
     const pushEdge = (
       parentId: string,
       childId: string,
@@ -1636,6 +1737,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       branchData?: TreeBranchData | null,
     ) => {
       const color = strokeColor(childId, idx);
+      // Dot farba = accent farba cieľového nodu (ak existuje), inak farba čiary
+      const dotColor = nodeAccentColorMap.get(childId) ?? color;
       const base = {
         source: parentId,
         target: childId,
@@ -1644,16 +1747,13 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         markerEnd: markerEnd(color),
         style: { stroke: color, strokeWidth: conn.strokeWidth },
       };
-      if (branchData != null || useSimpleBranchLines) {
-        list.push({
-          ...base,
-          id: `${parentId}->${childId}`,
-          type: "treeBranch",
-          data: { ...(branchData ?? {}), rounded: conn.lineStyle === "smoothstep" },
-        });
-      } else {
-        list.push({ ...base, id: `${parentId}->${childId}`, type: edgeType });
-      }
+      // Vždy treeBranch renderer – správna L-čiara + farebný dot na križovatke
+      list.push({
+        ...base,
+        id: `${parentId}->${childId}`,
+        type: "treeBranch",
+        data: { ...(branchData ?? {}), rounded: conn.lineStyle === "smoothstep", targetDotColor: dotColor },
+      });
     };
 
     const visibleIds = visibleNodeIdsByColor;
@@ -1722,6 +1822,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     visibleNodeIdsByColor,
     nodeWidth,
     nodeHeight,
+    nodes,
   ]);
 
   const onNodesChange = useCallback(
@@ -2168,6 +2269,31 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                     <p className="mb-3 mt-2 text-xs text-slate-600">
                       Jednotná farba pre všetky bunky danej kategórie (SAL, INDIR1, INDIR2, INDIR3).
                     </p>
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSettingsChange({
+                            katColors: {
+                              SAL: brandTokens.katColors.SAL,
+                              INDIR1: brandTokens.katColors.INDIR1,
+                              INDIR2: brandTokens.katColors.INDIR2,
+                              INDIR3: brandTokens.katColors.INDIR3,
+                            },
+                          });
+                        }}
+                        className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                      >
+                        Použiť Artifex KAT
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onSettingsChange({ katColors: undefined })}
+                        className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                      >
+                        Zrušiť KAT prepis
+                      </button>
+                    </div>
                     <div className="space-y-2">
                       {(["SAL", "INDIR1", "INDIR2", "INDIR3"] as const).map((katKey) => {
                         const currentHex =

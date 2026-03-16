@@ -188,6 +188,8 @@
     "nodeStyleHexBadge": "Hex badge (hexagon + label)",
     "nodeStyleStackedCorporate": "Stacked corporate (light card)",
     "nodeStyleClassicBoard": "Classic board (retro panel)",
+    "nodeStyleProfileRibbon": "Profile ribbon (avatar + ribbon)",
+    "nodeStyleInfoPill": "Info Pill (gradient pill + large avatar)",
     "connectionStraight": "Straight",
     "connectionStep": "Stepped (right angles)",
     "connectionSmooth": "Rounded steps",
@@ -249,7 +251,9 @@
     "color4": "Red",
     "color5": "Purple",
     "color6": "Green",
-    "color7": "Indigo"
+    "color7": "Indigo",
+    "color8": "Artifex Navy",
+    "color9": "Artifex Olive"
   },
   "jobDescriptions": {
     "pageTitle": "Job Description library",
