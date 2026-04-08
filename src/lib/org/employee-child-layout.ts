@@ -4,7 +4,10 @@
  * Ukladá sa do localStorage (nodeId = employeeId alebo vacancy id).
  */
 
-export type ChildLayoutStyle = "row" | "pairs" | "fours";
+/**
+ * custom = voľné položenie (drag & drop): layout engine neprepisi pozicie, bunku môžeš posoûvať ručne.
+ */
+export type ChildLayoutStyle = "row" | "pairs" | "fours" | "custom";
 
 const STORAGE_KEY = "org-chart-employee-child-layout";
 
@@ -16,7 +19,7 @@ export function loadChildLayoutByNodeId(): Record<string, ChildLayoutStyle> {
     const parsed = JSON.parse(raw) as Record<string, string>;
     if (typeof parsed !== "object" || parsed === null) return {};
     const result: Record<string, ChildLayoutStyle> = {};
-    const valid: ChildLayoutStyle[] = ["row", "pairs", "fours"];
+    const valid: ChildLayoutStyle[] = ["row", "pairs", "fours", "custom"];
     for (const [id, v] of Object.entries(parsed)) {
       if (typeof v === "string" && valid.includes(v as ChildLayoutStyle)) {
         result[id] = v as ChildLayoutStyle;

@@ -1019,6 +1019,26 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     return loadChildOrderByParent();
   });
 
+  /** Po načítaní zo servera aplikovať nastavenia z DB – useState lazy init ich nestihne ak Supabase
+   *  odpovie až po prvom renderi. Každý blok sa aplikuje max raz (ref guard). */
+  const dbSettingsAppliedRef = useRef({ positions: false, collapsed: false });
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.positions) return;
+    const dbPositions = initialSettings?.positions;
+    if (!dbPositions || typeof dbPositions !== "object" || Object.keys(dbPositions).length === 0) return;
+    dbSettingsAppliedRef.current.positions = true;
+    setNodePositions((prev) => ({ ...prev, ...dbPositions as Record<string, { x: number; y: number }> }));
+  }, [initialSettings?.positions]);
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.collapsed) return;
+    const arr = initialSettings?.collapsedNodes;
+    if (!Array.isArray(arr)) return;
+    dbSettingsAppliedRef.current.collapsed = true;
+    setCollapsedNodeIdsState(new Set(arr));
+  }, [initialSettings?.collapsedNodes]);
+
   /** Po načítaní zo servera zlúčiť do stavu všetkých nadriadených z initialSettings, aby sme neprepisovali DB menším množstvom. */
   useEffect(() => {
     const fromServer = initialSettings?.childOrderByParent;
@@ -1302,6 +1322,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         : { x: centerX - nodeWidth / 2, y: ROOT_Y };
     const template: Record<string, { x: number; y: number }> = { root: rootPos };
     hierarchyLayoutPositions.forEach((pos, id) => {
+      // Ak má node alebo jeho rodič nastavený „custom“ layout, nepřepisuj pozici z auto-layoutu
+      const parentId = [...orderedHierarchyChildren.entries()].find(([, kids]) => kids.includes(id))?.[0];
+      const parentStyle = parentId ? (childLayoutByNodeId[parentId === effectiveRootId ? effectiveRootId : parentId] ?? "row") : "row";
+      if (parentStyle === "custom") return;
       template[id] = pos;
     });
     setNodePositions((prev) => {
@@ -1315,6 +1339,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     collapsedNodeIds,
     expansionStyle,
     childLayoutByNodeId,
+    effectiveRootId,
+    orderedHierarchyChildren,
     maxVisibleLayers,
     hierarchyLayoutPositions,
     layoutRowGap,
@@ -1470,10 +1496,13 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
     const defaultPositions = hierarchyLayoutPositions;
     nodeIdsInTree.forEach((id) => {
+      // Ak existuje manuálne uložená pozícia (drag), vždy ju použi – bez ohľadu na positionsLocked.
+      // positionsLocked=false znamená len že layout môže prepočítať pri zmene hierarchie,
+      // ale manuálne posunutie má prednosť.
       const pos =
-        positionsLocked
-          ? (nodePositions[id] ?? defaultPositions.get(id) ?? { x: 0, y: 200 })
-          : (defaultPositions.get(id) ?? nodePositions[id] ?? { x: 0, y: 200 });
+        nodePositions[id]
+          ?? defaultPositions.get(id)
+          ?? { x: 0, y: 200 };
       if (isVacancyId(id)) {
         const vac = vacancies.find((v) => v.id === id);
         if (!vac) return;
@@ -1656,11 +1685,13 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   }, [nodes, visibleNodeIdsByColor]);
 
   const [flowNodes, setFlowNodes] = useState<OrgFlowNode[]>(() => nodesWithVisibility);
+  const isDraggingRef = useRef(false);
 
-  /** Synchronizácia flowNodes s nodes – aj pri zmene len poradia (layoutSignature sa nemení). */
+  /** Synchronizácia flowNodes s nodes pri každej zmene (pozície z DB, hierarchia, viditeľnosť…). */
   useEffect(() => {
+    if (isDraggingRef.current) return; // neprerušovať aktívny drag
     setFlowNodes(nodesWithVisibility);
-  }, [layoutSignature, hierarchyLayoutPositions, nodesWithVisibility]);
+  }, [nodesWithVisibility]);
 
   useEffect(() => {
     nodesRef.current = flowNodes;
@@ -1827,6 +1858,12 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      // Sledovanie či práve prebieha drag
+      const hasDragging = changes.some((c) => c.type === "position" && (c as { dragging?: boolean }).dragging === true);
+      const hasDragEnd = changes.some((c) => c.type === "position" && (c as { dragging?: boolean }).dragging === false);
+      if (hasDragging) isDraggingRef.current = true;
+      if (hasDragEnd) isDraggingRef.current = false;
+
       setFlowNodes((prev) => applyNodeChanges(changes, prev) as OrgFlowNode[]);
       if (positionsLocked) return;
       let changed = false;
@@ -1845,7 +1882,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       if (changed) {
         setNodePositions((prev) => {
           const next = { ...prev, ...positionUpdates };
-          if (changes.some((c) => c.type === "position" && (c as { dragging?: boolean }).dragging === false)) {
+          if (hasDragEnd) {
             const cb = onSettingsChangeRef.current;
             if (cb) queueMicrotask(() => cb({ positions: next }));
             else savePositions(next);
@@ -2147,6 +2184,19 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             title={t("orgChart.collapseAllTitle")}
           >
             {t("orgChart.showRoot")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCollapsedNodeIds(() => new Set());
+              requestAnimationFrame(() => {
+                reactFlowInstanceRef.current?.fitView({ padding: 0.2, duration: 300 });
+              });
+            }}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            title="Rozbaľ všetky vetvy"
+          >
+            Rozbaľ všetko
           </button>
           <button
             type="button"

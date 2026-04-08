@@ -133,7 +133,11 @@ async function loadFromIacEmployees(
   client: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
   companyIdOverride?: string | null,
 ): Promise<SourceOutcome> {
-  const { data, error } = await client.from("iac_employees").select("*");
+  const { data, error } = await client
+    .from("iac_employees")
+    .select("*")
+    .eq("status", "active")
+    .limit(5000);
   if (error) {
     return {
       source: "iac_employees",
@@ -168,7 +172,8 @@ async function loadFromIacEmployees(
     };
   }
 
-  const activeRows = data.filter((row) => isActiveStatus(String((row as Record<string, unknown>).status ?? "")));
+  // Supabase query už filtruje status = 'active', takže všetky vrátené riadky sú aktívne
+  const activeRows = data;
   if (activeRows.length === 0) {
     return {
       source: "iac_employees",

@@ -77,6 +77,7 @@ export function EmployeeDetailPanel(props: EmployeeDetailProps) {
     row: t("orgChart.childLayoutRow"),
     pairs: t("orgChart.childLayoutPairs"),
     fours: t("orgChart.childLayoutFours"),
+    custom: "Voľné rozloženie",
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -282,21 +283,29 @@ export function EmployeeDetailPanel(props: EmployeeDetailProps) {
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("orgChart.displaySubordinates")}</p>
             <p className="mt-0.5 text-xs text-slate-500">{t("orgChart.displaySubordinatesHint")}</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {(["row", "pairs", "fours"] as const).map((style) => (
+              {(["row", "pairs", "fours", "custom"] as const).map((style) => (
                 <button
                   key={style}
                   type="button"
                   onClick={() => onChildLayoutChange(record.employeeId, style)}
                   className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
                     (childLayoutStyle ?? "row") === style
-                      ? "border-[var(--artifex-navy)] bg-[var(--artifex-navy)] text-white"
+                      ? style === "custom"
+                        ? "border-amber-500 bg-amber-500 text-white"
+                        : "border-[var(--artifex-navy)] bg-[var(--artifex-navy)] text-white"
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
+                  title={style === "custom" ? "Bunku môžeš posoûvať ručne, layout ju nebude automaticky prepisovať." : undefined}
                 >
                   {CHILD_LAYOUT_LABELS[style]}
                 </button>
               ))}
             </div>
+            {childLayoutStyle === "custom" && (
+              <p className="mt-1.5 text-xs text-amber-600">
+                ✓ Podriadení sú v režime voľného rozloženia. Môžeš ich premosťnať kde chceš.
+              </p>
+            )}
           </div>
         )}
 
