@@ -713,7 +713,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
                           ? "border-slate-200 bg-white opacity-35 hover:opacity-70"
                           : "border-slate-200 bg-white hover:bg-slate-50"
                     }`}
-                    style={isSelected ? { ringColor: hex, boxShadow: `0 0 0 2px ${hex}` } : {}}
+                    style={isSelected ? { boxShadow: `0 0 0 2px ${hex}` } : {}}
                     title={isSelected ? "Klikni znova pre zobrazenie všetkých" : `Zobraziť len ${label}`}
                   >
                     <span
