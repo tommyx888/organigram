@@ -1097,7 +1097,87 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
   /** Po načítaní zo servera aplikovať nastavenia z DB – useState lazy init ich nestihne ak Supabase
    *  odpovie až po prvom renderi. Každý blok sa aplikuje max raz (ref guard). */
-  const dbSettingsAppliedRef = useRef({ positions: false, collapsed: false });
+  const dbSettingsAppliedRef = useRef({
+    positions: false,
+    collapsed: false,
+    appearance: false,
+    employeeChildLayout: false,
+    employeeColors: false,
+    employeePhotoOffsets: false,
+    maxVisibleLayers: false,
+    generalManagerId: false,
+    sectionGroups: false,
+    vacancies: false,
+  });
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.appearance) return;
+    const a = initialSettings?.appearance;
+    if (!a || typeof a !== "object") return;
+    dbSettingsAppliedRef.current.appearance = true;
+    setChartAppearanceState({ ...DEFAULT_CHART_APPEARANCE, ...a });
+  }, [initialSettings?.appearance]);
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.employeeChildLayout) return;
+    const layout = initialSettings?.employeeChildLayout;
+    if (!layout || typeof layout !== "object" || Object.keys(layout).length === 0) return;
+    dbSettingsAppliedRef.current.employeeChildLayout = true;
+    const valid: ChildLayoutStyle[] = ["row", "pairs", "fours"];
+    const out: Record<string, ChildLayoutStyle> = {};
+    for (const [k, v] of Object.entries(layout)) {
+      if (typeof v === "string" && valid.includes(v as ChildLayoutStyle)) out[k] = v as ChildLayoutStyle;
+    }
+    if (Object.keys(out).length > 0) setChildLayoutByNodeIdState(out);
+  }, [initialSettings?.employeeChildLayout]);
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.employeeColors) return;
+    const colors = initialSettings?.employeeColors;
+    if (!colors || typeof colors !== "object" || Object.keys(colors).length === 0) return;
+    dbSettingsAppliedRef.current.employeeColors = true;
+    setEmployeeColorsState(colors as Record<string, string>);
+  }, [initialSettings?.employeeColors]);
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.employeePhotoOffsets) return;
+    const offsets = initialSettings?.employeePhotoOffsets;
+    if (!offsets || typeof offsets !== "object" || Object.keys(offsets).length === 0) return;
+    dbSettingsAppliedRef.current.employeePhotoOffsets = true;
+    setEmployeePhotoOffsetsState(offsets as Record<string, { x: number; y: number }>);
+  }, [initialSettings?.employeePhotoOffsets]);
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.maxVisibleLayers) return;
+    const ml = initialSettings?.maxVisibleLayers;
+    if (ml == null) return;
+    dbSettingsAppliedRef.current.maxVisibleLayers = true;
+    setMaxVisibleLayersState(ml);
+  }, [initialSettings?.maxVisibleLayers]);
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.generalManagerId) return;
+    const gm = initialSettings?.generalManagerId;
+    if (gm == null) return;
+    dbSettingsAppliedRef.current.generalManagerId = true;
+    setGeneralManagerIdState(gm);
+  }, [initialSettings?.generalManagerId]);
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.sectionGroups) return;
+    const sg = initialSettings?.sectionGroups;
+    if (!Array.isArray(sg) || sg.length === 0) return;
+    dbSettingsAppliedRef.current.sectionGroups = true;
+    setSectionGroupsState(sg);
+  }, [initialSettings?.sectionGroups]);
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.vacancies) return;
+    const vac = initialSettings?.vacancies;
+    if (!Array.isArray(vac) || vac.length === 0) return;
+    dbSettingsAppliedRef.current.vacancies = true;
+    setVacanciesState(vac);
+  }, [initialSettings?.vacancies]);
 
   useEffect(() => {
     if (dbSettingsAppliedRef.current.positions) return;
