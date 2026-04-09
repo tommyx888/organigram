@@ -4,7 +4,7 @@
  */
 
 import type { ChartAppearanceState } from "@/lib/org/chart-appearance";
-import type { VacancyPlaceholder } from "@/lib/org/types";
+import type { VacancyPlaceholder, SectionGroup } from "@/lib/org/types";
 
 export type MaxVisibleLayers = 1 | 2 | 3 | 4 | 5;
 
@@ -37,4 +37,6 @@ export interface OrgChartSettingsPayload {
   selectedDepartment?: string;
   /** Manažér oddelenia: názov oddelenia -> employee_id. */
   departmentManagers?: Record<string, string>;
+  /** Sekcie / skupiny zamestnancov v orgcharte. */
+  sectionGroups?: SectionGroup[];
 }

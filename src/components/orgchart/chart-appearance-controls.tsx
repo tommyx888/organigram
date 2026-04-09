@@ -88,6 +88,8 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
     onAppearanceChange({ ...appearance, visibleCardColors: next?.length ? next : undefined });
   };
   const toggleFilterColor = (hex: string) => {
+    // Multi-select toggle: kliknutie prida/odoberie tuto farbu.
+    // Ak je tato farba jedina vybrata a kliknes znova, zobraz vsetky.
     const current = new Set(visibleCardColors);
     if (current.has(hex)) current.delete(hex);
     else current.add(hex);
@@ -696,25 +698,33 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               {isFilterActive ? t("orgChart.filterActiveHint") : t("orgChart.filterInactiveHint")}
             </p>
             <div className="flex flex-wrap items-center gap-2">
-              {filterColorOptions.map(({ hex, label }) => (
-                <label
-                  key={hex}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm hover:bg-slate-50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={isColorVisible(hex)}
-                    onChange={() => toggleFilterColor(hex)}
-                    className="rounded border-slate-300"
-                  />
-                  <span
-                    className="inline-block h-4 w-4 shrink-0 rounded border border-slate-300"
-                    style={{ backgroundColor: hex }}
-                    title={hex}
-                  />
-                  <span className="text-slate-700">{label}</span>
-                </label>
-              ))}
+              {filterColorOptions.map(({ hex, label }) => {
+                const isSelected = visibleCardColors.length > 0 && visibleCardColors.includes(hex);
+                const isOtherSelected = isFilterActive && !isSelected;
+                return (
+                  <button
+                    key={hex}
+                    type="button"
+                    onClick={() => toggleFilterColor(hex)}
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-sm transition-all ${
+                      isSelected
+                        ? "border-transparent ring-2 ring-offset-1 bg-white font-semibold"
+                        : isOtherSelected
+                          ? "border-slate-200 bg-white opacity-35 hover:opacity-70"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                    }`}
+                    style={isSelected ? { ringColor: hex, boxShadow: `0 0 0 2px ${hex}` } : {}}
+                    title={isSelected ? "Klikni znova pre zobrazenie všetkých" : `Zobraziť len ${label}`}
+                  >
+                    <span
+                      className="inline-block h-4 w-4 shrink-0 rounded border border-slate-300"
+                      style={{ backgroundColor: hex }}
+                    />
+                    <span className={isSelected ? "text-slate-900" : "text-slate-700"}>{label}</span>
+                    {isSelected && <span className="text-[10px]" style={{ color: hex }}>&#10003;</span>}
+                  </button>
+                );
+              })}
               {isFilterActive && (
                 <button
                   type="button"

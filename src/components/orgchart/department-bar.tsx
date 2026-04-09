@@ -33,6 +33,9 @@ type DepartmentBarProps = {
   onDepartmentManagerChange: (department: string, employeeId: string | null) => void;
   employees: EmployeeRecord[];
   allowEdit?: boolean;
+  /** Ak je definované, zobrazí sa tlačidlo exportu všetkých oddení do PDF. */
+  onExportAllDepartmentsPdf?: () => void;
+  isExportingAllPdf?: boolean;
 };
 
 export function DepartmentBar({
@@ -42,6 +45,8 @@ export function DepartmentBar({
   onDepartmentManagerChange,
   employees,
   allowEdit = false,
+  onExportAllDepartmentsPdf,
+  isExportingAllPdf = false,
 }: DepartmentBarProps) {
   const { t } = useTranslation();
   const [openManagerFor, setOpenManagerFor] = useState<string | null>(null);
@@ -108,6 +113,27 @@ export function DepartmentBar({
         >
           Cela struktura
         </button>
+        {onExportAllDepartmentsPdf && (
+          <button
+            type="button"
+            disabled={isExportingAllPdf}
+            onClick={onExportAllDepartmentsPdf}
+            className="ml-auto flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+            title="Exportuj PDF pre každé oddelenie zvlášť"
+          >
+            {isExportingAllPdf ? (
+              <>
+                <span className="animate-spin">⏳</span>
+                Exportujem...
+              </>
+            ) : (
+              <>
+                <span>📄</span>
+                Export všetkých PDF
+              </>
+            )}
+          </button>
+        )}
         {MAIN_DEPARTMENTS.map((dep) => {
           const managerId = departmentManagers[dep];
           const isSelected = selectedDepartment === dep;

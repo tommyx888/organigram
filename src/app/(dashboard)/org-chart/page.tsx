@@ -102,17 +102,24 @@ function OrgChartContent({
     return <p className="text-sm text-slate-500">{t("orgChart.loadingSettings")}</p>;
   }
 
+  const isAdmin = settingsCtx?.isAdmin ?? false;
+
+  // Admin: vsetky zmeny idu do DB a vsetci ich vidia
+  // Non-admin: onSettingsChange=undefined - cita nastavenia z DB (initialSettings)
+  //            ale nemoze ich menit; drag/collapse stav sa neuklada (read-only session)
+  const settingsChangeHandler = useDbSettings && settingsCtx && isAdmin
+    ? wrappedOnSettingsChange
+    : undefined;
+
   return (
     <OrgChartCanvas
       records={records}
       allowEdit={allowEdit}
       onRecordsChange={wrappedOnRecordsChange}
       initialSettings={useDbSettings && settingsCtx ? settingsCtx.settings : null}
-      onSettingsChange={
-        useDbSettings && settingsCtx ? wrappedOnSettingsChange : undefined
-      }
+      onSettingsChange={settingsChangeHandler}
       onResetToDefaults={
-        useDbSettings && settingsCtx ? settingsCtx.resetSettingsToDefaults : undefined
+        useDbSettings && settingsCtx && isAdmin ? settingsCtx.resetSettingsToDefaults : undefined
       }
       useDbPhotos={useDbPhotos}
       onPhotoChanged={onPhotoChanged}

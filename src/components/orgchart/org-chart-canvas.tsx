@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -24,6 +24,7 @@ import { ChartAppearanceControls } from "@/components/orgchart/chart-appearance-
 import { NodeCard } from "@/components/orgchart/node-card";
 import { RootNode, type RootNodeData } from "@/components/orgchart/root-node";
 import { VacancyNode, vacancyHandleIds, type VacancyNodeData } from "@/components/orgchart/vacancy-node";
+import { SectionNode, sectionHandleIds, getDefaultSectionColor, type SectionNodeData } from "@/components/orgchart/section-node";
 import { ExpandCollapseButton } from "@/components/orgchart/expand-collapse-button";
 import { HierarchySidebar } from "@/components/orgchart/hierarchy-sidebar";
 import { DepartmentBar } from "@/components/orgchart/department-bar";
@@ -58,14 +59,16 @@ import {
   loadChildOrderByParent,
   saveChildOrderByParent,
   generateVacancyId,
+  generateSectionId,
   isVacancyId,
+  isSectionId,
   addVacancy as persistAddVacancy,
   removeVacancy as persistRemoveVacancy,
   type MaxVisibleLayers,
 } from "@/lib/org/hierarchy-settings";
 import type { OrgChartSettingsPayload } from "@/lib/org/org-chart-settings-types";
 import { DEFAULT_CHART_APPEARANCE } from "@/lib/org/chart-appearance";
-import { ALLOWED_KAT_VALUES, type EmployeeRecord, type VacancyPlaceholder } from "@/lib/org/types";
+import { ALLOWED_KAT_VALUES, type EmployeeRecord, type VacancyPlaceholder, type SectionGroup } from "@/lib/org/types";
 import { supabaseClient } from "@/lib/supabase/client";
 import { brandTokens } from "@/styles/tokens";
 
@@ -145,7 +148,7 @@ type OrgNodeData = {
   childAccentColors?: string[];
 };
 
-type OrgFlowNode = Node<OrgNodeData, "orgNode"> | Node<VacancyNodeData, "vacancy"> | Node<RootNodeData, "root">;
+type OrgFlowNode = Node<OrgNodeData, "orgNode"> | Node<VacancyNodeData, "vacancy"> | Node<RootNodeData, "root"> | Node<SectionNodeData, "section">;
 
 function loadPositions(): Record<string, { x: number; y: number }> {
   if (typeof window === "undefined") return {};
@@ -248,7 +251,16 @@ function savePositionsLocked(locked: boolean) {
   } catch {}
 }
 
-/** 1) Strom: deti priamo pod nadriadeným. Per-node štýl: row (vedľa seba), pairs (dva stĺpce), fours (po 4). */
+/**
+ * 1) Collision-free tree layout.
+ *
+ * Kazdy uzol ma "bounding box" = obdlznik ktory obsahuje jeho kartu + vsetky karty potomkov.
+ * Sibling subtrees sa nikdy neprekryvaju - su rozlozene vedla seba (row) alebo pod sebou (pairs/fours).
+ *
+ * Klucove funkcie:
+ *   subtreeSize(id) -> { w: px, h: px }  -- bounding box celeho podstromu
+ *   placeSubtree(id, left, top)           -- umiestni uzol a vsetkych potomkov
+ */
 function layoutTreeUnderParent(
   getChildren: (nodeId: string) => string[],
   centerX: number,
@@ -260,97 +272,121 @@ function layoutTreeUnderParent(
   getChildLayoutStyle?: (nodeId: string) => ChildLayoutStyle | undefined,
 ): Map<string, { x: number; y: number }> {
   const positions = new Map<string, { x: number; y: number }>();
-  const visited = new Set<string>();
+  // Cache pre subtreeSize aby sa neratala opakovane
+  const sizeCache = new Map<string, { w: number; h: number }>();
 
-  function width(id: string): number {
-    if (visited.has(id)) return 0;
-    visited.add(id);
-    try {
-      const c = getChildren(id);
-      if (c.length === 0) return 1;
-      const style = getChildLayoutStyle?.(id) ?? "row";
-      if (style === "pairs") return 2;
-      if (style === "fours") return Math.min(4, c.length);
-      return c.reduce((s, k) => s + width(k), 0);
-    } finally {
-      visited.delete(id);
+  /**
+   * Vypocita bounding box celeho podstromu uzla v pixeloch.
+   * w = sirka (horizontalny priestor ktory zabera podstrom)
+   * h = vyska (vertikalny priestor ktory zabera podstrom vcetane samotneho uzla)
+   */
+  function subtreeSize(id: string): { w: number; h: number } {
+    const cached = sizeCache.get(id);
+    if (cached) return cached;
+
+    const children = getChildren(id);
+    if (children.length === 0) {
+      const result = { w: nodeWidth, h: nodeHeight };
+      sizeCache.set(id, result);
+      return result;
     }
+
+    const style = getChildLayoutStyle?.(id) ?? "row";
+    const childGap = (style === "pairs" || style === "fours") ? rowGap * 0.65 : rowGap / 2;
+
+    if (style === "pairs" || style === "fours") {
+      const perRow = style === "pairs" ? 2 : 4;
+      let totalH = nodeHeight + childGap;
+      let maxRowW = 0;
+      let idx = 0;
+      while (idx < children.length) {
+        const rowKids = children.slice(idx, idx + perRow);
+        // Sirka riadku = suma W subtrees + medzery
+        const rowW = rowKids.reduce((sum, k) => sum + subtreeSize(k).w, 0) + (rowKids.length - 1) * nodeGapX;
+        maxRowW = Math.max(maxRowW, rowW);
+        // Vyska riadku = max H subtrees v tom riadku
+        const rowH = Math.max(...rowKids.map((k) => subtreeSize(k).h));
+        totalH += rowH + rowGap;
+        idx += rowKids.length;
+      }
+      const result = { w: Math.max(nodeWidth, maxRowW), h: totalH };
+      sizeCache.set(id, result);
+      return result;
+    }
+
+    // row: deti vedla seba
+    // Sirka = suma W subtrees + medzery
+    const totalW = children.reduce((sum, k) => sum + subtreeSize(k).w, 0) + (children.length - 1) * nodeGapX;
+    // Vyska = vyska uzla + medzera + max vyska child subtrees
+    const maxChildH = Math.max(...children.map((k) => subtreeSize(k).h));
+    const result = { w: Math.max(nodeWidth, totalW), h: nodeHeight + childGap + maxChildH };
+    sizeCache.set(id, result);
+    return result;
   }
 
-  function place(parentCenterX: number, parentY: number, nodeId: string): void {
-    if (visited.has(nodeId)) return;
-    visited.add(nodeId);
-    const children = getChildren(nodeId);
-    if (children.length === 0) {
-      positions.set(nodeId, { x: parentCenterX - nodeWidth / 2, y: parentY });
-      return;
-    }
-    const style = getChildLayoutStyle?.(nodeId) ?? "row";
-    // Pri pároch (a po štyroch) menšia medzera medzi nadriadeným a prvým riadkom – podriadení bližšie k nadriadenému
-    const gap = style === "row" ? rowGap / 2 : (style === "pairs" || style === "fours") ? rowGap * 0.65 : rowGap;
-    const childY = parentY + nodeHeight + gap;
+  /**
+   * Umiestni uzol a rekurzivne vsetkych potomkov.
+   * left = lava hrana bounding boxu uzla
+   * top  = horna hrana bounding boxu uzla (= Y pozicia karty uzla)
+   */
+  function placeSubtree(id: string, left: number, top: number): void {
+    // Pozicia karty samotneho uzla (horizontalne centrovana v bounding boxe)
+    const { w: myW } = subtreeSize(id);
+    const cardX = left + (myW - nodeWidth) / 2;
+    positions.set(id, { x: cardX, y: top });
 
-    if (style === "pairs") {
-      // Riadky po dvoch (dvojice), pri nepárnom počte posledný uzol centrovaný pod poslednou dvojicou
-      const perRow = 2;
+    const children = getChildren(id);
+    if (children.length === 0) return;
+
+    const style = getChildLayoutStyle?.(id) ?? "row";
+    const childGap = (style === "pairs" || style === "fours") ? rowGap * 0.65 : rowGap / 2;
+    const childrenTop = top + nodeHeight + childGap;
+
+    if (style === "pairs" || style === "fours") {
+      const perRow = style === "pairs" ? 2 : 4;
+      let currentTop = childrenTop;
       let idx = 0;
-      for (let row = 0; idx < children.length; row++) {
-        const rowChildren = children.slice(idx, idx + perRow);
-        const rowW = rowChildren.length * nodeWidth + (rowChildren.length - 1) * nodeGapX;
-        const startX = parentCenterX - rowW / 2;
-        const y = childY + row * (nodeHeight + rowGap);
-        rowChildren.forEach((kid, col) => {
-          const x = startX + col * (nodeWidth + nodeGapX);
-          positions.set(kid, { x, y });
-          place(x + nodeWidth / 2, y + nodeHeight + rowGap, kid);
+      while (idx < children.length) {
+        const rowKids = children.slice(idx, idx + perRow);
+        // Celkova sirka riadku
+        const rowTotalW = rowKids.reduce((sum, k) => sum + subtreeSize(k).w, 0) + (rowKids.length - 1) * nodeGapX;
+        // Riadok centrovany v bounding boxe rodica
+        let kidLeft = left + (myW - rowTotalW) / 2;
+        rowKids.forEach((kid) => {
+          const kidSize = subtreeSize(kid);
+          placeSubtree(kid, kidLeft, currentTop);
+          kidLeft += kidSize.w + nodeGapX;
         });
-        idx += rowChildren.length;
+        // Nasledujuci riadok za maximom H tohto riadku
+        const rowH = Math.max(...rowKids.map((k) => subtreeSize(k).h));
+        currentTop += rowH + rowGap;
+        idx += rowKids.length;
       }
       return;
     }
 
-    if (style === "fours") {
-      const perRow = 4;
-      let idx = 0;
-      for (let row = 0; idx < children.length; row++) {
-        const rowChildren = children.slice(idx, idx + perRow);
-        const rowW = rowChildren.length * nodeWidth + (rowChildren.length - 1) * nodeGapX;
-        const startX = parentCenterX - rowW / 2;
-        const y = childY + row * (nodeHeight + rowGap);
-        rowChildren.forEach((kid, col) => {
-          const x = startX + col * (nodeWidth + nodeGapX);
-          positions.set(kid, { x, y });
-          place(x + nodeWidth / 2, y + nodeHeight + rowGap, kid);
-        });
-        idx += rowChildren.length;
-      }
-      return;
-    }
-
-    // row: jedna línia vedľa seba
-    const totalW = children.reduce((s, k) => s + width(k), 0);
-    const span = totalW * nodeWidth + (totalW - 1) * nodeGapX;
-    let x = parentCenterX - span / 2 + (nodeWidth + nodeGapX) / 2;
+    // row: deti vedla seba, centrovane pod rodicom
+    const totalChildW = children.reduce((sum, k) => sum + subtreeSize(k).w, 0) + (children.length - 1) * nodeGapX;
+    let kidLeft = left + (myW - totalChildW) / 2;
     children.forEach((kid) => {
-      const w = width(kid);
-      const kidCenterX = x + (w * (nodeWidth + nodeGapX)) / 2 - (nodeWidth + nodeGapX) / 2;
-      place(kidCenterX, childY, kid);
-      positions.set(kid, { x: kidCenterX - nodeWidth / 2, y: childY });
-      x += w * (nodeWidth + nodeGapX);
+      const kidSize = subtreeSize(kid);
+      placeSubtree(kid, kidLeft, childrenTop);
+      kidLeft += kidSize.w + nodeGapX;
     });
   }
 
+  // Umiestni root-level uzly (deti "root") vedla seba
   const rootKids = getChildren("root");
   if (rootKids.length === 0) return positions;
-  const totalRoot = rootKids.reduce((s, k) => s + width(k), 0);
-  let off = centerX - (totalRoot * (nodeWidth + nodeGapX) - nodeGapX) / 2 + (nodeWidth + nodeGapX) / 2;
+
+  const totalRootW = rootKids.reduce((sum, k) => sum + subtreeSize(k).w, 0) + (rootKids.length - 1) * nodeGapX;
+  let off = centerX - totalRootW / 2;
   rootKids.forEach((id) => {
-    const w = width(id);
-    const cx = off + (w * (nodeWidth + nodeGapX)) / 2 - (nodeWidth + nodeGapX) / 2;
-    place(cx, startY, id);
-    positions.set(id, { x: cx - nodeWidth / 2, y: startY });
-    off += w * (nodeWidth + nodeGapX);
+    const { w } = subtreeSize(id);
+    placeSubtree(id, off, startY);
+    off += w + nodeGapX;
   });
+
   return positions;
 }
 
@@ -736,6 +772,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const onSettingsChangeRef = useRef(onSettingsChange);
   onSettingsChangeRef.current = onSettingsChange;
 
+  /** Ref na setSelectedDepartment aby sme ho mohli volať z async PDF export callbacku. */
+  const onSelectDepartmentRef = useRef((_dept: string) => {});
   const showEmployeeId = true;
   const showDepartment = true;
   const [showCellSettings, setShowCellSettings] = useState(false);
@@ -795,6 +833,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     },
     [onSettingsChange],
   );
+  // Vždy aktuálny ref – potrebný pre async export callbacky
+  onSelectDepartmentRef.current = setSelectedDepartment;
   const [departmentManagers, setDepartmentManagersState] = useState<Record<string, string>>(() =>
     getInitialFromSettings(initialSettings, "departmentManagers", loadDepartmentManagers) ?? {},
   );
@@ -841,6 +881,17 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     },
     [onSettingsChange],
   );
+  const [sectionGroups, setSectionGroupsState] = useState<SectionGroup[]>(() =>
+    getInitialFromSettings(initialSettings, "sectionGroups", () => []) ?? [],
+  );
+  const setSectionGroups = useCallback(
+    (next: SectionGroup[]) => {
+      setSectionGroupsState(next);
+      if (onSettingsChange) onSettingsChange({ sectionGroups: next });
+    },
+    [onSettingsChange],
+  );
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>(() =>
     getInitialFromSettings(initialSettings, "positions", loadPositions),
   );
@@ -908,6 +959,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingAllPdf, setIsExportingAllPdf] = useState(false);
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const initialShareableViewStateRef = useRef(initialShareableViewState);
 
@@ -1004,8 +1056,15 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       list.push(v.id);
       map.set(parentId, list);
     });
+    // Sekcie sa zobrazuju ako uzly v hierarchii pod ich nadriadenymi
+    sectionGroups.forEach((s) => {
+      const parentId = s.parentId ?? "__root";
+      const list = map.get(parentId) ?? [];
+      list.push(s.id);
+      map.set(parentId, list);
+    });
     return map;
-  }, [rawRecords, vacancies]);
+  }, [rawRecords, vacancies, sectionGroups]);
 
   const [childOrderByParent, setChildOrderByParentState] = useState<Record<string, string[]>>(() => {
     const fromSettings = initialSettings?.childOrderByParent;
@@ -1123,13 +1182,19 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       list.push(v.id);
       map.set(parentId, list);
     });
+    sectionGroups.forEach((s) => {
+      const parentId = s.parentId ?? "__root";
+      const list = map.get(parentId) ?? [];
+      list.push(s.id);
+      map.set(parentId, list);
+    });
     return map;
-  }, [rawRecords, vacancies]);
+  }, [rawRecords, vacancies, sectionGroups]);
 
   /** Celkový počet ľudí (zamestnancov) pod daným uzlom – rekurzívne z celej hierarchie (vrátane DIR, INDIR1). */
   const totalSubordinateCountByNodeId = useMemo(() => {
     const countCache = new Map<string, number>();
-    const isEmployee = (id: string) => !isVacancyId(id);
+    const isEmployee = (id: string) => !isVacancyId(id) && !isSectionId(id);
     function countInSubtree(id: string): number {
       const cached = countCache.get(id);
       if (cached !== undefined) return cached;
@@ -1503,7 +1568,33 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         nodePositions[id]
           ?? defaultPositions.get(id)
           ?? { x: 0, y: 200 };
-      if (isVacancyId(id)) {
+      if (isSectionId(id)) {
+        const sec = sectionGroups.find((s) => s.id === id);
+        if (!sec) return;
+        const secChildren = orderedHierarchyChildren.get(sec.id) ?? [];
+        // Pocet priamych clenov sekcie (len zamestnanci, nie pod-sekcie)
+        const memberCount = secChildren.filter((cid) => !isSectionId(cid) && !isVacancyId(cid)).length;
+        const secIndex = sectionGroups.findIndex((s) => s.id === id);
+        list.push({
+          id: sec.id,
+          type: "section",
+          position: pos,
+          data: {
+            sectionId: sec.id,
+            name: sec.name,
+            color: sec.color ?? getDefaultSectionColor(secIndex),
+            icon: sec.icon,
+            memberCount,
+            hasChildren: secChildren.length > 0,
+            isCollapsed: collapsedNodeIds.has(sec.id),
+            onToggleCollapse: () => toggleCollapsed(sec.id),
+            hideHandles,
+            nodeWidth,
+          },
+          sourcePosition: Position.Bottom,
+          targetPosition: Position.Top,
+        });
+      } else if (isVacancyId(id)) {
         const vac = vacancies.find((v) => v.id === id);
         if (!vac) return;
         const vacChildren = orderedHierarchyChildren.get(vac.id) ?? [];
@@ -1612,6 +1703,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     photoFrameBorderWidth,
     photoOffsetX,
     photoOffsetY,
+    sectionGroups,
   ]);
 
   /** Pre vybraného zamestnanca: zoznam priamych podriadených v aktuálnom poradí (pre panel „Poradie podriadených“). */
@@ -1619,6 +1711,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     if (!selectedEmployeeId) return [];
     const childIds = orderedHierarchyChildren.get(selectedEmployeeId) ?? [];
     return childIds.map((id) => {
+      if (isSectionId(id)) {
+        const s = sectionGroups.find((sec) => sec.id === id);
+        return { id, label: s ? `[Sekcia] ${s.name}` : id };
+      }
       if (isVacancyId(id)) {
         const v = vacancies.find((vac) => vac.id === id);
         return { id, label: v ? `[Voľná] ${v.title}` : id };
@@ -1626,7 +1722,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       const r = rawRecords.find((emp) => emp.employeeId === id);
       return { id, label: r ? r.fullName : id };
     });
-  }, [selectedEmployeeId, orderedHierarchyChildren, rawRecords, vacancies]);
+  }, [selectedEmployeeId, orderedHierarchyChildren, rawRecords, vacancies, sectionGroups]);
 
   /** Pre vybranú vacancy: zoznam priamych podriadených v aktuálnom poradí. */
   const selectedVacancyDirectReportOrder = useMemo((): { id: string; label: string }[] => {
@@ -1809,14 +1905,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         childId,
         idx,
         "bottom",
-        isVacancyId(childId) ? vacancyHandleIds.target : TARGET_HANDLE_ID,
+        isVacancyId(childId) ? vacancyHandleIds.target : isSectionId(childId) ? sectionHandleIds.target : TARGET_HANDLE_ID,
         branchData,
       );
     });
 
     nodeIdsInTree.forEach((parentId) => {
       const children = getChildrenForLayout(parentId);
-      const sourceHandle = isVacancyId(parentId) ? vacancyHandleIds.source : SOURCE_HANDLE_ID;
+      const sourceHandle = isVacancyId(parentId) ? vacancyHandleIds.source : isSectionId(parentId) ? sectionHandleIds.source : SOURCE_HANDLE_ID;
       const useTreeBranch = shouldUseTreeBranchLines(parentId, children.length);
       const rowSize = getRowSize(parentId);
       children.forEach((childId, idx) => {
@@ -1833,7 +1929,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           childId,
           idx,
           sourceHandle,
-          isVacancyId(childId) ? vacancyHandleIds.target : TARGET_HANDLE_ID,
+          isVacancyId(childId) ? vacancyHandleIds.target : isSectionId(childId) ? sectionHandleIds.target : TARGET_HANDLE_ID,
           branchData,
         );
       });
@@ -1928,6 +2024,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     () => ({
       root: RootNode,
       vacancy: VacancyNode,
+      section: SectionNode,
       orgNode: OrgNode,
     }),
     [],
@@ -1948,37 +2045,20 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     });
   }, []);
 
-  const downloadChartAsPdf = useCallback(async () => {
+  /** Export každého oddelenia ako samostatná strana do jedného PDF. */
+  const downloadAllDepartmentsPdf = useCallback(async () => {
     const container = chartContainerRef.current;
-    if (!container) return;
-    setIsExportingPdf(true);
+    const rfInstance = reactFlowInstanceRef.current;
+    if (!container || !rfInstance) return;
+    setIsExportingAllPdf(true);
+
     const hexOverrides = `
       :root {
-        --color-red-50: #fef2f2;
-        --color-red-100: #fee2e2;
-        --color-red-200: #fecaca;
-        --color-red-300: #fca5a5;
-        --color-red-700: #b91c1c;
-        --color-red-800: #991b1b;
-        --color-amber-50: #fffbeb;
-        --color-amber-100: #fef3c7;
-        --color-amber-200: #fde68a;
-        --color-amber-300: #fcd34d;
-        --color-amber-400: #fbbf24;
-        --color-amber-600: #d97706;
-        --color-amber-700: #b45309;
-        --color-amber-800: #92400e;
-        --color-amber-900: #78350f;
-        --color-slate-50: #f8fafc;
-        --color-slate-100: #f1f5f9;
-        --color-slate-200: #e2e8f0;
-        --color-slate-300: #cbd5e1;
-        --color-slate-400: #94a3b8;
-        --color-slate-500: #64748b;
-        --color-slate-600: #475569;
-        --color-slate-700: #334155;
-        --color-slate-800: #1e293b;
-        --color-slate-900: #0f172a;
+        --color-slate-50: #f8fafc; --color-slate-100: #f1f5f9; --color-slate-200: #e2e8f0;
+        --color-slate-300: #cbd5e1; --color-slate-400: #94a3b8; --color-slate-500: #64748b;
+        --color-slate-600: #475569; --color-slate-700: #334155; --color-slate-800: #1e293b;
+        --color-slate-900: #0f172a; --color-red-50: #fef2f2; --color-red-700: #b91c1c;
+        --color-amber-50: #fffbeb; --color-amber-400: #fbbf24; --color-amber-600: #d97706;
       }
     `;
     const styleId = "pdf-export-lab-override";
@@ -1986,6 +2066,13 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     const stripUnsupportedColors = (text: string): string =>
       text.replace(/lab\([^)]*\)/g, "rgb(248, 250, 252)").replace(/oklch\([^)]*\)/g, "rgb(248, 250, 252)");
     const restored: { el: HTMLStyleElement; content: string }[] = [];
+    const prevDept = selectedDepartment;
+    const prevViewport = typeof rfInstance.getViewport === "function" ? rfInstance.getViewport() : null;
+
+    // Zisti oddelenia ktoré majú nastaveného manažéra (iba tieto má zmysel exportovať)
+    const { MAIN_DEPARTMENTS: deps } = await import("@/lib/org/departments");
+    const exportableDepts = ["all", ...deps.filter((d) => departmentManagers[d])];
+
     try {
       document.querySelectorAll("style").forEach((el) => {
         if (el.id === styleId) return;
@@ -1999,50 +2086,211 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       overlay.id = styleId;
       overlay.textContent = hexOverrides;
       document.head.appendChild(overlay);
+
+      const { toCanvas } = await import("html-to-image");
+      const { jsPDF } = await import("jspdf");
+      const exportBackground = "#f8fafc";
+
+      const captureCurrentView = async (): Promise<HTMLCanvasElement> => {
+        // maxZoom: 0.8 zabraňuje aby malé oddelenia (2-3 ľudia) boli príliš priblížené
+        rfInstance.fitView({ padding: 0.08, duration: 0, maxZoom: 0.6 });
+        await new Promise((r) => setTimeout(r, 180));
+        const hideForExport = container.querySelectorAll(".react-flow__controls, .react-flow__minimap");
+        const hiddenEls: { el: Element; prev: string }[] = [];
+        hideForExport.forEach((el) => {
+          hiddenEls.push({ el, prev: (el as HTMLElement).style.visibility });
+          (el as HTMLElement).style.visibility = "hidden";
+        });
+        await new Promise((r) => requestAnimationFrame(r));
+        const canvas = await toCanvas(container, {
+          pixelRatio: 3,
+          cacheBust: true,
+          backgroundColor: exportBackground,
+          skipFonts: false,
+          filter: (node) => {
+            const el = node as HTMLElement;
+            return !el.classList?.contains("react-flow__controls") && !el.classList?.contains("react-flow__minimap");
+          },
+        });
+        hiddenEls.forEach(({ el, prev }) => { (el as HTMLElement).style.visibility = prev; });
+        return canvas;
+      };
+
+      const cropCanvas = (source: HTMLCanvasElement): HTMLCanvasElement => {
+        const ctx = source.getContext("2d");
+        if (!ctx) return source;
+        const { width, height } = source;
+        const pixels = ctx.getImageData(0, 0, width, height).data;
+        const bg = { r: 248, g: 250, b: 252 }; const tol = 12;
+        let minX = width, minY = height, maxX = -1, maxY = -1;
+        for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+          const i = (y * width + x) * 4;
+          if (pixels[i+3] > 8 && (Math.abs(pixels[i]-bg.r)>tol || Math.abs(pixels[i+1]-bg.g)>tol || Math.abs(pixels[i+2]-bg.b)>tol)) {
+            if (x < minX) minX=x; if (y < minY) minY=y; if (x > maxX) maxX=x; if (y > maxY) maxY=y;
+          }
+        }
+        if (maxX < minX || maxY < minY) return source;
+        const pad=16, cx=Math.max(0,minX-pad), cy=Math.max(0,minY-pad);
+        const cw=Math.min(width-cx,maxX-minX+1+pad*2), ch=Math.min(height-cy,maxY-minY+1+pad*2);
+        if (cw<=0||ch<=0) return source;
+        const out=document.createElement("canvas"); out.width=cw; out.height=ch;
+        const oc=out.getContext("2d"); if (!oc) return source;
+        oc.fillStyle=exportBackground; oc.fillRect(0,0,cw,ch);
+        oc.drawImage(source,cx,cy,cw,ch,0,0,cw,ch);
+        return out;
+      };
+
+      // Prvá strana určí orientáciu PDF (landscape / portrait)
+      // Pre všetky strany použijeme A4 landscape (orgcharts sú včšinou širšie)
+      let doc: InstanceType<typeof jsPDF> | null = null;
+      let firstPage = true;
+
+      for (const dept of exportableDepts) {
+        // Prepni oddelenie
+        onSelectDepartmentRef.current(dept);
+        // Počkaj kým sa ReactFlow prerenderi
+        await new Promise((r) => setTimeout(r, 220));
+
+        const raw = await captureCurrentView();
+        const cropped = cropCanvas(raw);
+
+        const isLandscape = cropped.width >= cropped.height;
+        if (firstPage) {
+          doc = new jsPDF({ orientation: isLandscape ? "landscape" : "portrait", unit: "mm", format: "a4" });
+          firstPage = false;
+        } else {
+          doc!.addPage("a4", isLandscape ? "landscape" : "portrait");
+        }
+
+        const pageW = doc!.internal.pageSize.getWidth();
+        const pageH = doc!.internal.pageSize.getHeight();
+        const margin = 4;
+        const scale = Math.min((pageW - margin*2) / cropped.width, (pageH - margin*2) / cropped.height);
+        const imgW = cropped.width * scale;
+        const imgH = cropped.height * scale;
+        const imgX = (pageW - imgW) / 2;
+        const imgY = (pageH - imgH) / 2;
+        const imgData = cropped.toDataURL("image/png");
+        doc!.addImage(imgData, "PNG", imgX, imgY, imgW, imgH);
+
+        // Pridaj názov oddelenia ako text (malý, vpravo hore)
+        const label = dept === "all" ? "Cela struktura" : dept;
+        doc!.setFontSize(7);
+        doc!.setTextColor(150);
+        doc!.text(label, pageW - margin, margin + 2, { align: "right" });
+      }
+
+      if (doc) doc.save("organigram-vsetky-oddelenia.pdf");
+
+    } catch (err) {
+      console.error("All-departments PDF export failed:", err);
+    } finally {
+      overlay?.remove();
+      restored.forEach(({ el, content }) => { el.textContent = content; });
+      // Obnov pôvodné oddelenie a viewport
+      onSelectDepartmentRef.current(prevDept);
+      await new Promise((r) => setTimeout(r, 100));
+      if (prevViewport && typeof rfInstance.setViewport === "function") {
+        rfInstance.setViewport(prevViewport, { duration: 0 });
+      }
+      setIsExportingAllPdf(false);
+    }
+  }, [departmentManagers, selectedDepartment]);
+
+  const downloadChartAsPdf = useCallback(async () => {
+    const container = chartContainerRef.current;
+    const rfInstance = reactFlowInstanceRef.current;
+    if (!container || !rfInstance) return;
+    setIsExportingPdf(true);
+
+    // Farby overrides pre html-to-image (oklch/lab nie sú podporované)
+    const hexOverrides = `
+      :root {
+        --color-slate-50: #f8fafc; --color-slate-100: #f1f5f9; --color-slate-200: #e2e8f0;
+        --color-slate-300: #cbd5e1; --color-slate-400: #94a3b8; --color-slate-500: #64748b;
+        --color-slate-600: #475569; --color-slate-700: #334155; --color-slate-800: #1e293b;
+        --color-slate-900: #0f172a; --color-red-50: #fef2f2; --color-red-700: #b91c1c;
+        --color-amber-50: #fffbeb; --color-amber-400: #fbbf24; --color-amber-600: #d97706;
+      }
+    `;
+    const styleId = "pdf-export-lab-override";
+    let overlay: HTMLStyleElement | null = null;
+    const stripUnsupportedColors = (text: string): string =>
+      text.replace(/lab\([^)]*\)/g, "rgb(248, 250, 252)").replace(/oklch\([^)]*\)/g, "rgb(248, 250, 252)");
+    const restored: { el: HTMLStyleElement; content: string }[] = [];
+
+    // Ulož aktuálny viewport a nastav fitView pre celý graf
+    const prevViewport = typeof rfInstance.getViewport === "function" ? rfInstance.getViewport() : null;
+
+    try {
+      // 1. Stripuj nekompatibilné farby
+      document.querySelectorAll("style").forEach((el) => {
+        if (el.id === styleId) return;
+        const raw = el.textContent ?? "";
+        if (raw.includes("lab(") || raw.includes("oklch(")) {
+          restored.push({ el: el as HTMLStyleElement, content: raw });
+          el.textContent = stripUnsupportedColors(raw);
+        }
+      });
+      overlay = document.createElement("style");
+      overlay.id = styleId;
+      overlay.textContent = hexOverrides;
+      document.head.appendChild(overlay);
+
+      // 2. FitView – zobrazí celý orgchart, maxZoom obmedzuje priblíženie malých oddelení
+      rfInstance.fitView({ padding: 0.08, duration: 0, maxZoom: 0.6 });
+      // Počkaj kým sa viewport usadí
+      await new Promise((r) => setTimeout(r, 120));
+
+      // 3. Skry UI elementy ktoré nemajú byť v PDF (controls, header, side panel)
+      const hideForExport = container.querySelectorAll(
+        ".react-flow__controls, .react-flow__minimap, .react-flow__background"
+      );
+      const hiddenEls: { el: Element; prev: string }[] = [];
+      hideForExport.forEach((el) => {
+        hiddenEls.push({ el, prev: (el as HTMLElement).style.visibility });
+        (el as HTMLElement).style.visibility = "hidden";
+      });
+
       await new Promise((r) => requestAnimationFrame(r));
-      const [{ toCanvas }, { jsPDF }] = await Promise.all([
-        import("html-to-image"),
-        import("jspdf"),
-      ]);
+
+      // 4. Render do canvasu – pixelRatio 3 = ostrý text aj na retina displejoch
+      const { toCanvas } = await import("html-to-image");
       const exportBackground = "#f8fafc";
       const canvas = await toCanvas(container, {
-        pixelRatio: 4,
+        pixelRatio: 3,
         cacheBust: true,
         backgroundColor: exportBackground,
         skipFonts: false,
         filter: (node) => {
           const el = node as HTMLElement;
-          return !el.classList?.contains("react-flow__controls");
+          // Vylúč UI ovládacie prvky a sidepanel
+          return (
+            !el.classList?.contains("react-flow__controls") &&
+            !el.classList?.contains("react-flow__minimap")
+          );
         },
       });
+
+      // Obnov skryté elementy
+      hiddenEls.forEach(({ el, prev }) => { (el as HTMLElement).style.visibility = prev; });
+
+      // 5. Orež prázdny okraj (background farba)
       const cropCanvasToContent = (source: HTMLCanvasElement): HTMLCanvasElement => {
         const ctx = source.getContext("2d");
         if (!ctx) return source;
-
         const { width, height } = source;
         const image = ctx.getImageData(0, 0, width, height);
         const pixels = image.data;
         const bg = { r: 248, g: 250, b: 252 };
-        const colorTolerance = 8;
-        const alphaThreshold = 8;
-
-        let minX = width;
-        let minY = height;
-        let maxX = -1;
-        let maxY = -1;
-
-        for (let y = 0; y < height; y += 1) {
-          for (let x = 0; x < width; x += 1) {
+        const tol = 12;
+        let minX = width, minY = height, maxX = -1, maxY = -1;
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
-            const r = pixels[i];
-            const g = pixels[i + 1];
-            const b = pixels[i + 2];
-            const a = pixels[i + 3];
             if (
-              a > alphaThreshold &&
-              (Math.abs(r - bg.r) > colorTolerance ||
-                Math.abs(g - bg.g) > colorTolerance ||
-                Math.abs(b - bg.b) > colorTolerance)
+              pixels[i + 3] > 8 &&
+              (Math.abs(pixels[i] - bg.r) > tol || Math.abs(pixels[i+1] - bg.g) > tol || Math.abs(pixels[i+2] - bg.b) > tol)
             ) {
               if (x < minX) minX = x;
               if (y < minY) minY = y;
@@ -2051,57 +2299,58 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             }
           }
         }
-
         if (maxX < minX || maxY < minY) return source;
-
-        const padding = 24;
-        const cropX = Math.max(0, minX - padding);
-        const cropY = Math.max(0, minY - padding);
-        const cropW = Math.min(width - cropX, maxX - minX + 1 + padding * 2);
-        const cropH = Math.min(height - cropY, maxY - minY + 1 + padding * 2);
-
-        if (cropW <= 0 || cropH <= 0) return source;
-
+        const pad = 16;
+        const cx = Math.max(0, minX - pad);
+        const cy = Math.max(0, minY - pad);
+        const cw = Math.min(width - cx, maxX - minX + 1 + pad * 2);
+        const ch = Math.min(height - cy, maxY - minY + 1 + pad * 2);
+        if (cw <= 0 || ch <= 0) return source;
         const cropped = document.createElement("canvas");
-        cropped.width = cropW;
-        cropped.height = cropH;
-        const croppedCtx = cropped.getContext("2d");
-        if (!croppedCtx) return source;
-        croppedCtx.fillStyle = exportBackground;
-        croppedCtx.fillRect(0, 0, cropW, cropH);
-        croppedCtx.drawImage(source, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+        cropped.width = cw; cropped.height = ch;
+        const cc = cropped.getContext("2d");
+        if (!cc) return source;
+        cc.fillStyle = exportBackground;
+        cc.fillRect(0, 0, cw, ch);
+        cc.drawImage(source, cx, cy, cw, ch, 0, 0, cw, ch);
         return cropped;
       };
 
       const croppedCanvas = cropCanvasToContent(canvas);
-      const imgData = croppedCanvas.toDataURL("image/png");
+
+      // 6. Zostav PDF – orientácia podľa pomeru strán, využi celú plochu A4
+      const { jsPDF } = await import("jspdf");
+      const isLandscape = croppedCanvas.width > croppedCanvas.height;
       const doc = new jsPDF({
-        orientation: croppedCanvas.width > croppedCanvas.height ? "landscape" : "portrait",
+        orientation: isLandscape ? "landscape" : "portrait",
         unit: "mm",
         format: "a4",
       });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
-      const pixelToMm = 25.4 / 96;
-      const pageMarginMm = 6;
-      const availableW = Math.max(pageW - pageMarginMm * 2, 1);
-      const availableH = Math.max(pageH - pageMarginMm * 2, 1);
-      const sourceW = croppedCanvas.width * pixelToMm;
-      const sourceH = croppedCanvas.height * pixelToMm;
-      const scale = Math.min(availableW / sourceW, availableH / sourceH);
-      const w = sourceW * scale;
-      const h = sourceH * scale;
-      const x = (pageW - w) / 2;
-      const y = (pageH - h) / 2;
-      doc.addImage(imgData, "PNG", x, y, w, h);
+      const margin = 4; // mm – minimálny okraj
+      const availW = pageW - margin * 2;
+      const availH = pageH - margin * 2;
+      // Vždy vyplň celú stranu (zachovaj pomer)
+      const scale = Math.min(availW / croppedCanvas.width, availH / croppedCanvas.height);
+      const imgW = croppedCanvas.width * scale;
+      const imgH = croppedCanvas.height * scale;
+      const imgX = (pageW - imgW) / 2;
+      const imgY = (pageH - imgH) / 2;
+      // PNG = ostrejší text (žiadna JPEG kompresia na hranách písma)
+      const imgData = croppedCanvas.toDataURL("image/png");
+      doc.addImage(imgData, "PNG", imgX, imgY, imgW, imgH);
       doc.save("organigram.pdf");
+
     } catch (err) {
       console.error("PDF export failed:", err);
     } finally {
       overlay?.remove();
-      restored.forEach(({ el, content }) => {
-        el.textContent = content;
-      });
+      restored.forEach(({ el, content }) => { el.textContent = content; });
+      // Obnov pôvodný viewport
+      if (prevViewport && typeof rfInstance.setViewport === "function") {
+        rfInstance.setViewport(prevViewport, { duration: 0 });
+      }
       setIsExportingPdf(false);
     }
   }, []);
@@ -2198,6 +2447,29 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           >
             Rozbaľ všetko
           </button>
+          {onSettingsChange && (
+            <button
+              type="button"
+              onClick={() => {
+                const id = generateSectionId();
+                const newSection: SectionGroup = {
+                  id,
+                  name: "Nová sekcia",
+                  parentId: effectiveRootId ?? null,
+                  color: getDefaultSectionColor(sectionGroups.length),
+                };
+                setSectionGroups([...sectionGroups, newSection]);
+                setSelectedSectionId(id);
+                setSelectedEmployeeId(null);
+                setSelectedVacancyId(null);
+                setRightPanelCollapsedAndSave(false);
+              }}
+              className="rounded-lg border border-[#949C58] bg-[#949C58]/10 px-3 py-2 text-xs font-semibold text-[#949C58] hover:bg-[#949C58]/20 transition-colors"
+              title="Pridať novú sekciu / skupinu"
+            >
+              + Sekcia
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowCellSettings((v) => !v)}
@@ -2410,7 +2682,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         departmentManagers={departmentManagers}
         onDepartmentManagerChange={handleSetDepartmentManager}
         employees={rawRecords}
-        allowEdit={allowEdit}
+        allowEdit={allowEdit && onSettingsChange != null}
+        onExportAllDepartmentsPdf={downloadAllDepartmentsPdf}
+        isExportingAllPdf={isExportingAllPdf}
       />
 
       <div className="flex items-stretch gap-4">
@@ -2472,23 +2746,32 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             onNodeClick={(_, node) => {
-              if (node.type === "vacancy") {
+              if (node.type === "section") {
+                const data = node.data as SectionNodeData;
+                setSelectedSectionId(data.sectionId);
+                setSelectedEmployeeId(null);
+                setSelectedVacancyId(null);
+                setRightPanelCollapsedAndSave(false);
+              } else if (node.type === "vacancy") {
                 const data = node.data as VacancyNodeData;
                 setSelectedVacancyId(data.vacancyId);
                 setSelectedEmployeeId(null);
+                setSelectedSectionId(null);
                 setRightPanelCollapsedAndSave(false);
               } else if (node.type === "orgNode") {
                 const data = node.data as OrgNodeData;
                 setSelectedEmployeeId(data.record.employeeId);
                 setSelectedVacancyId(null);
+                setSelectedSectionId(null);
                 setRightPanelCollapsedAndSave(false);
               } else if (node.type === "root") {
-                // Placeholder „Nastavte GM“ – žiadny zamestnanec na výber
                 setSelectedEmployeeId(null);
                 setSelectedVacancyId(null);
+                setSelectedSectionId(null);
               } else {
                 setSelectedEmployeeId(null);
                 setSelectedVacancyId(null);
+                setSelectedSectionId(null);
               }
             }}
             onNodesChange={onNodesChange}
@@ -2552,7 +2835,187 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                 ▶
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-hidden px-4 py-3">
+            <div className="min-h-0 flex-1 overflow-hidden">
+              {/* ===== SEKCIA DETAIL ===== */}
+              {selectedSectionId ? (() => {
+                const sec = sectionGroups.find((s) => s.id === selectedSectionId);
+                if (!sec) { setSelectedSectionId(null); return null; }
+                const secIndex = sectionGroups.findIndex((s) => s.id === selectedSectionId);
+                const color = sec.color ?? getDefaultSectionColor(secIndex);
+                const members = rawRecords.filter((r) => r.managerEmployeeId === sec.id);
+                const addable = sec.parentId
+                  ? rawRecords.filter((r) => r.managerEmployeeId === sec.parentId)
+                  : [];
+                const COLORS = ["#21394F","#949C58","#F06909","#2563EB","#7C3AED","#059669","#DC2626","#0891B2"];
+                const secChildLayout = (childLayoutByNodeId[sec.id] ?? "row") as "row" | "pairs" | "fours";
+                return (
+                  <div className="flex h-full flex-col overflow-hidden">
+                    {/* Farebny header */}
+                    <div className="shrink-0 px-4 pt-3 pb-2" style={{ borderBottom: `2px solid ${color}` }}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {sec.icon && <span className="text-xl">{sec.icon}</span>}
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color }}>Sekcia</p>
+                            <p className="text-sm font-bold text-slate-900 leading-tight">{sec.name}</p>
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => setSelectedSectionId(null)}
+                          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">✕</button>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        {members.length} {members.length === 1 ? "zamestnanec" : members.length < 5 ? "zamestnanci" : "zamestnancov"}
+                      </p>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+
+                      {/* Nazov */}
+                      {onSettingsChange ? (
+                        <div>
+                          <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Názov sekcie</label>
+                          <input key={sec.id + "-n"} type="text" defaultValue={sec.name}
+                            onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== sec.name) setSectionGroups(sectionGroups.map((s) => s.id === sec.id ? { ...s, name: v } : s)); }}
+                            className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400" />
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Názov</label>
+                          <p className="text-sm font-semibold" style={{ color }}>{sec.name}</p>
+                        </div>
+                      )}
+
+                      {/* Ikona */}
+                      {onSettingsChange && (
+                        <div>
+                          <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Emoji ikona</label>
+                          <input key={sec.id + "-i"} type="text" defaultValue={sec.icon ?? ""} placeholder="🏭 ⚙️ 📦 🔧"
+                            onBlur={(e) => { const v = e.target.value.trim() || undefined; setSectionGroups(sectionGroups.map((s) => s.id === sec.id ? { ...s, icon: v } : s)); }}
+                            className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400" />
+                        </div>
+                      )}
+
+                      {/* Farba */}
+                      {onSettingsChange && (
+                        <div>
+                          <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-2">Farba sekcie</label>
+                          <div className="flex flex-wrap gap-2">
+                            {COLORS.map((c) => (
+                              <button key={c} type="button"
+                                onClick={() => setSectionGroups(sectionGroups.map((s) => s.id === sec.id ? { ...s, color: c } : s))}
+                                className="h-7 w-7 rounded-full transition-all hover:scale-110"
+                                style={{ backgroundColor: c, boxShadow: color === c ? `0 0 0 2px white, 0 0 0 4px ${c}` : "none", transform: color === c ? "scale(1.15)" : undefined }} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Nadriadeny */}
+                      {onSettingsChange && (
+                        <div>
+                          <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Nadriadený sekcie</label>
+                          <select key={sec.id + "-p"} value={sec.parentId ?? ""}
+                            onChange={(e) => setSectionGroups(sectionGroups.map((s) => s.id === sec.id ? { ...s, parentId: e.target.value || null } : s))}
+                            className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none">
+                            <option value="">— bez nadriadeného —</option>
+                            {rawRecords.map((r) => <option key={r.employeeId} value={r.employeeId}>{r.fullName}</option>)}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Zobrazovanie podriadených */}
+                      {onSettingsChange && (
+                        <div>
+                          <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-2">Zobrazovanie podriadených</label>
+                          <div className="flex gap-2">
+                            {(["row", "pairs", "fours"] as const).map((style) => (
+                              <button key={style} type="button"
+                                onClick={() => setChildLayoutByNodeIdState((prev) => {
+                                  const next = { ...prev, [sec.id]: style };
+                                  const cb = onSettingsChangeRef.current;
+                                  if (cb) queueMicrotask(() => cb({ employeeChildLayout: next }));
+                                  return next;
+                                })}
+                                className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition-colors ${
+                                  secChildLayout === style ? "border-transparent text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                                }`}
+                                style={secChildLayout === style ? { backgroundColor: color, borderColor: color } : {}}>
+                                {style === "row" ? "V rade" : style === "pairs" ? "V pároch" : "Po štyroch"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Clenovia */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Členovia sekcie</label>
+                          <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white" style={{ backgroundColor: color }}>{members.length}</span>
+                        </div>
+                        {members.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic">Žiadni členovia. Pridaj ich nižšie.</p>
+                        ) : (
+                          <ul className="space-y-1">
+                            {members.map((r) => (
+                              <li key={r.employeeId} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium text-slate-800 truncate">{r.fullName}</p>
+                                  <p className="text-[10px] text-slate-400 truncate">{r.positionName}</p>
+                                </div>
+                                {onSettingsChange && (
+                                  <button type="button"
+                                    onClick={() => { if (onRecordsChange) onRecordsChange(rawRecords.map((rec) => rec.employeeId === r.employeeId ? { ...rec, managerEmployeeId: sec.parentId ?? null } : rec)); }}
+                                    className="ml-2 shrink-0 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-100">odobrať</button>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+
+                      {/* Pridat clenov */}
+                      {onSettingsChange && addable.filter((r) => r.managerEmployeeId !== sec.id).length > 0 && (
+                        <div>
+                          <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Pridať do sekcie</label>
+                          <p className="text-[10px] text-slate-400 mb-2">Zamestnanci pod rovnakým nadriadencom:</p>
+                          <ul className="space-y-1 max-h-44 overflow-y-auto">
+                            {addable.filter((r) => r.managerEmployeeId !== sec.id).map((r) => (
+                              <li key={r.employeeId} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-1.5">
+                                <div className="min-w-0">
+                                  <p className="text-xs text-slate-700 truncate">{r.fullName}</p>
+                                  <p className="text-[10px] text-slate-400 truncate">{r.positionName}</p>
+                                </div>
+                                <button type="button"
+                                  onClick={() => { if (onRecordsChange) onRecordsChange(rawRecords.map((rec) => rec.employeeId === r.employeeId ? { ...rec, managerEmployeeId: sec.id } : rec)); }}
+                                  className="ml-2 shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold text-white"
+                                  style={{ backgroundColor: color }}>+ pridať</button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Zmazat */}
+                      {onSettingsChange && (
+                        <div className="border-t border-slate-100 pt-3">
+                          <button type="button"
+                            onClick={() => {
+                              if (onRecordsChange && members.length > 0)
+                                onRecordsChange(rawRecords.map((rec) => rec.managerEmployeeId === sec.id ? { ...rec, managerEmployeeId: sec.parentId ?? null } : rec));
+                              setSectionGroups(sectionGroups.filter((s) => s.id !== sec.id));
+                              setSelectedSectionId(null);
+                            }}
+                            className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100"
+                          >Odstrániť sekciu</button>
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                );
+              })() : (
+              <div className="h-full overflow-y-auto px-4 py-3">
               <CellDetailPanel
                 employee={
                   selectedEmployeeId
@@ -2728,7 +3191,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                 childLayoutStyle={
                   selectedEmployeeId ? (childLayoutByNodeId[selectedEmployeeId] ?? null) : null
                 }
-                onChildLayoutChange={(nodeId, style) => {
+                onChildLayoutChange={onSettingsChange ? (nodeId, style) => {
                   setChildLayoutByNodeIdState((prev) => {
                     const next = { ...prev, [nodeId]: style };
                     const cb = onSettingsChangeRef.current;
@@ -2736,10 +3199,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                     else saveChildLayout(nodeId, style);
                     return next;
                   });
-                }}
+                } : undefined}
                 directReportOrder={selectedEmployeeDirectReportOrder}
                 onReorderDirectReports={
-                  selectedEmployeeId
+                  selectedEmployeeId && onSettingsChange
                     ? (orderedIds) =>
                         setChildOrderByParent((prev) => ({ ...prev, [selectedEmployeeId]: orderedIds }))
                     : undefined
@@ -2873,8 +3336,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                     );
                   })() : undefined
                 }
-                onCloseEmployee={() => { setSelectedEmployeeId(null); setSelectedVacancyId(null); }}
+                onCloseEmployee={() => { setSelectedEmployeeId(null); setSelectedVacancyId(null); setSelectedSectionId(null); }}
               />
+              </div>
+              )}
             </div>
           </aside>
         )}
@@ -2882,3 +3347,4 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     </div>
   );
 }
+

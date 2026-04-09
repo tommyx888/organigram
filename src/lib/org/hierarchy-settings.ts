@@ -15,6 +15,7 @@ const STORAGE_MAX_VISIBLE_LAYERS = "org-chart-max-visible-layers";
 export type MaxVisibleLayers = 1 | 2 | 3 | 4 | 5;
 
 const VACANCY_ID_PREFIX = "vacancy-";
+const SECTION_ID_PREFIX = "section-";
 
 export function getVacancyIdPrefix(): string {
   return VACANCY_ID_PREFIX;
@@ -26,6 +27,14 @@ export function generateVacancyId(): string {
 
 export function isVacancyId(id: string): boolean {
   return id.startsWith(VACANCY_ID_PREFIX);
+}
+
+export function generateSectionId(): string {
+  return `${SECTION_ID_PREFIX}${crypto.randomUUID()}`;
+}
+
+export function isSectionId(id: string): boolean {
+  return id.startsWith(SECTION_ID_PREFIX);
 }
 
 export function loadGeneralManagerId(): string {

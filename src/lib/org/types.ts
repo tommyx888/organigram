@@ -71,3 +71,20 @@ export type VacancyPlaceholder = {
   /** Id nadriadeného – employee_id alebo id inej vacancy. */
   parentId: string | null;
 };
+
+/**
+ * Sekcia / skupina – vizuálny kontajner ktorý zoskupuje zamestnancov pod pomenovanú skupinu.
+ * Zobrazuje sa ako špeciálna karta v orgcharte; zamestnanci sa do nej priradia cez memberIds.
+ */
+export type SectionGroup = {
+  /** Unikátny identifikátor sekcie, prefix "section-" */
+  id: string;
+  /** Názov sekcie, napr. "Batch procesy" */
+  name: string;
+  /** Id nadriadeného uzla (employee_id, vacancy_id, alebo iný section_id) */
+  parentId: string | null;
+  /** Farba sekcie (hex, napr. "#21394F") */
+  color?: string;
+  /** Emoji/ikona sekcie */
+  icon?: string;
+};
