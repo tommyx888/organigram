@@ -2093,7 +2093,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
       const captureCurrentView = async (): Promise<HTMLCanvasElement> => {
         // maxZoom: 0.8 zabraňuje aby malé oddelenia (2-3 ľudia) boli príliš priblížené
-        rfInstance.fitView({ padding: 0.08, duration: 0, maxZoom: 0.6 });
+        rfInstance.fitView({ padding: 0.08, duration: 0 });
         await new Promise((r) => setTimeout(r, 180));
         const hideForExport = container.querySelectorAll(".react-flow__controls, .react-flow__minimap");
         const hiddenEls: { el: Element; prev: string }[] = [];
@@ -2237,8 +2237,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       overlay.textContent = hexOverrides;
       document.head.appendChild(overlay);
 
-      // 2. FitView – zobrazí celý orgchart, maxZoom obmedzuje priblíženie malých oddelení
-      rfInstance.fitView({ padding: 0.08, duration: 0, maxZoom: 0.6 });
+      // 2. FitView – zobrazí celý orgchart
+      rfInstance.fitView({ padding: 0.08, duration: 0 });
       // Počkaj kým sa viewport usadí
       await new Promise((r) => setTimeout(r, 120));
 
