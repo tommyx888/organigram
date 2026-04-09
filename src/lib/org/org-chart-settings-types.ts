@@ -6,7 +6,7 @@
 import type { ChartAppearanceState } from "@/lib/org/chart-appearance";
 import type { VacancyPlaceholder, SectionGroup } from "@/lib/org/types";
 
-export type MaxVisibleLayers = 1 | 2 | 3 | 4 | 5;
+export type MaxVisibleLayers = 1 | 2 | 3 | 4 | 5 | 6;
 
 export type CustomStredisko = { id: string; name: string };
 

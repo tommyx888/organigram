@@ -321,6 +321,7 @@ export function HierarchySidebar(props: HierarchySidebarProps) {
             <option value={3}>{t("orgChart.layer3")}</option>
             <option value={4}>{t("orgChart.layer4")}</option>
             <option value={5}>{t("orgChart.layer5")}</option>
+            <option value={6}>{t("orgChart.layer6")}</option>
           </select>
           <p className="mt-1 text-xs text-slate-500">{t("orgChart.layersHint")}</p>
         </div>

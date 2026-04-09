@@ -12,7 +12,7 @@ const STORAGE_VACANCIES = "org-chart-vacancies";
 const STORAGE_MAX_VISIBLE_LAYERS = "org-chart-max-visible-layers";
 
 /** Počet zobrazených vrstiev: 1 = len GM, 2 = GM + priama línia, … 5 = všetko. */
-export type MaxVisibleLayers = 1 | 2 | 3 | 4 | 5;
+export type MaxVisibleLayers = 1 | 2 | 3 | 4 | 5 | 6;
 
 const VACANCY_ID_PREFIX = "vacancy-";
 const SECTION_ID_PREFIX = "section-";
@@ -102,7 +102,7 @@ export function loadMaxVisibleLayers(): MaxVisibleLayers {
     const raw = localStorage.getItem(STORAGE_MAX_VISIBLE_LAYERS);
     if (raw === null) return DEFAULT_MAX_VISIBLE_LAYERS;
     const n = parseInt(raw, 10);
-    if (n >= 1 && n <= 5) return n as MaxVisibleLayers;
+    if (n >= 1 && n <= 6) return n as MaxVisibleLayers;
     return DEFAULT_MAX_VISIBLE_LAYERS;
   } catch {
     return DEFAULT_MAX_VISIBLE_LAYERS;
