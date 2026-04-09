@@ -283,6 +283,7 @@ async function loadFromIacEmployees(
   resolveManagerLinksByEmployeeId(records, sourceRowsForRecords, issues);
 
   await enrichRecordsWithPhotoUrls(client, records, companyIdOverride);
+  await applySectionMemberOverrides(client, records, companyIdOverride);
 
   return {
     source: "iac_employees",
@@ -520,6 +521,36 @@ function isActiveStatus(status: string): boolean {
     normalized === "true" ||
     normalized.startsWith("active")
   );
+}
+
+/**
+ * Nahradi managerEmployeeId zamestnancom sekcii z tabulky org_section_members.
+ * Povodny priamy_nadr v iac_employees ostane nedotknuty.
+ * Toto sa vola az po resolveManagerLinksByEmployeeId.
+ */
+async function applySectionMemberOverrides(
+  client: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  records: EmployeeRecord[],
+  companyIdOverride?: string | null,
+): Promise<void> {
+  const companyId = companyIdOverride ?? (await resolveCompanyId(client));
+  if (!companyId || records.length === 0) return;
+
+  const { data: rows } = await client
+    .from("org_section_members")
+    .select("employee_id, section_id")
+    .eq("company_id", companyId);
+
+  if (!rows?.length) return;
+
+  const sectionByEmployeeId = new Map(rows.map((r) => [r.employee_id, r.section_id]));
+  records.forEach((record) => {
+    const sectionId = sectionByEmployeeId.get(record.employeeId);
+    if (sectionId) {
+      // Override: zamestnanec sa zobrazuje pod sekciou, nie pod povodnym nadriadenim
+      record.managerEmployeeId = sectionId;
+    }
+  });
 }
 
 async function logLoadEvent(

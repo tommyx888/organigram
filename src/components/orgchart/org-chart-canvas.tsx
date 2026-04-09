@@ -50,6 +50,13 @@ import { resetOrgChartToTemplate } from "@/lib/org/org-chart-reset";
 import { buildShareUrl, type ShareableViewState } from "@/lib/org/shareable-view-state";
 import { useTranslation } from "@/lib/i18n/context";
 import {
+  fetchSectionMembers,
+  addEmployeeToSection,
+  removeEmployeeFromSection,
+  removeSectionAllMembers,
+  type SectionMemberRow,
+} from "@/lib/org/section-members-client";
+import {
   loadGeneralManagerId,
   saveGeneralManagerId,
   loadMaxVisibleLayers,
@@ -892,6 +899,12 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     [onSettingsChange],
   );
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [sectionMembers, setSectionMembers] = useState<SectionMemberRow[]>([]);
+  // Nacitaj section members z DB pri starte pre vsetkych prihlasenych pouzivatelov
+  useEffect(() => {
+    fetchSectionMembers().then(setSectionMembers).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>(() =>
     getInitialFromSettings(initialSettings, "positions", loadPositions),
   );
@@ -1044,11 +1057,16 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   /** Mapovanie parentId -> deti. Používa všetkých zamestnancov (rawRecords), aby sa po výbere osoby zobrazila celá štruktúra pod ňou. */
   const hierarchyChildren = useMemo(() => {
     const map = new Map<string, string[]>();
+
+    // Zostav mapu s section member overrides
+    // Ak ma zamestnanec override v sectionMembers, jeho managerEmployeeId sa nahradi section_id
+    const sectionOverrideMap = new Map(sectionMembers.map((m) => [m.employee_id, m.section_id]));
+
     rawRecords.forEach((r) => {
-      const parentId = r.managerEmployeeId ?? "__root";
-      const list = map.get(parentId) ?? [];
+      const effectiveParentId = sectionOverrideMap.get(r.employeeId) ?? r.managerEmployeeId ?? "__root";
+      const list = map.get(effectiveParentId) ?? [];
       list.push(r.employeeId);
-      map.set(parentId, list);
+      map.set(effectiveParentId, list);
     });
     vacancies.forEach((v) => {
       const parentId = v.parentId ?? "__root";
@@ -1056,7 +1074,6 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       list.push(v.id);
       map.set(parentId, list);
     });
-    // Sekcie sa zobrazuju ako uzly v hierarchii pod ich nadriadenymi
     sectionGroups.forEach((s) => {
       const parentId = s.parentId ?? "__root";
       const list = map.get(parentId) ?? [];
@@ -1064,7 +1081,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       map.set(parentId, list);
     });
     return map;
-  }, [rawRecords, vacancies, sectionGroups]);
+  }, [rawRecords, vacancies, sectionGroups, sectionMembers]);
 
   const [childOrderByParent, setChildOrderByParentState] = useState<Record<string, string[]>>(() => {
     const fromSettings = initialSettings?.childOrderByParent;
@@ -1170,11 +1187,12 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   /** Celá hierarchia (všetci zamestnanci vrátane DIR, INDIR1). Používa sa len na počítanie podriadených. */
   const hierarchyChildrenAll = useMemo(() => {
     const map = new Map<string, string[]>();
+    const sectionOverrideMap = new Map(sectionMembers.map((m) => [m.employee_id, m.section_id]));
     rawRecords.forEach((r) => {
-      const parentId = r.managerEmployeeId ?? "__root";
-      const list = map.get(parentId) ?? [];
+      const effectiveParentId = sectionOverrideMap.get(r.employeeId) ?? r.managerEmployeeId ?? "__root";
+      const list = map.get(effectiveParentId) ?? [];
       list.push(r.employeeId);
-      map.set(parentId, list);
+      map.set(effectiveParentId, list);
     });
     vacancies.forEach((v) => {
       const parentId = v.parentId ?? "__root";
@@ -1189,7 +1207,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       map.set(parentId, list);
     });
     return map;
-  }, [rawRecords, vacancies, sectionGroups]);
+  }, [rawRecords, vacancies, sectionGroups, sectionMembers]);
 
   /** Celkový počet ľudí (zamestnancov) pod daným uzlom – rekurzívne z celej hierarchie (vrátane DIR, INDIR1). */
   const totalSubordinateCountByNodeId = useMemo(() => {
@@ -2842,9 +2860,17 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                 if (!sec) { setSelectedSectionId(null); return null; }
                 const secIndex = sectionGroups.findIndex((s) => s.id === selectedSectionId);
                 const color = sec.color ?? getDefaultSectionColor(secIndex);
-                const members = rawRecords.filter((r) => r.managerEmployeeId === sec.id);
+                // Clenovia = zamestnanci ktori maju section override v sectionMembers state
+                const members = rawRecords.filter((r) =>
+                  sectionMembers.some((m) => m.employee_id === r.employeeId && m.section_id === sec.id)
+                );
+                // Pridatelni = zamestnanci pod rovnakym nadriadenim, ktori nie su v tejto sekcii
                 const addable = sec.parentId
-                  ? rawRecords.filter((r) => r.managerEmployeeId === sec.parentId)
+                  ? rawRecords.filter((r) => {
+                      const override = sectionMembers.find((m) => m.employee_id === r.employeeId);
+                      const effectiveManager = override ? override.section_id : r.managerEmployeeId;
+                      return effectiveManager === sec.parentId;
+                    })
                   : [];
                 const COLORS = ["#21394F","#949C58","#F06909","#2563EB","#7C3AED","#059669","#DC2626","#0891B2"];
                 const secChildLayout = (childLayoutByNodeId[sec.id] ?? "row") as "row" | "pairs" | "fours";
@@ -2965,7 +2991,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                                 </div>
                                 {onSettingsChange && (
                                   <button type="button"
-                                    onClick={() => { if (onRecordsChange) onRecordsChange(rawRecords.map((rec) => rec.employeeId === r.employeeId ? { ...rec, managerEmployeeId: sec.parentId ?? null } : rec)); }}
+                                    onClick={() => {
+                                      removeEmployeeFromSection(r.employeeId, sectionMembers)
+                                        .then(setSectionMembers);
+                                    }}
                                     className="ml-2 shrink-0 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-100">odobrať</button>
                                 )}
                               </li>
@@ -2987,7 +3016,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                                   <p className="text-[10px] text-slate-400 truncate">{r.positionName}</p>
                                 </div>
                                 <button type="button"
-                                  onClick={() => { if (onRecordsChange) onRecordsChange(rawRecords.map((rec) => rec.employeeId === r.employeeId ? { ...rec, managerEmployeeId: sec.id } : rec)); }}
+                                  onClick={() => {
+                                    addEmployeeToSection(r.employeeId, sec.id, sectionMembers)
+                                      .then(setSectionMembers);
+                                  }}
                                   className="ml-2 shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold text-white"
                                   style={{ backgroundColor: color }}>+ pridať</button>
                               </li>
@@ -3001,8 +3033,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                         <div className="border-t border-slate-100 pt-3">
                           <button type="button"
                             onClick={() => {
-                              if (onRecordsChange && members.length > 0)
-                                onRecordsChange(rawRecords.map((rec) => rec.managerEmployeeId === sec.id ? { ...rec, managerEmployeeId: sec.parentId ?? null } : rec));
+                              removeSectionAllMembers(sec.id, sectionMembers)
+                                .then(setSectionMembers);
                               setSectionGroups(sectionGroups.filter((s) => s.id !== sec.id));
                               setSelectedSectionId(null);
                             }}
