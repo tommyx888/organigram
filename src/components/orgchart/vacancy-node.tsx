@@ -1,7 +1,6 @@
 "use client";
 
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
-
 import { ExpandCollapseButton } from "@/components/orgchart/expand-collapse-button";
 
 const SOURCE_HANDLE_ID = "bottom";
@@ -10,61 +9,199 @@ const TARGET_HANDLE_ID = "top";
 export type VacancyNodeData = {
   vacancyId: string;
   title: string;
-  /** Ak je true, zobrazíme ako vrchol (General Manager). */
   isRoot?: boolean;
   hasChildren?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
-  /** Skryť handle bodky (pri bublina + sekcie vizuálne oddelené). */
   hideHandles?: boolean;
+  nodeWidth?: number;
+  nodeHeight?: number;
 };
 
 type VacancyNodeType = Node<VacancyNodeData, "vacancy">;
 
+// Jantárová / zlato-oranžová paleta pre vacancy
+const VACANCY_COLOR = "#D97706";   // amber-600
+const VACANCY_LIGHT = "#FEF3C7";   // amber-50
+const VACANCY_MID   = "#FCD34D";   // amber-300
+
 export function VacancyNode(props: NodeProps<VacancyNodeType>) {
   const { data } = props;
-  const isRoot = data.isRoot === true;
   const showExpand = data.hasChildren && data.onToggleCollapse;
   const showHandles = !data.hideHandles;
 
+  const nodeWidth  = data.nodeWidth  ?? 280;
+  const nodeHeight = data.nodeHeight ?? 100;
+
+  const accent   = VACANCY_COLOR;
+  const bg       = `linear-gradient(135deg, ${accent} 0%, #B45309 100%)`;
+
+  // Rozmery odvodené od výšky nodu (rovnaká logika ako infoPill)
+  const avatarD     = Math.round(nodeHeight * 0.88);
+  const avatarLeft  = Math.round(-avatarD * 0.10);
+  const pillLeft    = Math.round(avatarD * 0.52);
+  const pillR       = nodeHeight / 2;
+  const labelPadL   = Math.round(avatarD * 0.52) + 10;
+  const labelH      = Math.round(nodeHeight * 0.34);
+  const bodyTop     = labelH + 4;
+
   return (
     <>
-      {showHandles && <Handle type="target" position={Position.Top} id={TARGET_HANDLE_ID} />}
-      <div
-        className="flex flex-col items-center justify-start pt-2"
-        style={{ width: 280, minHeight: 160 }}
-      >
-        <div
-          className="w-full max-w-[280px] overflow-hidden rounded-[18px] border-2 border-dashed border-amber-400 bg-amber-50/80"
-          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
-        >
-          <div className="flex min-h-[44px] items-center justify-between gap-2 px-4 py-2.5 bg-amber-200/90 text-amber-900">
-            <span className="text-xs font-semibold uppercase tracking-wide">
-              Voľná pozícia
+      {showHandles && (
+        <Handle type="target" position={Position.Top} id={TARGET_HANDLE_ID} />
+      )}
+
+      <div style={{ width: nodeWidth, height: nodeHeight, position: "relative", paddingTop: 8 }}>
+        <div style={{ position: "relative", width: "100%", height: "100%" }}>
+
+          {/* ── BIELA PILL ── */}
+          <div style={{
+            position: "absolute",
+            left: pillLeft, top: 0, right: 0, bottom: 0,
+            background: "#ffffff",
+            borderRadius: pillR,
+            boxShadow: `0 2px 8px rgba(217,119,6,0.15), 0 8px 24px rgba(217,119,6,0.10), inset 0 0 0 1.5px rgba(217,119,6,0.20)`,
+          }} />
+
+          {/* ── MENO — farebný gradient tag ── */}
+          <div style={{
+            position: "absolute",
+            left: pillLeft,
+            top: Math.round(nodeHeight * 0.06),
+            right: 12,
+            height: labelH,
+            background: bg,
+            borderRadius: `${labelH / 2}px`,
+            paddingLeft: labelPadL,
+            paddingRight: 10,
+            display: "flex",
+            alignItems: "center",
+            overflow: "hidden",
+            zIndex: 5,
+            boxShadow: `0 3px 12px rgba(217,119,6,0.35)`,
+          }}>
+            {/* gloss */}
+            <div style={{
+              position: "absolute", inset: 0, borderRadius: "inherit",
+              background: "linear-gradient(180deg,rgba(255,255,255,0.18) 0%,transparent 60%)",
+            }} />
+            <span style={{
+              position: "relative", zIndex: 1,
+              fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
+              textTransform: "uppercase", color: "#fff",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }} title={data.title}>
+              {data.title || "Voľná pozícia"}
             </span>
-            <div className="flex shrink-0 items-center gap-1">
-              {isRoot && (
-                <span className="rounded bg-amber-300/80 px-2 py-0.5 text-xs font-medium">
-                  Vrchol
-                </span>
-              )}
-              {showExpand && (
+            {/* Collapse button vpravo v labeli */}
+            {showExpand && (
+              <div style={{ marginLeft: "auto", flexShrink: 0, paddingLeft: 6 }}>
                 <ExpandCollapseButton
                   isCollapsed={data.isCollapsed ?? false}
                   onToggle={data.onToggleCollapse!}
                 />
-              )}
+              </div>
+            )}
+          </div>
+
+          {/* ── INFO PILLY (Voľná pozícia + root badge) ── */}
+          <div style={{
+            position: "absolute",
+            left: pillLeft + labelPadL,
+            top: bodyTop + Math.round(nodeHeight * 0.06),
+            right: 14,
+            bottom: Math.round(nodeHeight * 0.08),
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            zIndex: 5,
+          }}>
+            {/* "Voľná pozícia" pill */}
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              background: VACANCY_LIGHT,
+              border: `1px solid ${VACANCY_MID}`,
+              borderRadius: 20,
+              padding: "2px 8px",
+              fontSize: 10, fontWeight: 700,
+              color: accent,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+            }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: accent, display: "inline-block", flexShrink: 0,
+              }} />
+              Voľná pozícia
+            </span>
+
+            {/* Root badge */}
+            {data.isRoot && (
+              <span style={{
+                display: "inline-block",
+                background: accent,
+                borderRadius: 20,
+                padding: "2px 8px",
+                fontSize: 9, fontWeight: 700,
+                color: "#fff",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                whiteSpace: "nowrap",
+              }}>
+                Vrchol
+              </span>
+            )}
+          </div>
+
+          {/* ── AVATAR KRUH ── */}
+          <div style={{
+            position: "absolute",
+            left: avatarLeft,
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: avatarD,
+            height: avatarD,
+            borderRadius: "50%",
+            background: "#ffffff",
+            boxShadow: `0 6px 20px rgba(217,119,6,0.30), 0 0 0 3px #fff`,
+            zIndex: 10,
+          }}>
+            {/* farebný disk s ikonou */}
+            <div style={{
+              position: "absolute", inset: 4,
+              borderRadius: "50%",
+              background: bg,
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              {/* Ikona "osoba s otáznikom" = voľná pozícia */}
+              <svg
+                width={Math.round(avatarD * 0.44)}
+                height={Math.round(avatarD * 0.44)}
+                viewBox="0 0 40 46"
+                fill="none"
+                aria-hidden
+              >
+                <ellipse cx="20" cy="12" rx="8" ry="9" fill="rgba(255,255,255,0.9)" />
+                <path d="M2 44c0-9.941 8.059-16 18-16s18 6.059 18 16" fill="rgba(255,255,255,0.75)" />
+                {/* otáznik */}
+                <text x="20" y="13" textAnchor="middle" dominantBaseline="middle"
+                  fontSize="11" fontWeight="900" fill={accent} fontFamily="sans-serif">
+                  ?
+                </text>
+              </svg>
             </div>
           </div>
-          <div className="space-y-1.5 px-4 py-3.5">
-            <p className="line-clamp-2 min-h-[2.25rem] text-base font-semibold leading-snug text-slate-800" title={data.title}>
-              {data.title || "—"}
-            </p>
-            <p className="text-xs text-slate-500">Pod túto pozíciu sa napájajú ľudia v organigrame.</p>
-          </div>
+
         </div>
       </div>
-      {showHandles && <Handle type="source" position={Position.Bottom} id={SOURCE_HANDLE_ID} />}
+
+      {showHandles && (
+        <Handle type="source" position={Position.Bottom} id={SOURCE_HANDLE_ID} />
+      )}
     </>
   );
 }

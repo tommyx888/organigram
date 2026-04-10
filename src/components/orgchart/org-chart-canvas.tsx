@@ -50,10 +50,17 @@ import { resetOrgChartToTemplate } from "@/lib/org/org-chart-reset";
 import { buildShareUrl, type ShareableViewState } from "@/lib/org/shareable-view-state";
 import { useTranslation } from "@/lib/i18n/context";
 import {
+  fetchVacanciesFromDb,
+  createVacancyInDb,
+  updateVacancyInDb,
+  deleteVacancyFromDb,
+} from "@/lib/org/vacancy-client";
+import {
   fetchSectionMembers,
   addEmployeeToSection,
   removeEmployeeFromSection,
   removeSectionAllMembers,
+  setEmployeeParentOverride,
   type SectionMemberRow,
 } from "@/lib/org/section-members-client";
 import {
@@ -69,8 +76,6 @@ import {
   generateSectionId,
   isVacancyId,
   isSectionId,
-  addVacancy as persistAddVacancy,
-  removeVacancy as persistRemoveVacancy,
   type MaxVisibleLayers,
 } from "@/lib/org/hierarchy-settings";
 import type { OrgChartSettingsPayload } from "@/lib/org/org-chart-settings-types";
@@ -883,11 +888,20 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const setVacancies = useCallback(
     (next: VacancyPlaceholder[]) => {
       setVacanciesState(next);
+      // Vacancy sa ukladaju do DB aj do settings pre backward compat
       if (onSettingsChange) onSettingsChange({ vacancies: next });
       else saveVacancies(next);
     },
     [onSettingsChange],
   );
+
+  // Nacitaj vacancies z DB pri starte pre vsetkych prihlasenych
+  useEffect(() => {
+    fetchVacanciesFromDb().then((dbVacs) => {
+      if (dbVacs.length > 0) setVacanciesState(dbVacs);
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [sectionGroups, setSectionGroupsState] = useState<SectionGroup[]>(() =>
     getInitialFromSettings(initialSettings, "sectionGroups", () => []) ?? [],
   );
@@ -901,8 +915,33 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [sectionMembers, setSectionMembers] = useState<SectionMemberRow[]>([]);
   // Nacitaj section members z DB pri starte pre vsetkych prihlasenych pouzivatelov
+  // + Realtime subscription: ked admin zmeni prislusnost k sekcii, ostatni vidia hned
   useEffect(() => {
     fetchSectionMembers().then(setSectionMembers).catch(() => {});
+
+    if (!supabaseClient) return;
+    const client = supabaseClient;
+
+    const overridesChannel = client
+      .channel("org-chart-overrides-realtime")
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "org_chart_overrides" },
+        () => { fetchSectionMembers().then(setSectionMembers).catch(() => {}); },
+      )
+      .subscribe();
+
+    const vacanciesChannel = client
+      .channel("org-vacancies-realtime")
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "org_vacancies" },
+        () => { fetchVacanciesFromDb().then((v) => { if (v.length > 0) setVacanciesState(v); }).catch(() => {}); },
+      )
+      .subscribe();
+
+    return () => {
+      void client.removeChannel(overridesChannel);
+      void client.removeChannel(vacanciesChannel);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>(() =>
@@ -1173,10 +1212,20 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
   useEffect(() => {
     if (dbSettingsAppliedRef.current.vacancies) return;
-    const vac = initialSettings?.vacancies;
-    if (!Array.isArray(vac) || vac.length === 0) return;
     dbSettingsAppliedRef.current.vacancies = true;
-    setVacanciesState(vac);
+    const dbVac = initialSettings?.vacancies;
+    if (Array.isArray(dbVac) && dbVac.length > 0) {
+      // DB ma vacancies -> aplikuj ich
+      setVacanciesState(dbVac);
+    } else if (!dbVac && onSettingsChange) {
+      // DB nema vacancies ale localStorage moze mat -> jednorazova migracia do DB
+      const localVac = loadVacancies();
+      if (localVac.length > 0) {
+        setVacanciesState(localVac);
+        onSettingsChange({ vacancies: localVac });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSettings?.vacancies]);
 
   useEffect(() => {
@@ -1632,6 +1681,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           isCollapsed: rootIsCollapsed,
           onToggleCollapse: () => toggleCollapsed("root"),
           hideHandles,
+          nodeWidth,
+          nodeHeight,
         } as VacancyNodeData,
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
@@ -1708,6 +1759,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             isCollapsed: collapsedNodeIds.has(vac.id),
             onToggleCollapse: () => toggleCollapsed(vac.id),
             hideHandles,
+            nodeWidth,
+            nodeHeight,
           },
           sourcePosition: Position.Bottom,
           targetPosition: Position.Top,
@@ -2800,8 +2853,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           onAddVacancy={(title, parentId) => {
             const id = generateVacancyId();
             const v: VacancyPlaceholder = { id, title, parentId };
-            persistAddVacancy(v);
             setVacancies([...vacancies, v]);
+            // Uloz do DB (org_vacancies tabulka)
+            if (onSettingsChange) createVacancyInDb(v).catch(() => {});
           }}
           onResetTemplate={async () => {
             if (onResetToDefaults) await onResetToDefaults();
@@ -3252,12 +3306,16 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                     : undefined
                 }
                 onManagerChange={
-                  allowEdit && selectedEmployeeId && onRecordsChange
+                  allowEdit && selectedEmployeeId && onSettingsChange
                     ? (managerId) => {
-                        const updated = rawRecords.map((r) =>
-                          r.employeeId === selectedEmployeeId ? { ...r, managerEmployeeId: managerId } : r,
-                        );
-                        onRecordsChange(updated);
+                        // Uloz override do DB (org_chart_overrides)
+                        // - ak je managerId vacancy alebo section, ulozi sa ako override
+                        // - ak je managerId null alebo regularny zamestnanec, tiez ulozi
+                        setEmployeeParentOverride(
+                          selectedEmployeeId,
+                          managerId,
+                          sectionMembers,
+                        ).then(setSectionMembers);
                       }
                     : undefined
                 }
@@ -3433,9 +3491,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                                 type="button"
                                 onClick={() => {
                                   const next = vacancies.filter((v) => v.id !== vac.id);
-                                  persistRemoveVacancy(vac.id);
                                   setVacancies(next);
                                   setSelectedVacancyId(null);
+                                  // Zmaz z DB
+                                  if (onSettingsChange) deleteVacancyFromDb(vac.id).catch(() => {});
                                 }}
                                 className="rounded border border-red-300 bg-red-50 px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
                               >

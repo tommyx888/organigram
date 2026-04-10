@@ -283,7 +283,7 @@ async function loadFromIacEmployees(
   resolveManagerLinksByEmployeeId(records, sourceRowsForRecords, issues);
 
   await enrichRecordsWithPhotoUrls(client, records, companyIdOverride);
-  await applySectionMemberOverrides(client, records, companyIdOverride);
+  await applyChartOverrides(client, records, companyIdOverride);
 
   return {
     source: "iac_employees",
@@ -524,11 +524,11 @@ function isActiveStatus(status: string): boolean {
 }
 
 /**
- * Nahradi managerEmployeeId zamestnancom sekcii z tabulky org_section_members.
+ * Nahradi managerEmployeeId pre zamestnancov podla org_chart_overrides.
+ * Pokryva: vacancy overrides, section overrides, a akykolvek iny parent override.
  * Povodny priamy_nadr v iac_employees ostane nedotknuty.
- * Toto sa vola az po resolveManagerLinksByEmployeeId.
  */
-async function applySectionMemberOverrides(
+async function applyChartOverrides(
   client: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
   records: EmployeeRecord[],
   companyIdOverride?: string | null,
@@ -537,18 +537,17 @@ async function applySectionMemberOverrides(
   if (!companyId || records.length === 0) return;
 
   const { data: rows } = await client
-    .from("org_section_members")
-    .select("employee_id, section_id")
+    .from("org_chart_overrides")
+    .select("employee_id, override_parent_id")
     .eq("company_id", companyId);
 
   if (!rows?.length) return;
 
-  const sectionByEmployeeId = new Map(rows.map((r) => [r.employee_id, r.section_id]));
+  const overrideMap = new Map(rows.map((r) => [r.employee_id, r.override_parent_id]));
   records.forEach((record) => {
-    const sectionId = sectionByEmployeeId.get(record.employeeId);
-    if (sectionId) {
-      // Override: zamestnanec sa zobrazuje pod sekciou, nie pod povodnym nadriadenim
-      record.managerEmployeeId = sectionId;
+    const parentOverride = overrideMap.get(record.employeeId);
+    if (parentOverride) {
+      record.managerEmployeeId = parentOverride;
     }
   });
 }

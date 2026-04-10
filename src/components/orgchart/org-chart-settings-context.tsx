@@ -80,17 +80,13 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
       return;
     }
     const client = supabaseClient;
-
     let cancelled = false;
 
     async function fetchSettings() {
       try {
-        const {
-          data: { session },
-        } = await client.auth.getSession();
+        const { data: { session } } = await client.auth.getSession();
         const token = session?.access_token;
         if (!token || cancelled) return;
-
         const res = await fetch("/api/org-chart-settings", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -99,10 +95,6 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
         if (cancelled) return;
         const payload = (raw ? JSON.parse(raw) : {}) as OrgChartSettingsPayload;
         setDbSettings(payload ?? {});
-        if (process.env.NODE_ENV === "development" && payload?.childOrderByParent) {
-          const ids = Object.keys(payload.childOrderByParent);
-          console.info("[Org chart] Načítané poradie podriadených zo Supabase:", ids.length, "nadriadených:", ids);
-        }
       } catch {
         if (!cancelled) setDbSettings({});
       }
@@ -112,8 +104,35 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
       if (!cancelled) setIsLoading(false);
     });
 
+    // ── Realtime subscription ──────────────────────────────────────────────
+    // Ked admin zmeni nastavenia, vsetci ostatni dostanu update okamzite
+    // bez nutnosti refreshu stranky.
+    const channel = client
+      .channel("org-chart-settings-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "org_chart_settings",
+        },
+        (payload) => {
+          if (cancelled) return;
+          // Payload obsahuje novy riadok — nacitame cely payload z DB
+          const newRow = payload.new as { payload?: OrgChartSettingsPayload };
+          if (newRow?.payload) {
+            setDbSettings(newRow.payload);
+          } else {
+            // Fallback: refetch
+            void fetchSettings();
+          }
+        },
+      )
+      .subscribe();
+
     return () => {
       cancelled = true;
+      void client.removeChannel(channel);
     };
   }, [useDb]);
 
