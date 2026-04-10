@@ -11,17 +11,36 @@ async function getAuthToken(): Promise<string | null> {
   return data.session?.access_token ?? null;
 }
 
-/** Nacita vsetky chart overrides (sekcie + vacancy + ine) */
+/**
+ * Nacita vsetky chart overrides priamo cez Supabase JS client.
+ * Funguje pre adminov aj non-adminov bez HTTP round-trip.
+ */
 export async function fetchSectionMembers(): Promise<SectionMemberRow[]> {
-  const token = await getAuthToken();
-  if (!token) return [];
-  const res = await fetch("/api/org/chart-overrides", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) return [];
-  const rows = await res.json() as OverrideRow[];
-  // Konvertuj na SectionMemberRow format pre backward compat
-  return rows.map((r) => ({ employee_id: r.employee_id, section_id: r.override_parent_id }));
+  if (!supabaseClient) return [];
+
+  // Resolve company_id
+  const { data: companyData } = await supabaseClient
+    .from("companies")
+    .select("id")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  const companyId = companyData?.[0]?.id;
+  if (!companyId) return [];
+
+  const { data, error } = await supabaseClient
+    .from("org_chart_overrides")
+    .select("employee_id, override_parent_id")
+    .eq("company_id", companyId);
+
+  if (error) {
+    console.warn("[section-members] fetchSectionMembers error:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((r) => ({
+    employee_id: r.employee_id,
+    section_id: r.override_parent_id,
+  }));
 }
 
 /** Ulozi (nahradi) cely zoznam overrides */

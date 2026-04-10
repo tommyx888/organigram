@@ -1,4 +1,4 @@
-import { supabaseClient } from "@/lib/supabase/client";
+import { supabaseClient, resolveActiveCompanyId } from "@/lib/supabase/client";
 import type { VacancyPlaceholder } from "@/lib/org/types";
 
 export type VacancyDbRow = {
@@ -16,16 +16,28 @@ async function getToken(): Promise<string | null> {
   return data.session?.access_token ?? null;
 }
 
-/** Nacita vsetky vacancies z DB */
+/**
+ * Nacita vsetky vacancies priamo cez Supabase JS client (bez HTTP round-trip).
+ * Funguje pre adminov aj non-adminov — RLS politika dovoli SELECT pre vsetkych authenticated.
+ */
 export async function fetchVacanciesFromDb(): Promise<VacancyPlaceholder[]> {
-  const token = await getToken();
-  if (!token) return [];
-  const res = await fetch("/api/org/vacancies", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) return [];
-  const rows = await res.json() as VacancyDbRow[];
-  return rows.map((r) => ({
+  if (!supabaseClient) return [];
+
+  const companyId = await resolveActiveCompanyId();
+  if (!companyId) return [];
+
+  const { data, error } = await supabaseClient
+    .from("org_vacancies")
+    .select("id, title, parent_id")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.warn("[vacancies] fetchVacanciesFromDb error:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((r) => ({
     id: r.id,
     title: r.title,
     parentId: r.parent_id,

@@ -882,9 +882,13 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     },
     [onSettingsChange],
   );
-  const [vacancies, setVacanciesState] = useState<VacancyPlaceholder[]>(() =>
-    getInitialFromSettings(initialSettings, "vacancies", loadVacancies),
-  );
+  // Vacancies: primarne z org_vacancies tabulky (DB), fallback na initialSettings alebo localStorage
+  // Inicializacia je prazdna - nacitavame async v useEffect nizsie
+  const [vacancies, setVacanciesState] = useState<VacancyPlaceholder[]>(() => {
+    // Ak mame data v initialSettings (z org_chart_settings.payload), pouzijeme ich ako temporary
+    const fromSettings = getInitialFromSettings(initialSettings, "vacancies", loadVacancies);
+    return fromSettings;
+  });
   const setVacancies = useCallback(
     (next: VacancyPlaceholder[]) => {
       setVacanciesState(next);
@@ -895,11 +899,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     [onSettingsChange],
   );
 
-  // Nacitaj vacancies z DB pri starte pre vsetkych prihlasenych
+  // Nacitaj vacancies z org_vacancies tabulky pri starte - pre VSETKYCH pouzivatelov
+  // Supabase JS client manazuje session sam - nepotrebujeme getSession() guard
   useEffect(() => {
+    let cancelled = false;
     fetchVacanciesFromDb().then((dbVacs) => {
-      if (dbVacs.length > 0) setVacanciesState(dbVacs);
+      if (!cancelled) setVacanciesState(dbVacs);
     }).catch(() => {});
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [sectionGroups, setSectionGroupsState] = useState<SectionGroup[]>(() =>
@@ -914,10 +921,12 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   );
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [sectionMembers, setSectionMembers] = useState<SectionMemberRow[]>([]);
-  // Nacitaj section members z DB pri starte pre vsetkych prihlasenych pouzivatelov
-  // + Realtime subscription: ked admin zmeni prislusnost k sekcii, ostatni vidia hned
+  // Nacitaj section members + Realtime subscription
   useEffect(() => {
-    fetchSectionMembers().then(setSectionMembers).catch(() => {});
+    let cancelled = false;
+    fetchSectionMembers().then((members) => {
+      if (!cancelled) setSectionMembers(members);
+    }).catch(() => {});
 
     if (!supabaseClient) return;
     const client = supabaseClient;
@@ -939,6 +948,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       .subscribe();
 
     return () => {
+      cancelled = true;
       void client.removeChannel(overridesChannel);
       void client.removeChannel(vacanciesChannel);
     };
