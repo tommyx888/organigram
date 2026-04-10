@@ -1,4 +1,4 @@
-import { supabaseClient, resolveActiveCompanyId } from "@/lib/supabase/client";
+import { supabaseClient } from "@/lib/supabase/client";
 import type { VacancyPlaceholder } from "@/lib/org/types";
 
 export type VacancyDbRow = {
@@ -18,18 +18,15 @@ async function getToken(): Promise<string | null> {
 
 /**
  * Nacita vsetky vacancies priamo cez Supabase JS client (bez HTTP round-trip).
- * Funguje pre adminov aj non-adminov — RLS politika dovoli SELECT pre vsetkych authenticated.
+ * RLS politika: SELECT je povoleny pre vsetkych authenticated — nepotrebujeme company_id filter
+ * pretoze non-admin moze mat null company_id z user_company_roles.
  */
 export async function fetchVacanciesFromDb(): Promise<VacancyPlaceholder[]> {
   if (!supabaseClient) return [];
 
-  const companyId = await resolveActiveCompanyId();
-  if (!companyId) return [];
-
   const { data, error } = await supabaseClient
     .from("org_vacancies")
     .select("id, title, parent_id")
-    .eq("company_id", companyId)
     .order("created_at", { ascending: true });
 
   if (error) {

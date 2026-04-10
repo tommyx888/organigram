@@ -13,24 +13,14 @@ async function getAuthToken(): Promise<string | null> {
 
 /**
  * Nacita vsetky chart overrides priamo cez Supabase JS client.
- * Funguje pre adminov aj non-adminov bez HTTP round-trip.
+ * RLS: SELECT povoleny pre vsetkych authenticated — nepotrebujeme company_id filter.
  */
 export async function fetchSectionMembers(): Promise<SectionMemberRow[]> {
   if (!supabaseClient) return [];
 
-  // Resolve company_id
-  const { data: companyData } = await supabaseClient
-    .from("companies")
-    .select("id")
-    .order("created_at", { ascending: true })
-    .limit(1);
-  const companyId = companyData?.[0]?.id;
-  if (!companyId) return [];
-
   const { data, error } = await supabaseClient
     .from("org_chart_overrides")
-    .select("employee_id, override_parent_id")
-    .eq("company_id", companyId);
+    .select("employee_id, override_parent_id");
 
   if (error) {
     console.warn("[section-members] fetchSectionMembers error:", error.message);
