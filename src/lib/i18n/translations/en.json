@@ -33,7 +33,18 @@
     "dashboard": "Dashboard",
     "role": "Role",
     "roleN/A": "n/a",
-    "readOnlyFallback": "read-only fallback"
+    "readOnlyFallback": "read-only fallback",
+    "changePassword": "Change password",
+    "changePasswordTitle": "Change password",
+    "changePasswordHint": "Enter your new password twice. Use the new password next time you sign in.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "savePassword": "Save password",
+    "savingPassword": "Saving…",
+    "passwordMismatch": "Passwords do not match.",
+    "passwordTooShort": "Password must be at least 8 characters.",
+    "passwordChanged": "Password has been changed.",
+    "passwordChangeFailed": "Could not change password."
   },
   "home": {
     "platform": "Artifex Platform",

@@ -33,7 +33,18 @@
     "dashboard": "Dashboard",
     "role": "Role",
     "roleN/A": "n/a",
-    "readOnlyFallback": "read-only fallback"
+    "readOnlyFallback": "read-only fallback",
+    "changePassword": "Zmeniť heslo",
+    "changePasswordTitle": "Zmena hesla",
+    "changePasswordHint": "Zadajte nové heslo dvakrát. Po uložení použite nové heslo pri ďalšom prihlásení.",
+    "newPassword": "Nové heslo",
+    "confirmPassword": "Potvrdenie hesla",
+    "savePassword": "Uložiť heslo",
+    "savingPassword": "Ukladám…",
+    "passwordMismatch": "Heslá sa nezhodujú.",
+    "passwordTooShort": "Heslo musí mať aspoň 8 znakov.",
+    "passwordChanged": "Heslo bolo zmenené.",
+    "passwordChangeFailed": "Zmena hesla zlyhala."
   },
   "home": {
     "platform": "Artifex Platform",

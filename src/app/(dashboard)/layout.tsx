@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { ChangePasswordDialog } from "@/components/auth/change-password-dialog";
 import { AuthProvider, type AuthContextValue, type UserRole } from "@/components/auth/auth-context";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useTranslation } from "@/lib/i18n/context";
@@ -169,13 +170,16 @@ export default function DashboardLayout(props: DashboardLayoutProps) {
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             {isSupabasePublicConfigured ? (
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="rounded border border-slate-300 px-2 py-1 font-semibold text-slate-700"
-              >
-                {t("auth.signOut")}
-              </button>
+              <>
+                <ChangePasswordDialog />
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="rounded border border-slate-300 px-2 py-1 font-semibold text-slate-700"
+                >
+                  {t("auth.signOut")}
+                </button>
+              </>
             ) : null}
           </div>
         </div>
