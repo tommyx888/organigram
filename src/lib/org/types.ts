@@ -70,6 +70,12 @@ export type VacancyPlaceholder = {
   title: string;
   /** Id nadriadeného – employee_id alebo id inej vacancy. */
   parentId: string | null;
+  /** Meno kandidáta (ak je už vybraný). */
+  candidateName?: string | null;
+  /** Plánovaný dátum nástupu (ISO date string). */
+  startDate?: string | null;
+  /** Kategória pozície (napr. SAL, DIR, INDIR). */
+  category?: string | null;
 };
 
 /**

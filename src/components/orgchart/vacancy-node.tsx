@@ -16,6 +16,9 @@ export type VacancyNodeData = {
   hideHandles?: boolean;
   nodeWidth?: number;
   nodeHeight?: number;
+  candidateName?: string | null;
+  startDate?: string | null;
+  category?: string | null;
 };
 
 type VacancyNodeType = Node<VacancyNodeData, "vacancy">;
@@ -104,7 +107,7 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
             )}
           </div>
 
-          {/* ── INFO PILLY (Voľná pozícia + root badge) ── */}
+          {/* ── INFO PILLY + kandidát/dátum/kategória ── */}
           <div style={{
             position: "absolute",
             left: pillLeft + labelPadL,
@@ -112,45 +115,91 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
             right: 14,
             bottom: Math.round(nodeHeight * 0.08),
             display: "flex",
-            alignItems: "center",
-            gap: 6,
+            flexDirection: "column",
+            justifyContent: "center",
+            gap: 3,
             zIndex: 5,
           }}>
-            {/* "Voľná pozícia" pill */}
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              background: VACANCY_LIGHT,
-              border: `1px solid ${VACANCY_MID}`,
-              borderRadius: 20,
-              padding: "2px 8px",
-              fontSize: 10, fontWeight: 700,
-              color: accent,
-              letterSpacing: "0.04em",
-              textTransform: "uppercase",
-              whiteSpace: "nowrap",
-            }}>
+            {/* Riadok 1: "Voľná pozícia" pill + kategória + root */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
               <span style={{
-                width: 6, height: 6, borderRadius: "50%",
-                background: accent, display: "inline-block", flexShrink: 0,
-              }} />
-              Voľná pozícia
-            </span>
-
-            {/* Root badge */}
-            {data.isRoot && (
-              <span style={{
-                display: "inline-block",
-                background: accent,
+                display: "inline-flex", alignItems: "center", gap: 4,
+                background: VACANCY_LIGHT,
+                border: `1px solid ${VACANCY_MID}`,
                 borderRadius: 20,
                 padding: "2px 8px",
-                fontSize: 9, fontWeight: 700,
-                color: "#fff",
-                letterSpacing: "0.05em",
+                fontSize: 10, fontWeight: 700,
+                color: accent,
+                letterSpacing: "0.04em",
                 textTransform: "uppercase",
                 whiteSpace: "nowrap",
               }}>
-                Vrchol
+                <span style={{
+                  width: 6, height: 6, borderRadius: "50%",
+                  background: accent, display: "inline-block", flexShrink: 0,
+                }} />
+                Voľná pozícia
               </span>
+
+              {data.category && (
+                <span style={{
+                  display: "inline-block",
+                  background: "#f1f5f9",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 20,
+                  padding: "2px 7px",
+                  fontSize: 9, fontWeight: 800,
+                  color: "#475569",
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                }}>
+                  {data.category}
+                </span>
+              )}
+
+              {data.isRoot && (
+                <span style={{
+                  display: "inline-block",
+                  background: accent,
+                  borderRadius: 20,
+                  padding: "2px 8px",
+                  fontSize: 9, fontWeight: 700,
+                  color: "#fff",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                }}>
+                  Vrchol
+                </span>
+              )}
+            </div>
+
+            {/* Riadok 2: kandidát + dátum (ak sú vyplnené) */}
+            {(data.candidateName || data.startDate) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                {data.candidateName && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 3,
+                    fontSize: 10, fontWeight: 600, color: "#92400e",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    maxWidth: 110,
+                  }}>
+                    <span style={{ fontSize: 10 }}>👤</span>
+                    {data.candidateName}
+                  </span>
+                )}
+                {data.startDate && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 3,
+                    fontSize: 10, fontWeight: 600, color: "#92400e",
+                    whiteSpace: "nowrap",
+                  }}>
+                    <span style={{ fontSize: 10 }}>📅</span>
+                    {new Date(data.startDate).toLocaleDateString("sk-SK", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 

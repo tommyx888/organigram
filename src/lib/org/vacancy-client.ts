@@ -26,7 +26,7 @@ export async function fetchVacanciesFromDb(): Promise<VacancyPlaceholder[]> {
 
   const { data, error } = await supabaseClient
     .from("org_vacancies")
-    .select("id, title, parent_id")
+    .select("id, title, parent_id, candidate_name, start_date, category")
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -38,6 +38,9 @@ export async function fetchVacanciesFromDb(): Promise<VacancyPlaceholder[]> {
     id: r.id,
     title: r.title,
     parentId: r.parent_id,
+    candidateName: r.candidate_name ?? null,
+    startDate: r.start_date ?? null,
+    category: r.category ?? null,
   }));
 }
 
@@ -48,7 +51,14 @@ export async function createVacancyInDb(vacancy: VacancyPlaceholder): Promise<bo
   const res = await fetch("/api/org/vacancies", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ id: vacancy.id, title: vacancy.title, parent_id: vacancy.parentId }),
+    body: JSON.stringify({
+      id: vacancy.id,
+      title: vacancy.title,
+      parent_id: vacancy.parentId,
+      candidate_name: vacancy.candidateName ?? null,
+      start_date: vacancy.startDate ?? null,
+      category: vacancy.category ?? null,
+    }),
   });
   return res.ok;
 }
@@ -60,7 +70,14 @@ export async function updateVacancyInDb(vacancy: VacancyPlaceholder): Promise<bo
   const res = await fetch("/api/org/vacancies", {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ id: vacancy.id, title: vacancy.title, parent_id: vacancy.parentId }),
+    body: JSON.stringify({
+      id: vacancy.id,
+      title: vacancy.title,
+      parent_id: vacancy.parentId,
+      candidate_name: vacancy.candidateName ?? null,
+      start_date: vacancy.startDate ?? null,
+      category: vacancy.category ?? null,
+    }),
   });
   return res.ok;
 }

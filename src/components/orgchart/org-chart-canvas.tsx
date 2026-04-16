@@ -1684,16 +1684,19 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         type: "vacancy",
         position: rootPos,
         data: {
-          vacancyId: rootDisplay.vacancy.id,
-          title: rootDisplay.vacancy.title,
-          isRoot: true,
-          hasChildren: rootHasChildren,
-          isCollapsed: rootIsCollapsed,
-          onToggleCollapse: () => toggleCollapsed("root"),
-          hideHandles,
-          nodeWidth,
-          nodeHeight,
-        } as VacancyNodeData,
+        vacancyId: rootDisplay.vacancy.id,
+        title: rootDisplay.vacancy.title,
+        isRoot: true,
+        hasChildren: rootHasChildren,
+        isCollapsed: rootIsCollapsed,
+        onToggleCollapse: () => toggleCollapsed("root"),
+        hideHandles,
+        nodeWidth,
+        nodeHeight,
+          candidateName: rootDisplay.vacancy.candidateName ?? null,
+            startDate: rootDisplay.vacancy.startDate ?? null,
+            category: rootDisplay.vacancy.category ?? null,
+          } as VacancyNodeData,
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
       });
@@ -1771,6 +1774,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             hideHandles,
             nodeWidth,
             nodeHeight,
+            candidateName: vac.candidateName ?? null,
+            startDate: vac.startDate ?? null,
+            category: vac.category ?? null,
           },
           sourcePosition: Position.Bottom,
           targetPosition: Position.Top,
@@ -3389,58 +3395,134 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                 }
                 vacancyContent={
                   selectedVacancyId ? (() => {
-                    const vac = vacancies.find((v) => v.id === selectedVacancyId);
+                  const vac = vacancies.find((v) => v.id === selectedVacancyId)!;
                     if (!vac) return null;
-                    const reportCount = rawRecords.filter((r) => r.managerEmployeeId === vac.id).length
-                      + vacancies.filter((v) => v.parentId === vac.id).length;
-                    return (
-                      <div className="flex h-full flex-col overflow-hidden">
-                        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 pb-2">
-                          <h3 className="text-sm font-semibold text-slate-800">Voľná pozícia</h3>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedVacancyId(null)}
-                            className="rounded p-1 text-slate-500 hover:bg-slate-100"
-                            aria-label={t("common.close")}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        <div className="flex-1 space-y-3 overflow-y-auto py-3">
-                          <div>
-                            <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Názov pozície</label>
-                            <p className="mt-0.5 text-sm font-medium text-slate-800">{vac.title}</p>
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Počet priamych reportov</label>
-                            <p className="mt-0.5 text-sm text-slate-700">{reportCount} (zamestnanci alebo ďalšie vacancy)</p>
-                          </div>
-                          {reportCount > 0 && (
-                            <div className="border-t border-slate-200 pt-3">
-                              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Zobrazovanie podriadených</p>
-                              <p className="mt-0.5 text-xs text-slate-500">Ako sa majú zobrazovať hierarchicky pod touto pozíciou.</p>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {(["row", "pairs", "fours"] as const).map((style) => (
-                                  <button
-                                    key={style}
-                                    type="button"
-                                    onClick={() => {
-                                      setChildLayoutByNodeIdState((prev) => {
-                                        const next = { ...prev, [vac.id]: style };
-                                        const cb = onSettingsChangeRef.current;
-                                        if (cb) queueMicrotask(() => cb({ employeeChildLayout: next }));
-                                        else saveChildLayout(vac.id, style);
-                                        return next;
-                                      });
-                                    }}
-                                    className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
-                                      (childLayoutByNodeId[vac.id] ?? "row") === style
-                                        ? "border-[var(--artifex-navy)] bg-[var(--artifex-navy)] text-white"
-                                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                                    }`}
-                                  >
+                  const reportCount = rawRecords.filter((r) => r.managerEmployeeId === vac.id).length
+                  + vacancies.filter((v) => v.parentId === vac.id).length;
+
+                  const CATEGORIES = ["SAL", "DIR", "INDIR", "INDIR2", "INDIR3"];
+
+                  function saveVacancyField(patch: Partial<Omit<VacancyPlaceholder, 'id'>>) {
+                  const updated: VacancyPlaceholder = { ...vac, ...patch } as VacancyPlaceholder;
+                  setVacancies(vacancies.map((v) => v.id === vac.id ? updated : v));
+                  if (onSettingsChange) updateVacancyInDb(updated).catch(() => {});
+                  }
+
+                  return (
+                  <div className="flex h-full flex-col overflow-hidden">
+                  <div className="flex shrink-0 items-center justify-between border-b border-slate-200 pb-2">
+                    <h3 className="text-sm font-semibold text-slate-800">Voľná pozícia</h3>
+                    <button
+                    type="button"
+                  onClick={() => setSelectedVacancyId(null)}
+                  className="rounded p-1 text-slate-500 hover:bg-slate-100"
+                    aria-label={t("common.close")}
+                  >
+                  ✕
+                  </button>
+                  </div>
+                  <div className="flex-1 space-y-3 overflow-y-auto py-3">
+
+                  {/* Nazov pozicie */}
+                  <div>
+                  <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Názov pozície</label>
+                  {allowEdit && onSettingsChange ? (
+                  <input
+                  type="text"
+                  defaultValue={vac.title}
+                  onBlur={(e) => { if (e.target.value !== vac.title) saveVacancyField({ title: e.target.value }); }}
+                  className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:border-amber-400 focus:outline-none"
+                  />
+                  ) : (
+                  <p className="mt-0.5 text-sm font-medium text-slate-800">{vac.title}</p>
+                  )}
+                  </div>
+
+                  {/* Kategoria */}
+                  <div>
+                  <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Kategória</label>
+                  {allowEdit && onSettingsChange ? (
+                  <select
+                  value={vac.category ?? ""}
+                  onChange={(e) => saveVacancyField({ category: e.target.value || null })}
+                  className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:border-amber-400 focus:outline-none"
+                  >
+                  <option value="">— nezadaná —</option>
+                    {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                  ) : (
+                  <p className="mt-0.5 text-sm text-slate-700">{vac.category ?? "—"}</p>
+                  )}
+                  </div>
+
+                  {/* Kandidat */}
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-amber-700">👤 Kandidát</p>
+                  <div>
+                  <label className="text-xs font-medium text-slate-500">Meno kandidáta</label>
+                  {allowEdit && onSettingsChange ? (
+                  <input
+                  type="text"
+                  defaultValue={vac.candidateName ?? ""}
+                  placeholder="Meno a priezvisko..."
+                  onBlur={(e) => saveVacancyField({ candidateName: e.target.value || null })}
+                  className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:border-amber-400 focus:outline-none"
+                  />
+                  ) : (
+                  <p className="mt-0.5 text-sm text-slate-700">{vac.candidateName ?? <span className="italic text-slate-400">nezadané</span>}</p>
+                  )}
+                  </div>
+                  <div>
+                  <label className="text-xs font-medium text-slate-500">Dátum nástupu</label>
+                  {allowEdit && onSettingsChange ? (
+                  <input
+                  type="date"
+                  value={vac.startDate ?? ""}
+                  onChange={(e) => saveVacancyField({ startDate: e.target.value || null })}
+                  className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:border-amber-400 focus:outline-none"
+                  />
+                  ) : (
+                  <p className="mt-0.5 text-sm text-slate-700">
+                  {vac.startDate ? new Date(vac.startDate).toLocaleDateString("sk-SK") : <span className="italic text-slate-400">nezadané</span>}
+                  </p>
+                  )}
+                  </div>
+                  </div>
+
+                  {/* Pocet reportov */}
+                  <div>
+                  <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Počet priamych reportov</label>
+                  <p className="mt-0.5 text-sm text-slate-700">{reportCount} (zamestnanci alebo ďalšie vacancy)</p>
+                  </div>
+
+                  {reportCount > 0 && (
+                  <div className="border-t border-slate-200 pt-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Zobrazovanie podriadených</p>
+                      <p className="mt-0.5 text-xs text-slate-500">Ako sa majú zobrazovať hierarchicky pod touto pozíciou.</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                      {(["row", "pairs", "fours"] as const).map((style) => (
+                      <button
+                      key={style}
+                      type="button"
+                    onClick={() => {
+                      setChildLayoutByNodeIdState((prev) => {
+                        const next = { ...prev, [vac.id]: style };
+                        const cb = onSettingsChangeRef.current;
+                        if (cb) queueMicrotask(() => cb({ employeeChildLayout: next }));
+                          else saveChildLayout(vac.id, style);
+                          return next;
+                          });
+                      }}
+                        className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                            (childLayoutByNodeId[vac.id] ?? "row") === style
+                                ? "border-[var(--artifex-navy)] bg-[var(--artifex-navy)] text-white"
+                                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                                }`}
+                                >
                                     {style === "row" ? t("orgChart.childLayoutRow") : style === "pairs" ? t("orgChart.childLayoutPairs") : t("orgChart.childLayoutFours")}
-                                  </button>
+                                    </button>
                                 ))}
                               </div>
                             </div>
@@ -3503,7 +3585,6 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                                   const next = vacancies.filter((v) => v.id !== vac.id);
                                   setVacancies(next);
                                   setSelectedVacancyId(null);
-                                  // Zmaz z DB
                                   if (onSettingsChange) deleteVacancyFromDb(vac.id).catch(() => {});
                                 }}
                                 className="rounded border border-red-300 bg-red-50 px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
