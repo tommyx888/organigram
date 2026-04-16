@@ -30,7 +30,8 @@ const VACANCY_MID   = "#FCD34D";   // amber-300
 
 export function VacancyNode(props: NodeProps<VacancyNodeType>) {
   const { data } = props;
-  const showExpand = data.hasChildren && data.onToggleCollapse;
+  // Collapse button zobrazíme len keď má vacancy podriadených
+  const showExpand = data.hasChildren === true && data.onToggleCollapse != null;
   const showHandles = !data.hideHandles;
 
   const nodeWidth  = data.nodeWidth  ?? 280;
@@ -76,7 +77,7 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
             background: bg,
             borderRadius: `${labelH / 2}px`,
             paddingLeft: labelPadL,
-            paddingRight: 10,
+            paddingRight: showExpand ? labelH + 8 : 10,
             display: "flex",
             alignItems: "center",
             overflow: "hidden",
@@ -87,6 +88,7 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
             <div style={{
               position: "absolute", inset: 0, borderRadius: "inherit",
               background: "linear-gradient(180deg,rgba(255,255,255,0.18) 0%,transparent 60%)",
+              pointerEvents: "none",
             }} />
             <span style={{
               position: "relative", zIndex: 1,
@@ -96,16 +98,25 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
             }} title={data.title}>
               {data.title || "Voľná pozícia"}
             </span>
-            {/* Collapse button vpravo v labeli */}
-            {showExpand && (
-              <div style={{ marginLeft: "auto", flexShrink: 0, paddingLeft: 6 }}>
-                <ExpandCollapseButton
-                  isCollapsed={data.isCollapsed ?? false}
-                  onToggle={data.onToggleCollapse!}
-                />
-              </div>
-            )}
           </div>
+
+          {/* Collapse button — mimo overflow:hidden, vpravo v labeli */}
+          {showExpand && (
+            <div style={{
+              position: "absolute",
+              right: 12 + 4,
+              top: Math.round(nodeHeight * 0.06),
+              height: labelH,
+              display: "flex",
+              alignItems: "center",
+              zIndex: 20,
+            }}>
+              <ExpandCollapseButton
+                isCollapsed={data.isCollapsed ?? false}
+                onToggle={data.onToggleCollapse!}
+              />
+            </div>
+          )}
 
           {/* ── INFO PILLY + kandidát/dátum/kategória ── */}
           <div style={{
@@ -120,26 +131,28 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
             gap: 3,
             zIndex: 5,
           }}>
-            {/* Riadok 1: "Voľná pozícia" pill + kategória + root */}
+            {/* Riadok 1: pill (len ak nie je kandidát) + kategória + root */}
             <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                background: VACANCY_LIGHT,
-                border: `1px solid ${VACANCY_MID}`,
-                borderRadius: 20,
-                padding: "2px 8px",
-                fontSize: 10, fontWeight: 700,
-                color: accent,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                whiteSpace: "nowrap",
-              }}>
+              {!data.candidateName && (
                 <span style={{
-                  width: 6, height: 6, borderRadius: "50%",
-                  background: accent, display: "inline-block", flexShrink: 0,
-                }} />
-                Voľná pozícia
-              </span>
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  background: VACANCY_LIGHT,
+                  border: `1px solid ${VACANCY_MID}`,
+                  borderRadius: 20,
+                  padding: "2px 8px",
+                  fontSize: 10, fontWeight: 700,
+                  color: accent,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                }}>
+                  <span style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: accent, display: "inline-block", flexShrink: 0,
+                  }} />
+                  Voľná pozícia
+                </span>
+              )}
 
               {data.category && (
                 <span style={{
