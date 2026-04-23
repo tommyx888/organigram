@@ -776,6 +776,13 @@ function getInitialFromSettings<T>(s: OrgChartSettingsPayload | null | undefined
   return fallback();
 }
 
+type ExportQuality = "standard" | "high" | "ultra";
+const EXPORT_QUALITY: Record<ExportQuality, { label: string; desc: string; badge: string; pixelRatio: number; format: "PNG" | "JPEG"; quality?: number }> = {
+  standard: { label: "Štandard",  desc: "Rýchly export · JPEG · ~0.5–2 MB",    badge: "2×",  pixelRatio: 3,  format: "JPEG", quality: 0.95 },
+  high:     { label: "Vysoká",    desc: "Ostrý text · PNG · ~3–8 MB",          badge: "4×",  pixelRatio: 5,  format: "PNG" },
+  ultra:    { label: "Ultra HD",  desc: "Tlačová kvalita · PNG · ~10–25 MB",   badge: "8×",  pixelRatio: 8,  format: "PNG" },
+};
+
 export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const { t } = useTranslation();
   const { records: rawRecords, allowEdit = false, onRecordsChange, initialSettings, onSettingsChange, onResetToDefaults, useDbPhotos = false, onPhotoChanged, initialShareableViewState } = props;
@@ -1021,6 +1028,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [isExportingAllPdf, setIsExportingAllPdf] = useState(false);
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const initialShareableViewStateRef = useRef(initialShareableViewState);
@@ -2288,7 +2296,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         if (!ctx) return source;
         const { width, height } = source;
         const pixels = ctx.getImageData(0, 0, width, height).data;
-        const bg = { r: 248, g: 250, b: 252 }; const tol = 12;
+        const bg = { r: 248, g: 250, b: 252 }; const tol = 10;
         let minX = width, minY = height, maxX = -1, maxY = -1;
         for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
           const i = (y * width + x) * 4;
@@ -2364,11 +2372,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     }
   }, [departmentManagers, selectedDepartment]);
 
-  const downloadChartAsPdf = useCallback(async () => {
+  const downloadChartAsPdf = useCallback(async (quality: ExportQuality = "high") => {
     const container = chartContainerRef.current;
     const rfInstance = reactFlowInstanceRef.current;
     if (!container || !rfInstance) return;
     setIsExportingPdf(true);
+    setShowExportMenu(false);
+
+    const { pixelRatio, format, quality: imgQuality } = EXPORT_QUALITY[quality];
 
     // Farby overrides pre html-to-image (oklch/lab nie sú podporované)
     const hexOverrides = `
@@ -2378,7 +2389,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         --color-slate-600: #475569; --color-slate-700: #334155; --color-slate-800: #1e293b;
         --color-slate-900: #0f172a; --color-red-50: #fef2f2; --color-red-700: #b91c1c;
         --color-amber-50: #fffbeb; --color-amber-400: #fbbf24; --color-amber-600: #d97706;
+        --color-amber-50: #fffbeb; --color-amber-400: #fbbf24; --color-amber-600: #d97706;
       }
+      * { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
     `;
     const styleId = "pdf-export-lab-override";
     let overlay: HTMLStyleElement | null = null;
@@ -2420,12 +2433,13 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       });
 
       await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => requestAnimationFrame(r));
 
-      // 4. Render do canvasu – pixelRatio 3 = ostrý text aj na retina displejoch
+      // 4. Render do canvasu – pixelRatio podľa zvolenej kvality
       const { toCanvas } = await import("html-to-image");
       const exportBackground = "#f8fafc";
       const canvas = await toCanvas(container, {
-        pixelRatio: 3,
+        pixelRatio,
         cacheBust: true,
         backgroundColor: exportBackground,
         skipFonts: false,
@@ -2450,7 +2464,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         const image = ctx.getImageData(0, 0, width, height);
         const pixels = image.data;
         const bg = { r: 248, g: 250, b: 252 };
-        const tol = 12;
+        const tol = 10;
         let minX = width, minY = height, maxX = -1, maxY = -1;
         for (let y = 0; y < height; y++) {
           for (let x = 0; x < width; x++) {
@@ -2467,7 +2481,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           }
         }
         if (maxX < minX || maxY < minY) return source;
-        const pad = 16;
+        const pad = Math.round(20 * (pixelRatio / 3));
         const cx = Math.max(0, minX - pad);
         const cy = Math.max(0, minY - pad);
         const cw = Math.min(width - cx, maxX - minX + 1 + pad * 2);
@@ -2492,10 +2506,11 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         orientation: isLandscape ? "landscape" : "portrait",
         unit: "mm",
         format: "a4",
+        compress: true,
       });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
-      const margin = 4; // mm – minimálny okraj
+      const margin = 5; // mm
       const availW = pageW - margin * 2;
       const availH = pageH - margin * 2;
       // Vždy vyplň celú stranu (zachovaj pomer)
@@ -2504,10 +2519,17 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       const imgH = croppedCanvas.height * scale;
       const imgX = (pageW - imgW) / 2;
       const imgY = (pageH - imgH) / 2;
-      // PNG = ostrejší text (žiadna JPEG kompresia na hranách písma)
-      const imgData = croppedCanvas.toDataURL("image/png");
-      doc.addImage(imgData, "PNG", imgX, imgY, imgW, imgH);
-      doc.save("organigram.pdf");
+      // PNG = ostrý text (bez JPEG kompresie), JPEG = menší súbor
+      const imgData = format === "PNG"
+        ? croppedCanvas.toDataURL("image/png")
+        : croppedCanvas.toDataURL("image/jpeg", imgQuality ?? 0.95);
+      doc.addImage(imgData, format, imgX, imgY, imgW, imgH, undefined, quality === "ultra" ? "FAST" : "MEDIUM");
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = now.getFullYear();
+      const stamp = "" + yyyy + mm + dd;
+      doc.save("organigram-" + quality + "-" + stamp + ".pdf");
 
     } catch (err) {
       console.error("PDF export failed:", err);
@@ -2548,15 +2570,44 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           >
             {showGrid ? t("orgChart.gridOff") : t("orgChart.gridOn")}
           </button>
-          <button
-            type="button"
-            disabled={isExportingPdf}
-            onClick={downloadChartAsPdf}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
-            title={t("orgChart.downloadPdfTitle")}
-          >
-            {isExportingPdf ? t("orgChart.preparingPdf") : t("orgChart.downloadPdf")}
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              disabled={isExportingPdf}
+              onClick={() => setShowExportMenu((v) => !v)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 flex items-center gap-1.5"
+              title={t("orgChart.downloadPdfTitle")}
+            >
+              {isExportingPdf ? t("orgChart.preparingPdf") : t("orgChart.downloadPdf")}
+              {!isExportingPdf && <span className="text-slate-400">▾</span>}
+            </button>
+            {showExportMenu && !isExportingPdf && (
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden">
+                <div className="px-3 py-2 border-b border-slate-100">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Kvalita exportu</p>
+                </div>
+                {(Object.entries(EXPORT_QUALITY) as [ExportQuality, typeof EXPORT_QUALITY[ExportQuality]][]).map(([key, opt]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => downloadChartAsPdf(key)}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors group"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-800 group-hover:text-[var(--artifex-navy)]">{opt.label}</p>
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{opt.badge}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{opt.desc}</p>
+                    </div>
+                    <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
+                      {opt.format}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => {
