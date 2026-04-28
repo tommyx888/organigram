@@ -20,7 +20,7 @@ export function BrandingNode(_props: NodeProps<Node<BrandingNodeData, "branding"
         className="text-center text-xs font-semibold tracking-wide"
         style={{ color: "var(--artifex-navy)", fontFamily: "var(--font-display)" }}
       >
-        Artifex Systems Slovakia, s.r.o.
+        Artifex Systems Slovakia s.r.o.
       </p>
     </div>
   );
