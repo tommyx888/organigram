@@ -2948,7 +2948,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
               className="text-sm font-semibold tracking-wide text-[#21394F]"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Artifex Systems Slovakia
+              Artifex Systems Slovakia, s.r.o.
             </span>
           </div>
           <div className="relative min-h-0 flex-1 overflow-hidden">
