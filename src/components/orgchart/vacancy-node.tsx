@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { ExpandCollapseButton } from "@/components/orgchart/expand-collapse-button";
@@ -92,7 +92,7 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
             }} />
             <span style={{
               position: "relative", zIndex: 1,
-              fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
+              fontSize: 42, fontWeight: 900, letterSpacing: "0.06em",
               textTransform: "uppercase", color: "#fff",
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }} title={data.title}>
@@ -140,7 +140,7 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
                   border: `1px solid ${VACANCY_MID}`,
                   borderRadius: 20,
                   padding: "2px 8px",
-                  fontSize: 10, fontWeight: 700,
+                  fontSize: 20, fontWeight: 700,
                   color: accent,
                   letterSpacing: "0.04em",
                   textTransform: "uppercase",
@@ -161,8 +161,7 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
                   border: "1px solid #cbd5e1",
                   borderRadius: 20,
                   padding: "2px 7px",
-                  fontSize: 9, fontWeight: 800,
-                  color: "#475569",
+                  fontSize: 26, fontWeight: 800, color: "#475569",
                   letterSpacing: "0.06em",
                   textTransform: "uppercase",
                   whiteSpace: "nowrap",
@@ -177,8 +176,7 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
                   background: accent,
                   borderRadius: 20,
                   padding: "2px 8px",
-                  fontSize: 9, fontWeight: 700,
-                  color: "#fff",
+                  fontSize: 24, fontWeight: 700, color: "#fff",
                   letterSpacing: "0.05em",
                   textTransform: "uppercase",
                   whiteSpace: "nowrap",
@@ -194,21 +192,21 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
                 {data.candidateName && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 3,
-                    fontSize: 10, fontWeight: 600, color: "#92400e",
+                    fontSize: 20, fontWeight: 600, color: "#92400e",
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     maxWidth: 110,
                   }}>
-                    <span style={{ fontSize: 10 }}>👤</span>
+                    <span style={{ fontSize: 28 }}>👤</span>
                     {data.candidateName}
                   </span>
                 )}
                 {data.startDate && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 3,
-                    fontSize: 10, fontWeight: 600, color: "#92400e",
+                    fontSize: 20, fontWeight: 600, color: "#92400e",
                     whiteSpace: "nowrap",
                   }}>
-                    <span style={{ fontSize: 10 }}>📅</span>
+                    <span style={{ fontSize: 28 }}>📅</span>
                     {new Date(data.startDate).toLocaleDateString("sk-SK", { day: "2-digit", month: "2-digit", year: "numeric" })}
                   </span>
                 )}
@@ -251,7 +249,7 @@ export function VacancyNode(props: NodeProps<VacancyNodeType>) {
                 <path d="M2 44c0-9.941 8.059-16 18-16s18 6.059 18 16" fill="rgba(255,255,255,0.75)" />
                 {/* otáznik */}
                 <text x="20" y="13" textAnchor="middle" dominantBaseline="middle"
-                  fontSize="11" fontWeight="900" fill={accent} fontFamily="sans-serif">
+                  fontSize="32" fontWeight="900" fill={accent} fontFamily="sans-serif">
                   ?
                 </text>
               </svg>

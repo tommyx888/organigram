@@ -810,12 +810,12 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     },
     [onSettingsChange],
   );
-  const nodeScale = Math.min(2.2, Math.max(0.6, chartAppearance.nodeScale ?? 1));
-  const nodeWidthScale = Math.min(2.4, Math.max(0.6, chartAppearance.nodeWidthScale ?? 1));
-  const nodeHeightScale = Math.min(2.6, Math.max(0.6, chartAppearance.nodeHeightScale ?? 1));
-  const fontScale = Math.min(2.2, Math.max(0.7, chartAppearance.fontScale ?? 1));
-  const photoScale = Math.min(4.5, Math.max(0.5, chartAppearance.photoScale ?? 1));
-  const photoFrameScale = Math.min(3.5, Math.max(0.5, chartAppearance.photoFrameScale ?? 1));
+  const nodeScale = Math.min(4.4, Math.max(0.6, chartAppearance.nodeScale ?? 1));
+  const nodeWidthScale = Math.min(4.8, Math.max(0.6, chartAppearance.nodeWidthScale ?? 1));
+  const nodeHeightScale = Math.min(5.2, Math.max(0.6, chartAppearance.nodeHeightScale ?? 1));
+  const fontScale = Math.min(4.4, Math.max(0.7, chartAppearance.fontScale ?? 1));
+  const photoScale = Math.min(9.0, Math.max(0.5, chartAppearance.photoScale ?? 1));
+  const photoFrameScale = Math.min(7.0, Math.max(0.5, chartAppearance.photoFrameScale ?? 1));
   const photoFrameBorderWidth = Math.min(8, Math.max(0, chartAppearance.photoFrameBorderWidth ?? 3));
   const photoOffsetX = Math.min(80, Math.max(-80, chartAppearance.photoOffsetX ?? 0));
   const photoOffsetY = Math.min(80, Math.max(-80, chartAppearance.photoOffsetY ?? 0));
@@ -1027,6 +1027,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     setViewport?: (viewport: { x: number; y: number; zoom: number }, opts?: { duration?: number }) => void;
   } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const reactFlowContainerRef = useRef<HTMLDivElement | null>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isExportingAllPdf, setIsExportingAllPdf] = useState(false);
@@ -2373,7 +2374,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   }, [departmentManagers, selectedDepartment]);
 
   const downloadChartAsPdf = useCallback(async (quality: ExportQuality = "high") => {
-    const container = chartContainerRef.current;
+    // Exportujeme reactFlowContainerRef - cisto ReactFlow bez wrapper border/rounded
+    const container = reactFlowContainerRef.current;
     const rfInstance = reactFlowInstanceRef.current;
     if (!container || !rfInstance) return;
     setIsExportingPdf(true);
@@ -2381,29 +2383,25 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
     const { pixelRatio, format, quality: imgQuality } = EXPORT_QUALITY[quality];
 
-    // Farby overrides pre html-to-image (oklch/lab nie sú podporované)
-    const hexOverrides = `
-      :root {
-        --color-slate-50: #f8fafc; --color-slate-100: #f1f5f9; --color-slate-200: #e2e8f0;
-        --color-slate-300: #cbd5e1; --color-slate-400: #94a3b8; --color-slate-500: #64748b;
-        --color-slate-600: #475569; --color-slate-700: #334155; --color-slate-800: #1e293b;
-        --color-slate-900: #0f172a; --color-red-50: #fef2f2; --color-red-700: #b91c1c;
-        --color-amber-50: #fffbeb; --color-amber-400: #fbbf24; --color-amber-600: #d97706;
-        --color-amber-50: #fffbeb; --color-amber-400: #fbbf24; --color-amber-600: #d97706;
-      }
-      * { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-    `;
+    const hexOverrides = [
+      ":root {",
+      "--color-slate-50: #f8fafc; --color-slate-100: #f1f5f9; --color-slate-200: #e2e8f0;",
+      "--color-slate-300: #cbd5e1; --color-slate-400: #94a3b8; --color-slate-500: #64748b;",
+      "--color-slate-600: #475569; --color-slate-700: #334155; --color-slate-800: #1e293b;",
+      "--color-slate-900: #0f172a; --color-red-50: #fef2f2; --color-red-700: #b91c1c;",
+      "--color-amber-50: #fffbeb; --color-amber-400: #fbbf24; --color-amber-600: #d97706;",
+      "}",
+      "* { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }",
+    ].join("\n");
     const styleId = "pdf-export-lab-override";
     let overlay: HTMLStyleElement | null = null;
     const stripUnsupportedColors = (text: string): string =>
       text.replace(/lab\([^)]*\)/g, "rgb(248, 250, 252)").replace(/oklch\([^)]*\)/g, "rgb(248, 250, 252)");
     const restored: { el: HTMLStyleElement; content: string }[] = [];
-
-    // Ulož aktuálny viewport a nastav fitView pre celý graf
     const prevViewport = typeof rfInstance.getViewport === "function" ? rfInstance.getViewport() : null;
 
     try {
-      // 1. Stripuj nekompatibilné farby
+      // 1. Stripuj nekompatibilne farby
       document.querySelectorAll("style").forEach((el) => {
         if (el.id === styleId) return;
         const raw = el.textContent ?? "";
@@ -2417,12 +2415,11 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       overlay.textContent = hexOverrides;
       document.head.appendChild(overlay);
 
-      // 2. FitView – zobrazí celý orgchart
-      rfInstance.fitView({ padding: 0.08, duration: 0 });
-      // Počkaj kým sa viewport usadí
+      // 2. FitView - zobrazi cely orgchart, padding 0 = ziadne extra miesto
+      rfInstance.fitView({ padding: 0.02, duration: 0 });
       await new Promise((r) => setTimeout(r, 120));
 
-      // 3. Skry UI elementy ktoré nemajú byť v PDF (controls, header, side panel)
+      // 3. Skry UI elementy
       const hideForExport = container.querySelectorAll(
         ".react-flow__controls, .react-flow__minimap, .react-flow__background"
       );
@@ -2431,11 +2428,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         hiddenEls.push({ el, prev: (el as HTMLElement).style.visibility });
         (el as HTMLElement).style.visibility = "hidden";
       });
-
       await new Promise((r) => requestAnimationFrame(r));
       await new Promise((r) => requestAnimationFrame(r));
 
-      // 4. Render do canvasu – pixelRatio podľa zvolenej kvality
+      // 4. Render do canvasu
       const { toCanvas } = await import("html-to-image");
       const exportBackground = "#f8fafc";
       const canvas = await toCanvas(container, {
@@ -2445,7 +2441,6 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         skipFonts: false,
         filter: (node) => {
           const el = node as HTMLElement;
-          // Vylúč UI ovládacie prvky a sidepanel
           return (
             !el.classList?.contains("react-flow__controls") &&
             !el.classList?.contains("react-flow__minimap")
@@ -2453,10 +2448,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         },
       });
 
-      // Obnov skryté elementy
       hiddenEls.forEach(({ el, prev }) => { (el as HTMLElement).style.visibility = prev; });
 
-      // 5. Orež prázdny okraj (background farba)
+      // 5. Orezi prazdny okraj
       const cropCanvasToContent = (source: HTMLCanvasElement): HTMLCanvasElement => {
         const ctx = source.getContext("2d");
         if (!ctx) return source;
@@ -2499,36 +2493,32 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
       const croppedCanvas = cropCanvasToContent(canvas);
 
-      // 6. Zostav PDF – orientácia podľa pomeru strán, využi celú plochu A4
+      // 6. Zostav PDF - vzdy A4 landscape, obsah roztiahnuty na celu stranu
       const { jsPDF } = await import("jspdf");
-      const isLandscape = croppedCanvas.width > croppedCanvas.height;
-      const doc = new jsPDF({
-        orientation: isLandscape ? "landscape" : "portrait",
-        unit: "mm",
-        format: "a4",
-        compress: true,
-      });
-      const pageW = doc.internal.pageSize.getWidth();
-      const pageH = doc.internal.pageSize.getHeight();
-      const margin = 5; // mm
-      const availW = pageW - margin * 2;
-      const availH = pageH - margin * 2;
-      // Vždy vyplň celú stranu (zachovaj pomer)
+      const margin = 6; // mm okraje
+      const A4_W = 297; // mm landscape
+      const A4_H = 210; // mm landscape
+      const availW = A4_W - margin * 2;
+      const availH = A4_H - margin * 2;
+      // Zmestit obsah na stranu so zachovanim pomeru
       const scale = Math.min(availW / croppedCanvas.width, availH / croppedCanvas.height);
       const imgW = croppedCanvas.width * scale;
       const imgH = croppedCanvas.height * scale;
-      const imgX = (pageW - imgW) / 2;
-      const imgY = (pageH - imgH) / 2;
-      // PNG = ostrý text (bez JPEG kompresie), JPEG = menší súbor
+      const imgX = (A4_W - imgW) / 2;
+      const imgY = (A4_H - imgH) / 2;
+      const doc = new jsPDF({
+        unit: "mm",
+        format: "a4",
+        orientation: "landscape",
+        compress: true,
+      });
       const imgData = format === "PNG"
         ? croppedCanvas.toDataURL("image/png")
         : croppedCanvas.toDataURL("image/jpeg", imgQuality ?? 0.95);
       doc.addImage(imgData, format, imgX, imgY, imgW, imgH, undefined, quality === "ultra" ? "FAST" : "MEDIUM");
+
       const now = new Date();
-      const dd = String(now.getDate()).padStart(2, "0");
-      const mm = String(now.getMonth() + 1).padStart(2, "0");
-      const yyyy = now.getFullYear();
-      const stamp = "" + yyyy + mm + dd;
+      const stamp = "" + now.getFullYear() + String(now.getMonth() + 1).padStart(2, "0") + String(now.getDate()).padStart(2, "0");
       doc.save("organigram-" + quality + "-" + stamp + ".pdf");
 
     } catch (err) {
@@ -2536,13 +2526,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     } finally {
       overlay?.remove();
       restored.forEach(({ el, content }) => { el.textContent = content; });
-      // Obnov pôvodný viewport
       if (prevViewport && typeof rfInstance.setViewport === "function") {
         rfInstance.setViewport(prevViewport, { duration: 0 });
       }
       setIsExportingPdf(false);
     }
   }, []);
+
+
 
   return (
     <div className="space-y-4">
@@ -2936,23 +2927,26 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[#f8fafc]"
           style={{ height: "72vh" }}
         >
-          <div className="flex shrink-0 flex-col items-center justify-center gap-1 border-b border-slate-200 bg-white px-4 py-2">
-            <img
-              src="/artifex-logo.png"
-              alt="Artifex"
-              className="h-8 w-auto object-contain"
-              width={96}
-              height={32}
-            />
-            <span
-              className="text-sm font-semibold tracking-wide text-[#21394F]"
-              style={{ fontFamily: "var(--font-display)" }}
+          <div ref={reactFlowContainerRef} className="relative min-h-0 flex-1 overflow-hidden">
+            {/* Logo overlay - stred hore, logo + nazov pod seba */}
+            <div
+              className="pointer-events-none absolute top-5 left-0 right-0 flex flex-col items-center gap-2"
+              style={{ zIndex: 15 }}
             >
-              Artifex Systems Slovakia s.r.o.
-            </span>
-          </div>
-          <div className="relative min-h-0 flex-1 overflow-hidden">
+              <img
+                src="/artifex-logo.png"
+                alt="Artifex"
+                style={{ height: 48, width: "auto", objectFit: "contain" }}
+              />
+              <span
+                className="font-bold tracking-wide"
+                style={{ color: "var(--artifex-navy)", fontFamily: "var(--font-display)", fontSize: 18 }}
+              >
+                Artifex Systems Slovakia s.r.o.
+              </span>
+            </div>
           <ReactFlow
+            proOptions={{ hideAttribution: true }}
             onInit={(instance) => {
               reactFlowInstanceRef.current = instance;
               const viewFromUrl = initialShareableViewStateRef.current?.viewport;

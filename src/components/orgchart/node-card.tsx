@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { KatType, PositionType } from "@/lib/org/types";
 import type { CellFieldsConfig, NodeAccent, NodeVisualStyle } from "@/lib/org/chart-appearance";
@@ -93,7 +93,7 @@ export function NodeCard(props: NodeCardProps) {
   const effectivePhotoScale = photoScale;
   const nodeWidth = Math.max(190, props.nodeWidth ?? 280);
   const nodeHeight = Math.max(120, props.nodeHeight ?? 160);
-  const fs = (px: number) => `${Math.round(px * fontScale)}px`;
+  const fs = (px: number) => `${Math.round(px * fontScale * 2.0)}px`;
   const framePx = (px: number) => `${Math.round(px * photoFrameScale)}px`;
   const photoTransform = `translate(${photoOffsetX}px, ${photoOffsetY}px) scale(${effectivePhotoScale})`;
 
@@ -722,8 +722,17 @@ export function NodeCard(props: NodeCardProps) {
     const labelPadL    = Math.round(avatarD * 0.52) + 10; // text začína za stredom avatara
     const bodyTop      = labelH + 4;                      // obsah pod labelom
     const badgeD       = Math.round(nodeHeight * 0.30);   // badge s počtom podriadených — trochu väčší
-    // +50 % písmo pre infoPill — aplikuje sa na všetky fs() volania nižšie
-    const fsP = (px: number) => `${Math.round(px * fontScale * 1.5)}px`;
+    // písmo pre infoPill
+    const fsP = (px: number) => `${Math.round(px * fontScale * 3.0)}px`;
+
+    // Rozdel meno: priezvisko = 1. slovo, meno = zvysok
+    const nameParts = (props.fullName ?? "").trim().split(" ");
+    const lastName  = nameParts[0] ?? "";
+    const firstName = nameParts.slice(1).join(" ");
+
+    // Vyssi label pre 2 riadky
+    const labelHTwo = Math.round(nodeHeight * 0.46);
+    const bodyTopTwo = labelHTwo + 4;
 
     const subCount = props.totalSubordinateCount;
 
@@ -742,32 +751,42 @@ export function NodeCard(props: NodeCardProps) {
           }}
         />
 
-        {/* ── MENO — malý farebný label tag na vrchu pill ── */}
+        {/* ── MENO — priezvisko na 1. riadku, meno na 2. riadku ── */}
         {fields.name && (
           <div
-            className="absolute overflow-hidden flex items-center"
+            className="absolute overflow-hidden flex flex-col justify-center"
             style={{
-              left: pillLeft + labelLeft,
+              left: pillLeft,
               top: Math.round(nodeHeight * 0.06),
               right: badgeD / 2 + 14,
-              height: labelH,
+              height: labelHTwo,
               background: bg,
-              borderRadius: `${labelH / 2}px`,
+              borderRadius: `${labelHTwo / 2}px`,
               paddingLeft: labelPadL,
               paddingRight: 10,
               zIndex: 5,
               boxShadow: `0 3px 12px ${accent}40`,
+              gap: 1,
             }}
           >
-            {/* gloss */}
             <div className="absolute inset-0 rounded-full" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 60%)" }} />
+            {/* Priezvisko — väčšie, tučné */}
             <span
-              className="relative truncate font-black uppercase text-white"
-              style={{ fontSize: fsP(12), letterSpacing: "0.08em", zIndex: 1 }}
+              className="relative truncate font-black uppercase text-white leading-none"
+              style={{ fontSize: fsP(14), letterSpacing: "0.07em", zIndex: 1 }}
               title={props.fullName}
             >
-              {props.fullName}
+              {lastName}
             </span>
+            {/* Meno — menšie, pod priezviskom */}
+            {firstName && (
+              <span
+                className="relative truncate font-semibold text-white leading-none"
+                style={{ fontSize: fsP(12), letterSpacing: "0.03em", zIndex: 1, opacity: 0.88 }}
+              >
+                {firstName}
+              </span>
+            )}
           </div>
         )}
 
@@ -776,7 +795,7 @@ export function NodeCard(props: NodeCardProps) {
           className="absolute flex flex-col justify-center"
           style={{
             left: pillLeft + labelPadL,
-            top: bodyTop + Math.round(nodeHeight * 0.06),
+            top: bodyTopTwo + Math.round(nodeHeight * 0.06),
             right: 18,
             bottom: Math.round(nodeHeight * 0.08),
             gap: 3,
@@ -792,26 +811,27 @@ export function NodeCard(props: NodeCardProps) {
               {props.positionName}
             </p>
           )}
-          {(fields.department || fields.employeeId) && (
+          {fields.department && (
             <p className="truncate text-slate-400" style={{ fontSize: fsP(9), lineHeight: 1.4 }}>
-              {fields.department && props.department}
-              {fields.department && fields.employeeId ? " · " : ""}
-              {fields.employeeId && `#${props.employeeId}`}
+              {props.department}
             </p>
           )}
-          {fields.typeLabel && (
-            <span
-              className="inline-block self-start rounded-full font-bold uppercase tracking-wide text-white"
-              style={{
-                background: accent,
-                fontSize: fsP(8),
-                padding: `2px 8px`,
-                lineHeight: 1.5,
-                marginTop: 1,
-              }}
-            >
-              {headerLabel}
-            </span>
+          {(fields.typeLabel || fields.employeeId) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {fields.typeLabel && (
+                <span
+                  className="inline-block rounded-full font-bold uppercase tracking-wide text-white"
+                  style={{ background: accent, fontSize: fsP(8), padding: `2px 8px`, lineHeight: 1.5 }}
+                >
+                  {headerLabel}
+                </span>
+              )}
+              {fields.employeeId && (
+                <span className="text-slate-400 font-medium" style={{ fontSize: fsP(8) }}>
+                  #{props.employeeId}
+                </span>
+              )}
+            </div>
           )}
         </div>
 

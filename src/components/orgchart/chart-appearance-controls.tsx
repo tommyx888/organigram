@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import type {
@@ -213,7 +213,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="range"
                 min={12}
-                max={120}
+                max={480}
                 step={4}
                 value={Math.min(120, Math.max(12, appearance.rowGap ?? 28))}
                 onChange={(e) => {
@@ -225,7 +225,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="number"
                 min={12}
-                max={120}
+                max={480}
                 step={4}
                 value={appearance.rowGap ?? 28}
                 onChange={(e) => {
@@ -240,7 +240,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="range"
                 min={12}
-                max={96}
+                max={192}
                 step={4}
                 value={Math.min(96, Math.max(12, appearance.nodeGapX ?? 24))}
                 onChange={(e) => {
@@ -252,7 +252,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="number"
                 min={12}
-                max={96}
+                max={192}
                 step={4}
                 value={appearance.nodeGapX ?? 24}
                 onChange={(e) => {
@@ -279,7 +279,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="range"
                 min={60}
-                max={220}
+                max={440}
                 step={5}
                 value={Math.round((appearance.nodeScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -291,7 +291,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="number"
                 min={60}
-                max={220}
+                max={440}
                 step={5}
                 value={Math.round((appearance.nodeScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -307,7 +307,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="range"
                 min={70}
-                max={220}
+                max={440}
                 step={5}
                 value={Math.round((appearance.fontScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -319,7 +319,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="number"
                 min={70}
-                max={220}
+                max={440}
                 step={5}
                 value={Math.round((appearance.fontScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -335,7 +335,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="range"
                 min={50}
-                max={450}
+                max={900}
                 step={5}
                 value={Math.round((appearance.photoScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -347,7 +347,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="number"
                 min={50}
-                max={450}
+                max={900}
                 step={5}
                 value={Math.round((appearance.photoScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -365,7 +365,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="range"
                 min={60}
-                max={240}
+                max={480}
                 step={5}
                 value={Math.round((appearance.nodeWidthScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -377,7 +377,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="number"
                 min={60}
-                max={240}
+                max={480}
                 step={5}
                 value={Math.round((appearance.nodeWidthScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -393,7 +393,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="range"
                 min={60}
-                max={260}
+                max={520}
                 step={5}
                 value={Math.round((appearance.nodeHeightScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -405,7 +405,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="number"
                 min={60}
-                max={260}
+                max={520}
                 step={5}
                 value={Math.round((appearance.nodeHeightScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -421,7 +421,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="range"
                 min={50}
-                max={350}
+                max={700}
                 step={5}
                 value={Math.round((appearance.photoFrameScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -433,7 +433,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="number"
                 min={50}
-                max={350}
+                max={700}
                 step={5}
                 value={Math.round((appearance.photoFrameScale ?? 1) * 100)}
                 onChange={(e) => {
@@ -559,7 +559,7 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
               <input
                 type="range"
                 min={0.5}
-                max={3}
+                max={6}
                 step={0.5}
                 value={appearance.connection.strokeWidth}
                 onChange={(e) =>

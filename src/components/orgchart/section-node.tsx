@@ -102,19 +102,19 @@ export function SectionNode(props: NodeProps<SectionNodeType>) {
                 {/* Label + ikona */}
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
                   <span style={{
-                    fontSize: 9, fontWeight: 800, letterSpacing: "0.12em",
+                    fontSize: 18, fontWeight: 800, letterSpacing: "0.12em",
                     textTransform: "uppercase", color: "rgba(255,255,255,0.65)",
                     lineHeight: 1,
                   }}>
                     Sekcia
                   </span>
                   {data.icon && (
-                    <span style={{ fontSize: 14, lineHeight: 1 }}>{data.icon}</span>
+                    <span style={{ fontSize: 28, lineHeight: 1 }}>{data.icon}</span>
                   )}
                 </div>
                 {/* Nazov */}
                 <p style={{
-                  margin: 0, fontSize: 14, fontWeight: 800, color: "#fff",
+                  margin: 0, fontSize: 28, fontWeight: 800, color: "#fff",
                   lineHeight: 1.25, overflow: "hidden", textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                 }} title={data.name}>
@@ -131,7 +131,7 @@ export function SectionNode(props: NodeProps<SectionNodeType>) {
                     backdropFilter: "blur(4px)",
                     border: "1.5px solid rgba(255,255,255,0.35)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, fontWeight: 800, color: "#fff",
+                    fontSize: 22, fontWeight: 800, color: "#fff",
                     flexShrink: 0,
                   }}>
                     {count > 99 ? "99+" : count}
@@ -160,7 +160,7 @@ export function SectionNode(props: NodeProps<SectionNodeType>) {
                 background: color, opacity: 0.7, flexShrink: 0,
               }} />
               <span style={{
-                fontSize: 11, fontWeight: 600, color: `rgba(${rgb},0.75)`,
+                fontSize: 22, fontWeight: 600, color: `rgba(${rgb},0.75)`,
               }}>
                 {memberLabel}
               </span>
@@ -172,7 +172,7 @@ export function SectionNode(props: NodeProps<SectionNodeType>) {
               padding: "2px 8px",
               background: `rgba(${rgb},0.1)`,
               border: `1px solid rgba(${rgb},0.2)`,
-              fontSize: 10, fontWeight: 700,
+              fontSize: 20, fontWeight: 700,
               color: color,
               letterSpacing: "0.04em",
               textTransform: "uppercase",
