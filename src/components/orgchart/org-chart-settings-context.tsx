@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   createContext,
@@ -161,9 +161,6 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
         const token = session?.access_token;
         if (!token) return;
 
-        // Okamzite optimisticky update — UI vidi zmenu hned
-        setDbSettings(prev => ({ ...prev, ...partial }));
-
         let body = partial;
         if (partial.childOrderByParent != null && typeof partial.childOrderByParent === "object") {
           const existing = currentMerged?.childOrderByParent;
@@ -196,14 +193,6 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
               const text = await res.text();
               console.warn("[Org chart] Uloženie nastavení zlyhalo:", res.status, res.statusText, text || "");
             }
-            // Rollback optimistickeho update
-            setDbSettings(prev => {
-              const rolledBack = { ...prev };
-              for (const k of Object.keys(partial) as (keyof OrgChartSettingsPayload)[]) {
-                delete rolledBack[k];
-              }
-              return rolledBack;
-            });
           }
         } finally {
           saveInFlightRef.current = false;

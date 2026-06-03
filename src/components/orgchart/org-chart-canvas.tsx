@@ -1281,6 +1281,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
   /** Po nacitani zo servera vzdy aplikuj poradie z DB - server je source of truth */
   const lastChildOrderFromDbRef = useRef<string>("");
+  const childOrderSavingRef = useRef(false);
   useEffect(() => {
     const fromServer = initialSettings?.childOrderByParent;
     if (!fromServer || typeof fromServer !== "object") return;
@@ -1290,7 +1291,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     }
     if (Object.keys(next).length === 0) return;
     const json = JSON.stringify(next);
-    if (json === lastChildOrderFromDbRef.current) return; // nezmenilo sa, skip
+    if (json === lastChildOrderFromDbRef.current) return;
+    // Nereaguj ak sme prave my ulozili - zabrani preblikavaniu
+    if (childOrderSavingRef.current) return;
     lastChildOrderFromDbRef.current = json;
     setChildOrderByParentState(next);
   }, [initialSettings?.childOrderByParent]);
@@ -1322,7 +1325,11 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       if (process.env.NODE_ENV === "development") {
         console.info("[Org chart] Ukladám poradie podriadených do Supabase:", parentIds.length, "nadriadených:", parentIds);
       }
+      // Nastav flag - zabrani realtime echo aby neprebliklo UI
+      childOrderSavingRef.current = true;
       cb({ childOrderByParent: payload });
+      // Resetuj flag po kratkej dobe (po realtime echo)
+      setTimeout(() => { childOrderSavingRef.current = false; }, 3000);
     } else {
       if (process.env.NODE_ENV === "development") {
         console.info("[Org chart] Ukladám poradie podriadených do localStorage:", parentIds.length, "nadriadených:", parentIds);
