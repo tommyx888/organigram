@@ -931,18 +931,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const [sectionGroups, setSectionGroupsState] = useState<SectionGroup[]>(() =>
     getInitialFromSettings(initialSettings, "sectionGroups", () => []) ?? [],
   );
-  // Sync sectionGroups ked sa initialSettings nacitaju z DB (async)
-  const prevInitialSettingsRef = useRef(initialSettings);
-  useEffect(() => {
-    if (initialSettings !== prevInitialSettingsRef.current) {
-      prevInitialSettingsRef.current = initialSettings;
-      const fromDb = getInitialFromSettings(initialSettings, "sectionGroups", () => null);
-      if (fromDb !== null) setSectionGroupsState(fromDb);
-    }
-  }, [initialSettings]);
   const setSectionGroups = useCallback(
     (next: SectionGroup[]) => {
       setSectionGroupsState(next);
+      lastSgFromDbRef.current = JSON.stringify(next); // aktualizuj ref aby loop nezacal
       if (onSettingsChange) onSettingsChange({ sectionGroups: next });
     },
     [onSettingsChange],
@@ -1242,11 +1234,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     setGeneralManagerIdState(gm);
   }, [initialSettings?.generalManagerId]);
 
+  // Sync sectionGroups z DB - pouzivame JSON porovnanie aby sme predisli infinite loop
+  const lastSgFromDbRef = useRef<string>("");
   useEffect(() => {
-    if (dbSettingsAppliedRef.current.sectionGroups) return;
     const sg = initialSettings?.sectionGroups;
-    if (!Array.isArray(sg) || sg.length === 0) return;
-    dbSettingsAppliedRef.current.sectionGroups = true;
+    if (!Array.isArray(sg)) return;
+    const json = JSON.stringify(sg);
+    if (json === lastSgFromDbRef.current) return; // nezmenilo sa, skip
+    lastSgFromDbRef.current = json;
     setSectionGroupsState(sg);
   }, [initialSettings?.sectionGroups]);
 
@@ -1284,7 +1279,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     setCollapsedNodeIdsState(new Set(arr));
   }, [initialSettings?.collapsedNodes]);
 
-  /** Po načítaní zo servera zlúčiť do stavu všetkých nadriadených z initialSettings, aby sme neprepisovali DB menším množstvom. */
+  /** Po nacitani zo servera vzdy aplikuj poradie z DB - server je source of truth */
+  const lastChildOrderFromDbRef = useRef<string>("");
   useEffect(() => {
     const fromServer = initialSettings?.childOrderByParent;
     if (!fromServer || typeof fromServer !== "object") return;
@@ -1292,19 +1288,18 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     for (const [k, v] of Object.entries(fromServer)) {
       if (Array.isArray(v) && v.every((id) => typeof id === "string")) next[k] = v;
     }
-    const serverCount = Object.keys(next).length;
-    if (serverCount === 0) return;
-    setChildOrderByParentState((prev) => {
-      const prevCount = Object.keys(prev).length;
-      if (prevCount >= serverCount) return prev;
-      return { ...next, ...prev };
-    });
+    if (Object.keys(next).length === 0) return;
+    const json = JSON.stringify(next);
+    if (json === lastChildOrderFromDbRef.current) return; // nezmenilo sa, skip
+    lastChildOrderFromDbRef.current = json;
+    setChildOrderByParentState(next);
   }, [initialSettings?.childOrderByParent]);
 
   const setChildOrderByParent = useCallback(
     (next: Record<string, string[]> | ((prev: Record<string, string[]>) => Record<string, string[]>)) => {
       setChildOrderByParentState((prev) => {
         const nextVal = typeof next === "function" ? next(prev) : next;
+        lastChildOrderFromDbRef.current = JSON.stringify(nextVal); // aktualizuj ref aby loop nezacal
         return nextVal;
       });
     },
