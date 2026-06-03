@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useState, useRef } from "react";
 import type { KatType, PositionType } from "@/lib/org/types";
 import type { CellFieldsConfig, NodeAccent, NodeVisualStyle } from "@/lib/org/chart-appearance";
 import { brandTokens } from "@/styles/tokens";
@@ -419,7 +420,7 @@ export function NodeCard(props: NodeCardProps) {
   if (style === "hexBadge") {
     const accent = headerColor === "transparent" ? "#ec4899" : headerColor;
     return (
-      <div className="relative" style={{ width: nodeWidth, height: nodeHeight }}>
+      <div className="relative" style={{ width: nodeWidth, minHeight: nodeHeight }}>
         <div
           className="absolute left-1/2 top-1 z-10 -translate-x-1/2 overflow-hidden border-[3px] bg-white"
           style={{
@@ -705,53 +706,48 @@ export function NodeCard(props: NodeCardProps) {
   }
 
   if (style === "infoPill") {
-    // ── infoPill v2: veľký kruhový avatar + biela pill + meno ako malý label tag + badge s počtom ──
     const accent = headerColor === "transparent" ? "#3d5fe0" : headerColor;
     const bg = gradientBg ?? `linear-gradient(135deg, ${accent} 0%, ${accent}cc 100%)`;
 
-    // Rozmery
-    const avatarD      = Math.round(nodeHeight * 0.88);   // priemer vonkajšieho bieleho kruhu
-    const avatarInner  = avatarD - 10;                    // priemer farebného disku
-    const avatarLeft   = Math.round(-avatarD * 0.1);      // avatar presahuje doľava
-    const pillLeft     = Math.round(avatarD * 0.52);      // pill začína tu
-    const pillR        = nodeHeight / 2;                  // zaoblenie pill
-    // meno label: malý tag na vrchu pill (nie celý header)
-    const labelH       = Math.round(nodeHeight * 0.34);   // výška name labelu
-    // label štartuje od začiatku pill, text je paddingom posunutý za avatar
-    const labelLeft    = 0;                               // label začína od okraja pill
-    const labelPadL    = Math.round(avatarD * 0.52) + 10; // text začína za stredom avatara
-    const bodyTop      = labelH + 4;                      // obsah pod labelom
-    const badgeD       = Math.round(nodeHeight * 0.30);   // badge s počtom podriadených — trochu väčší
-    // písmo pre infoPill
+    // Avatar posunuty o 50% viac vpravo
+    const avatarD      = Math.round(nodeHeight * 0.88);
+    const avatarInner  = avatarD - 10;
+    const avatarLeft   = Math.round(avatarD * -0.08);
+    const pillLeft     = Math.round(avatarD * 0.06);  // pill zacina hned za okrajom avatara
+    const pillR        = nodeHeight / 2;
+    const labelHTwo    = Math.round(nodeHeight * 0.50); // vyssi pre 2 riadky nazvu pozicie
+    const bodyTopTwo   = labelHTwo + 4;
+    // text zacina presne tam kde konci fotka
+    // avatarLeft + avatarD = avatarD*(-0.08+1) = avatarD*0.92
+    // pillLeft = avatarD*0.06
+    // labelPadL = avatarD*0.92 - avatarD*0.06 = avatarD*0.86
+    const labelPadL    = Math.round(avatarD * 0.86) + 4;
+    const badgeD       = Math.round(nodeHeight * 0.45); // 50% vacsie (povodne 0.30)
+    const OLIVE        = "#949C58"; // Artifex olive
     const fsP = (px: number) => `${Math.round(px * fontScale * 3.0)}px`;
 
-    // Rozdel meno: priezvisko = 1. slovo, meno = zvysok
     const nameParts = (props.fullName ?? "").trim().split(" ");
     const lastName  = nameParts[0] ?? "";
     const firstName = nameParts.slice(1).join(" ");
-
-    // Vyssi label pre 2 riadky
-    const labelHTwo = Math.round(nodeHeight * 0.46);
-    const bodyTopTwo = labelHTwo + 4;
-
-    const subCount = props.totalSubordinateCount;
+    const subCount  = props.totalSubordinateCount;
 
     return (
-      <div className="relative" style={{ width: nodeWidth, height: nodeHeight }}>
+      <div className="relative" style={{ width: nodeWidth, minHeight: nodeHeight }}>
 
-        {/* ── BIELA PILL — základ ── */}
+        {/* BIELA PILL */}
         <div
           className="absolute"
           style={{
             left: pillLeft,
             top: 0, right: 0, bottom: 0,
+            minHeight: nodeHeight,
             background: "#ffffff",
             borderRadius: pillR,
             boxShadow: "0 8px 28px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)",
           }}
         />
 
-        {/* ── MENO — priezvisko na 1. riadku, meno na 2. riadku ── */}
+        {/* MODRY LABEL TAG — priezvisko + meno, zaobleny pill */}
         {fields.name && (
           <div
             className="absolute overflow-hidden flex flex-col justify-center"
@@ -769,8 +765,7 @@ export function NodeCard(props: NodeCardProps) {
               gap: 1,
             }}
           >
-            <div className="absolute inset-0 rounded-full" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 60%)" }} />
-            {/* Priezvisko — väčšie, tučné */}
+            <div className="absolute inset-0 rounded-full" style={{ background: "linear-gradient(180deg,rgba(255,255,255,0.18) 0%,transparent 60%)" }} />
             <span
               className="relative truncate font-black uppercase text-white leading-none"
               style={{ fontSize: fsP(14), letterSpacing: "0.07em", zIndex: 1 }}
@@ -778,11 +773,10 @@ export function NodeCard(props: NodeCardProps) {
             >
               {lastName}
             </span>
-            {/* Meno — menšie, pod priezviskom */}
             {firstName && (
               <span
                 className="relative truncate font-semibold text-white leading-none"
-                style={{ fontSize: fsP(12), letterSpacing: "0.03em", zIndex: 1, opacity: 0.88 }}
+                style={{ fontSize: fsP(12), letterSpacing: "0.03em", zIndex: 1, opacity: 0.88, marginTop: 2 }}
               >
                 {firstName}
               </span>
@@ -790,22 +784,25 @@ export function NodeCard(props: NodeCardProps) {
           </div>
         )}
 
-        {/* ── OBSAH — pozícia, oddelenie, emp ID ── */}
+        {/* OBSAH — pozicia, oddelenie, kat+id */}
         <div
-          className="absolute flex flex-col justify-center"
+          className="flex flex-col"
           style={{
+            position: "absolute",
             left: pillLeft + labelPadL,
             top: bodyTopTwo + Math.round(nodeHeight * 0.06),
             right: 18,
-            bottom: Math.round(nodeHeight * 0.08),
+            paddingBottom: Math.round(nodeHeight * 0.08),
             gap: 3,
             zIndex: 5,
           }}
         >
           {fields.position && (
             <p
-              className="truncate font-extrabold uppercase"
-              style={{ color: accent, fontSize: fsP(11), letterSpacing: "0.05em", lineHeight: 1.1 }}
+              className="font-extrabold uppercase"
+              style={{ color: accent, fontSize: fsP(11), letterSpacing: "0.05em", lineHeight: 1.2,
+                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                overflow: "hidden", whiteSpace: "normal", wordBreak: "break-word" }}
               title={props.positionName}
             >
               {props.positionName}
@@ -835,7 +832,7 @@ export function NodeCard(props: NodeCardProps) {
           )}
         </div>
 
-        {/* ── AVATAR KRUH — vľavo, vertikálne centrovaný ── */}
+        {/* AVATAR — vlavo, vertikalne centrovany */}
         <div
           className="absolute"
           style={{
@@ -850,43 +847,22 @@ export function NodeCard(props: NodeCardProps) {
             zIndex: 10,
           }}
         >
-          {/* farebný disk */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 4,
-              borderRadius: "50%",
-              background: bg,
-              overflow: "hidden",
-            }}
-          >
+          <div style={{ position: "absolute", inset: 4, borderRadius: "50%", background: bg, overflow: "hidden" }}>
             {props.photoUrl ? (
-              /* fotka — kruhový orez, cover */
               <img
                 src={props.photoUrl}
                 alt=""
                 style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center top",
-                  transform: photoTransform,
-                  transformOrigin: "center",
+                  position: "absolute", inset: 0,
+                  width: "100%", height: "100%",
+                  objectFit: "cover", objectPosition: "center top",
+                  transform: photoTransform, transformOrigin: "center",
                   borderRadius: "50%",
                 }}
               />
             ) : (
-              /* fallback SVG ikona */
               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg
-                  width={Math.round(avatarInner * 0.5)}
-                  height={Math.round(avatarInner * 0.5)}
-                  viewBox="0 0 40 46"
-                  fill="none"
-                  aria-hidden
-                >
+                <svg width={Math.round(avatarInner * 0.5)} height={Math.round(avatarInner * 0.5)} viewBox="0 0 40 46" fill="none" aria-hidden>
                   <ellipse cx="20" cy="13" rx="8.5" ry="9.5" fill="rgba(255,255,255,0.9)" />
                   <path d="M2 44c0-9.941 8.059-16 18-16s18 6.059 18 16" fill="rgba(255,255,255,0.85)" />
                 </svg>
@@ -895,29 +871,19 @@ export function NodeCard(props: NodeCardProps) {
           </div>
         </div>
 
-        {/* ── BADGE — počet podriadených, pravý horný roh ── */}
+        {/* BADGE pocet podriadenych — vpravo hore */}
         {fields.subordinateCount && subCount !== undefined && (
-          <div
-            className="absolute flex items-center justify-center font-black text-white"
-            style={{
-              top: -Math.round(badgeD * 0.1),
-              right: -Math.round(badgeD * 0.1),
-              width: badgeD,
-              height: badgeD,
-              borderRadius: "50%",
-              background: bg,
-              border: "3px solid #fff",
-              boxShadow: `0 3px 10px ${accent}55`,
-              fontSize: fsP(subCount !== undefined && subCount > 99 ? 8 : 10),
-              zIndex: 20,
-            }}
-          >
-            {subCount}
-          </div>
+          <BadgeCount
+            value={subCount}
+            badgeD={badgeD}
+            olive={OLIVE}
+            fsP={fsP}
+          />
         )}
       </div>
     );
   }
+
 
   // card (default) – jedna osoba, čisté linie, dostatok medzier
   return (
@@ -973,6 +939,104 @@ export function NodeCard(props: NodeCardProps) {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── BadgeCount — konzistentny pill badge, vpravo hore, editovatelny ──────────
+function BadgeCount({
+  value,
+  badgeD,
+  olive,
+  fsP,
+}: {
+  value: number;
+  badgeD: number;
+  olive: string;
+  fsP: (px: number) => string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [displayValue, setDisplayValue] = useState<string>(String(value));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const num = displayValue || String(value);
+
+  // Konzistentna vyska, sirka sa prizpusobi ale ma minimum = vyska
+  const h = Math.round(badgeD * 0.8);
+  // Vzdy rovnaky font size - konzistentny
+  const fSize = fsP(11);
+  // Padding pre pill tvar
+  const px = Math.round(h * 0.35);
+
+  return (
+    <div
+      className="absolute nodrag"
+      style={{
+        top: -Math.round(h * 0.3),
+        right: -Math.round(h * 0.1),
+        height: h,
+        minWidth: h,
+        padding: `0 ${px}px`,
+        zIndex: 25,
+        cursor: "pointer",
+        // Pill tvar
+        borderRadius: h / 2,
+        background: `linear-gradient(145deg, #c4cc72 0%, ${olive} 50%, #636b30 100%)`,
+        border: "2px solid rgba(255,255,255,0.88)",
+        boxShadow: `0 2px 10px rgba(100,108,48,0.50), inset 0 1px 0 rgba(255,255,255,0.32)`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        overflow: "hidden",
+      }}
+      title="Klikni pre úpravu počtu (len pre export)"
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        setEditing(true);
+        setTimeout(() => { inputRef.current?.select(); }, 30);
+      }}
+    >
+      {/* Top highlight */}
+      <div style={{
+        position: "absolute", top: 0, left: "8%", right: "8%", height: "42%",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.38) 0%, transparent 100%)",
+        borderRadius: "0 0 50% 50%",
+        pointerEvents: "none",
+      }} />
+      {editing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={displayValue}
+          onChange={(e) => setDisplayValue(e.target.value.replace(/\D/g, ""))}
+          onBlur={() => setEditing(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "Escape") {
+              setEditing(false);
+            }
+          }}
+          className="nodrag"
+          style={{
+            width: Math.max(40, num.length * 14) + "px",
+            background: "transparent", border: "none",
+            outline: "1px solid rgba(255,255,255,0.5)",
+            outlineOffset: 1, borderRadius: 3,
+            color: "#fff", fontWeight: 900, fontSize: fSize,
+            textAlign: "center", padding: "0 2px",
+            position: "relative", zIndex: 1,
+            textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <span style={{
+          position: "relative", zIndex: 1,
+          color: "#fff", fontWeight: 900, fontSize: fSize,
+          letterSpacing: "0.03em", lineHeight: 1,
+          textShadow: "0 1px 2px rgba(0,0,0,0.35)",
+          whiteSpace: "nowrap",
+        }}>
+          {num}
+        </span>
+      )}
     </div>
   );
 }

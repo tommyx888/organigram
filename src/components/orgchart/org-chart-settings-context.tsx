@@ -118,6 +118,8 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
         },
         (payload) => {
           if (cancelled) return;
+          // Ignoruj realtime update ak prave prebieha save - zabrani race condition
+          if (saveInFlightRef.current) return;
           // Payload obsahuje novy riadok — nacitame cely payload z DB
           const newRow = payload.new as { payload?: OrgChartSettingsPayload };
           if (newRow?.payload) {
@@ -136,17 +138,31 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
     };
   }, [useDb]);
 
+  // Ref pre in-flight save — zabraňuje race condition
+  const saveInFlightRef = useRef(false);
+  // Queue pre zmeny ktore prisli pocas in-flight save
+  const pendingPartialRef = useRef<Partial<OrgChartSettingsPayload> | null>(null);
+
   const saveSettings = useCallback(
     async (partial: Partial<OrgChartSettingsPayload>) => {
       const client = supabaseClient;
       const currentMerged = mergedSettingsRef.current;
       const currentLocal = localOverridesRef.current;
       if (isAdmin && useDb && client) {
+        // Ak prebieha save, zluc zmeny do queue
+        if (saveInFlightRef.current) {
+          pendingPartialRef.current = { ...pendingPartialRef.current, ...partial };
+          return;
+        }
+
         const {
           data: { session },
         } = await client.auth.getSession();
         const token = session?.access_token;
         if (!token) return;
+
+        // Okamzite optimisticky update — UI vidi zmenu hned
+        setDbSettings(prev => ({ ...prev, ...partial }));
 
         let body = partial;
         if (partial.childOrderByParent != null && typeof partial.childOrderByParent === "object") {
@@ -158,25 +174,44 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
           body = { ...partial, childOrderByParent: merged };
         }
 
-        const res = await fetch("/api/org-chart-settings", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(body),
-        });
-        if (res.ok) {
-          const payload = (await res.json()) as OrgChartSettingsPayload;
-          setDbSettings(payload);
-          if (body.childOrderByParent && process.env.NODE_ENV === "development") {
-            const n = Object.keys(body.childOrderByParent).length;
-            console.info("[Org chart] Poradie podriadených bolo úspešne uložené do Supabase. Počet riadkov (nadriadených):", n);
+        saveInFlightRef.current = true;
+        try {
+          const res = await fetch("/api/org-chart-settings", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(body),
+          });
+          if (res.ok) {
+            const payload = (await res.json()) as OrgChartSettingsPayload;
+            setDbSettings(payload);
+            if (body.childOrderByParent && process.env.NODE_ENV === "development") {
+              const n = Object.keys(body.childOrderByParent).length;
+              console.info("[Org chart] Poradie podriadených bolo úspešne uložené do Supabase. Počet riadkov (nadriadených):", n);
+            }
+          } else {
+            if (process.env.NODE_ENV === "development") {
+              const text = await res.text();
+              console.warn("[Org chart] Uloženie nastavení zlyhalo:", res.status, res.statusText, text || "");
+            }
+            // Rollback optimistickeho update
+            setDbSettings(prev => {
+              const rolledBack = { ...prev };
+              for (const k of Object.keys(partial) as (keyof OrgChartSettingsPayload)[]) {
+                delete rolledBack[k];
+              }
+              return rolledBack;
+            });
           }
-        } else {
-          if (process.env.NODE_ENV === "development") {
-            const text = await res.text();
-            console.warn("[Org chart] Uloženie nastavení zlyhalo:", res.status, res.statusText, text || "");
+        } finally {
+          saveInFlightRef.current = false;
+          // Spracuj pending zmeny ak existuju
+          const pending = pendingPartialRef.current;
+          if (pending) {
+            pendingPartialRef.current = null;
+            void saveSettings(pending);
           }
         }
       } else {

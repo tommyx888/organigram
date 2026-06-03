@@ -1,0 +1,726 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]: Dashboard
+      - generic [ref=e17]: "Role: admin"
+      - generic [ref=e18]: • martin.ficek@iacgroup.com
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - button "Slovenčina" [pressed] [ref=e21]: SK
+        - button "English" [ref=e22]: EN
+      - button "Odhlasit" [ref=e23]
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - heading "Organizacna struktura" [level=1] [ref=e27]
+        - paragraph [ref=e28]: Interaktivna org chart ukazka s prepinanim detailov, filtrom oddelenia a farebnym mapovanim typov pozicii.
+        - paragraph [ref=e29]: "Data mode: Supabase configured · Source: iac_employees"
+        - paragraph [ref=e30]: "Role: Editacia povolena"
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - heading "Ovládanie zobrazenia" [level=2] [ref=e33]
+          - generic [ref=e34]:
+            - generic [ref=e35]:
+              - checkbox "Zamknúť pozície" [ref=e36]
+              - text: Zamknúť pozície
+            - button "Zapnúť mriežku" [ref=e37]
+            - button "Stiahnuť PDF" [ref=e38]
+            - button "Kopírovať odkaz na pohľad" [ref=e39]
+            - button "Zobraziť vrchol" [ref=e40]
+            - button "Rozbaľ všetko" [ref=e41]
+            - button "+ Sekcia" [ref=e42]
+            - button "Nastavenie buniek" [ref=e43]
+        - paragraph [ref=e44]: "Priradenie nadriadeného: ťahajte od spodku karty nadriadeného na horný okraj karty podriadeného. Pod voľnú pozíciu (vacancy) môžete napájať zamestnancov."
+        - generic [ref=e45]:
+          - paragraph [ref=e46]: Oddelenia - vyber zobrazenia
+          - generic [ref=e47]:
+            - button "Cela struktura" [ref=e48]
+            - button "📄 Export všetkých PDF" [ref=e49]:
+              - generic [ref=e50]: 📄
+              - text: Export všetkých PDF
+            - generic [ref=e51]:
+              - button "Production" [ref=e52]
+              - button "Zmeniť manažéra oddelenia" [ref=e53]: ⚙
+            - generic [ref=e54]:
+              - button "Maintenance" [ref=e55]
+              - button "Zmeniť manažéra oddelenia" [ref=e56]: ⚙
+            - generic [ref=e57]:
+              - button "Logistics" [ref=e58]
+              - button "Zmeniť manažéra oddelenia" [ref=e59]: ⚙
+            - generic [ref=e60]:
+              - button "Quality" [ref=e61]
+              - button "Zmeniť manažéra oddelenia" [ref=e62]: ⚙
+            - generic [ref=e63]:
+              - button "Technical" [ref=e64]
+              - button "Zmeniť manažéra oddelenia" [ref=e65]: ⚙
+            - generic [ref=e66]:
+              - button "IT" [ref=e67]
+              - button "Zmeniť manažéra oddelenia" [ref=e68]: ⚙
+            - generic [ref=e69]:
+              - button "HR & HSE" [ref=e70]
+              - button "Zmeniť manažéra oddelenia" [ref=e71]: ⚙
+            - generic [ref=e72]:
+              - button "Finance" [ref=e73]
+              - button "Zmeniť manažéra oddelenia" [ref=e74]: ⚙
+            - generic [ref=e75]:
+              - button "Business" [ref=e76]
+              - button "Zmeniť manažéra oddelenia" [ref=e77]: ⚙
+            - generic [ref=e78]:
+              - button "Program" [ref=e79]
+              - button "Zmeniť manažéra oddelenia" [ref=e80]: ⚙
+        - generic [ref=e81]:
+          - complementary [ref=e82]:
+            - generic [ref=e83]:
+              - heading "Hierarchia" [level=3] [ref=e84]
+              - button "◀" [ref=e85]
+            - generic [ref=e86]:
+              - generic [ref=e87]:
+                - generic [ref=e88]: Od ktorej osoby sa zobrazuje štruktúra
+                - button "— Vyberte osobu —" [ref=e90]:
+                  - generic [ref=e91]: Janotka Andrej (#31000154)
+                  - generic [ref=e92]: ▾
+                - paragraph [ref=e93]: Štruktúra sa zobrazí od vybranej osoby smerom nadol. Vyhľadajte podľa mena alebo čísla.
+              - generic [ref=e94]:
+                - generic [ref=e95]: Zobraziť vrstvy
+                - combobox "Zobraziť vrstvy" [ref=e96]:
+                  - option "Vrstva 1 — len vybraná osoba"
+                  - option "Vrstvy 1–2 — vrchol + priama línia"
+                  - option "Vrstvy 1–3"
+                  - option "Vrstvy 1–4"
+                  - option "Vrstvy 1–5"
+                  - option "Vrstvy 1–6 — všetko" [selected]
+                - paragraph [ref=e97]: "Obmedzenie hĺbky stromu: vrstva 1 = vrchol, vrstva 2 = priami podriadení, atď."
+              - generic [ref=e98]:
+                - generic [ref=e99]: Zobrazenie vetiev
+                - combobox "Zobrazenie vetiev" [ref=e100]:
+                  - option "Strom — deti priamo pod nadriadeným" [selected]
+                  - option "Vrstvy — jedna línia na úroveň"
+                  - option "Vedľa seba (vpravo od rodiča)"
+                  - option "Dva stĺpce"
+                - paragraph [ref=e101]: Strom = podriadení priamo pod nadriadeným. Vrstvy = všetci rovnakej úrovne v jednej línii.
+              - generic [ref=e102]:
+                - button "+ Pridať voľnú pozíciu (vacancy)" [ref=e103]
+                - paragraph [ref=e104]: Voľná pozícia sa zobrazí v strome; pod ňu môžete napájať ľudí.
+              - button "Obnoviť šablónu" [ref=e106]
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - img "Artifex" [ref=e109]
+              - generic [ref=e110]: Artifex Systems Slovakia
+            - application [ref=e112]:
+              - generic [ref=e114]:
+                - generic:
+                  - generic:
+                    - img
+                    - img:
+                      - group "Edge from root to 31000141" [ref=e115] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to 31001504" [ref=e121] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to 31002939" [ref=e127] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to 31003412" [ref=e133] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to 31004412" [ref=e139] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to 31003980" [ref=e145] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to section-8c12be4d-3f21-45e9-b34c-1d2005a4d84f" [ref=e151] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31002939 to section-20989496-9455-46e8-b0e5-ec8367072d2c" [ref=e157] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31002939 to section-994ab4e8-5c7c-4f2b-b03b-edd7503a4dd3" [ref=e163] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31002939 to section-207cd23f-bc9e-4202-a81d-4e3a1616ea5f" [ref=e169] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31002939 to section-343a0fad-c3ce-4cd3-9a1b-0c781fa7ba9c" [ref=e175] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31000192" [ref=e181] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31001164" [ref=e187] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31003566" [ref=e193] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31003540" [ref=e199] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31003944" [ref=e205] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31003699" [ref=e211] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31003977" [ref=e217] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31004352" [ref=e223] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31004737" [ref=e229] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31004862" [ref=e235] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31004863" [ref=e241] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-994ab4e8-5c7c-4f2b-b03b-edd7503a4dd3 to 31004120" [ref=e245] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-994ab4e8-5c7c-4f2b-b03b-edd7503a4dd3 to 31004915" [ref=e251] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-207cd23f-bc9e-4202-a81d-4e3a1616ea5f to 31003576" [ref=e257] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-207cd23f-bc9e-4202-a81d-4e3a1616ea5f to 31000208" [ref=e263] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-207cd23f-bc9e-4202-a81d-4e3a1616ea5f to 31000236" [ref=e269] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-207cd23f-bc9e-4202-a81d-4e3a1616ea5f to 31001609" [ref=e275] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-343a0fad-c3ce-4cd3-9a1b-0c781fa7ba9c to 31000115" [ref=e281] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31000115 to section-3358d8e5-58b7-409e-b885-50a8ddeb2136" [ref=e285] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31000115 to section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c" [ref=e291] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31000115 to section-be2533dd-8183-4101-a100-cebfc099ccba" [ref=e297] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31000115 to section-b94b3fd9-3bef-44e7-a88c-119ed37bbbbf" [ref=e301] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31000485" [ref=e307] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31003633" [ref=e313] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31003768" [ref=e319] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31004276" [ref=e325] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31004283" [ref=e331] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31004489" [ref=e337] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31004622" [ref=e343] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31004593" [ref=e347] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31003405" [ref=e353] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31003839" [ref=e359] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31003910" [ref=e365] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31004037" [ref=e371] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31004148" [ref=e377] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31004228" [ref=e383] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-b94b3fd9-3bef-44e7-a88c-119ed37bbbbf to 31001047" [ref=e387] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-b94b3fd9-3bef-44e7-a88c-119ed37bbbbf to 31003028" [ref=e393] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-b94b3fd9-3bef-44e7-a88c-119ed37bbbbf to 31003634" [ref=e399] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-b94b3fd9-3bef-44e7-a88c-119ed37bbbbf to 31003809" [ref=e405] [cursor=pointer]
+                  - generic:
+                    - group [ref=e411]:
+                      - generic [ref=e414]:
+                        - generic [ref=e415]:
+                          - generic "Hodor Pavol" [ref=e419]
+                          - generic [ref=e420]:
+                            - paragraph [ref=e421]: Programme Manager
+                            - paragraph [ref=e422]: "90 · #31000283"
+                            - generic [ref=e423]: SAL
+                          - generic [ref=e426]: "49"
+                        - button "Zbaliť vetvu" [ref=e428]:
+                          - img [ref=e429]
+                    - group [ref=e432]:
+                      - generic [ref=e436]:
+                        - generic "Baťovičová Ľubica" [ref=e440]
+                        - generic [ref=e441]:
+                          - paragraph [ref=e442]: Change BOM Coordinator
+                          - paragraph [ref=e443]: "50 · #31000141"
+                          - generic [ref=e444]: SAL
+                        - img [ref=e448]
+                        - generic [ref=e451]: "0"
+                    - group [ref=e453]:
+                      - generic [ref=e457]:
+                        - generic "Durčáková Aneta" [ref=e461]
+                        - generic [ref=e462]:
+                          - paragraph [ref=e463]: Launch Coordinator
+                          - paragraph [ref=e464]: "50 · #31001504"
+                          - generic [ref=e465]: INDIR3
+                        - img [ref=e469]
+                        - generic [ref=e472]: "0"
+                    - group [ref=e474]:
+                      - generic [ref=e477]:
+                        - generic [ref=e478]:
+                          - generic "Matlovič Libor" [ref=e482]
+                          - generic [ref=e483]:
+                            - paragraph [ref=e484]: Senior Process Engineer
+                            - paragraph [ref=e485]: "50 · #31002939"
+                            - generic [ref=e486]: SAL
+                          - img [ref=e490]
+                          - generic [ref=e493]: "43"
+                        - button "Zbaliť vetvu" [ref=e495]:
+                          - img [ref=e496]
+                    - group [ref=e499]:
+                      - generic [ref=e502]:
+                        - generic [ref=e503]:
+                          - generic [ref=e505]: Sekcia
+                          - generic [ref=e506]:
+                            - generic [ref=e507]: "11"
+                            - button "Zbaliť vetvu" [ref=e508]:
+                              - img [ref=e509]
+                        - generic [ref=e511]:
+                          - paragraph [ref=e512]: Process Eng.
+                          - paragraph [ref=e513]: 11 zamestnancov
+                    - group [ref=e515]:
+                      - generic [ref=e519]:
+                        - generic "Janošťak Milan" [ref=e523]
+                        - generic [ref=e524]:
+                          - paragraph [ref=e525]: Process Engineer
+                          - paragraph [ref=e526]: "50 · #31000192"
+                          - generic [ref=e527]: INDIR3
+                        - img [ref=e531]
+                        - generic [ref=e534]: "0"
+                    - group [ref=e536]:
+                      - generic [ref=e540]:
+                        - generic "Slováček Miroslav" [ref=e544]
+                        - generic [ref=e545]:
+                          - paragraph [ref=e546]: Process Engineer
+                          - paragraph [ref=e547]: "50 · #31001164"
+                          - generic [ref=e548]: INDIR3
+                        - img [ref=e552]
+                        - generic [ref=e555]: "0"
+                    - group [ref=e557]:
+                      - generic [ref=e561]:
+                        - generic "Koš Jozef" [ref=e565]
+                        - generic [ref=e566]:
+                          - paragraph [ref=e567]: Process Engineer
+                          - paragraph [ref=e568]: "50 · #31003566"
+                          - generic [ref=e569]: INDIR3
+                        - img [ref=e573]
+                        - generic [ref=e576]: "0"
+                    - group [ref=e578]:
+                      - generic [ref=e582]:
+                        - generic "Pál Štefan" [ref=e586]
+                        - generic [ref=e587]:
+                          - paragraph [ref=e588]: Process Engineer
+                          - paragraph [ref=e589]: "50 · #31003540"
+                          - generic [ref=e590]: INDIR3
+                        - img [ref=e594]
+                        - generic [ref=e597]: "0"
+                    - group [ref=e599]:
+                      - generic [ref=e603]:
+                        - generic "Tóth Ján" [ref=e607]
+                        - generic [ref=e608]:
+                          - paragraph [ref=e609]: Process Engineer
+                          - paragraph [ref=e610]: "50 · #31003944"
+                          - generic [ref=e611]: INDIR3
+                        - img [ref=e615]
+                        - generic [ref=e618]: "0"
+                    - group [ref=e620]:
+                      - generic [ref=e624]:
+                        - generic "Bátovský Juraj" [ref=e628]
+                        - generic [ref=e629]:
+                          - paragraph [ref=e630]: Process Engineer
+                          - paragraph [ref=e631]: "50 · #31003699"
+                          - generic [ref=e632]: SAL
+                        - img [ref=e636]
+                        - generic [ref=e639]: "0"
+                    - group [ref=e641]:
+                      - generic [ref=e645]:
+                        - generic "Starý Peter" [ref=e649]
+                        - generic [ref=e650]:
+                          - paragraph [ref=e651]: Process Engineer
+                          - paragraph [ref=e652]: "50 · #31003977"
+                          - generic [ref=e653]: SAL
+                        - img [ref=e657]
+                        - generic [ref=e660]: "0"
+                    - group [ref=e662]:
+                      - generic [ref=e666]:
+                        - generic "Damborák Roman" [ref=e670]
+                        - generic [ref=e671]:
+                          - paragraph [ref=e672]: Process Engineer
+                          - paragraph [ref=e673]: "50 · #31004352"
+                          - generic [ref=e674]: INDIR3
+                        - img [ref=e678]
+                        - generic [ref=e681]: "0"
+                    - group [ref=e683]:
+                      - generic [ref=e687]:
+                        - generic "Nemec Tomáš" [ref=e691]
+                        - generic [ref=e692]:
+                          - paragraph [ref=e693]: Process Engineer
+                          - paragraph [ref=e694]: "50 · #31004737"
+                          - generic [ref=e695]: INDIR3
+                        - img [ref=e699]
+                        - generic [ref=e702]: "0"
+                    - group [ref=e704]:
+                      - generic [ref=e708]:
+                        - generic "Červenka Dávid" [ref=e712]
+                        - generic [ref=e713]:
+                          - paragraph [ref=e714]: Process Engineer
+                          - paragraph [ref=e715]: "50 · #31004862"
+                          - generic [ref=e716]: INDIR3
+                        - img [ref=e720]
+                        - generic [ref=e723]: "0"
+                    - group [ref=e725]:
+                      - generic [ref=e729]:
+                        - generic "Kašik Jozef" [ref=e733]
+                        - generic [ref=e734]:
+                          - paragraph [ref=e735]: Process Engineer
+                          - paragraph [ref=e736]: "50 · #31004863"
+                          - generic [ref=e737]: INDIR3
+                        - img [ref=e741]
+                        - generic [ref=e744]: "0"
+                    - group [ref=e746]:
+                      - generic [ref=e749]:
+                        - generic [ref=e750]:
+                          - generic [ref=e752]: Sekcia
+                          - generic [ref=e753]:
+                            - generic [ref=e754]: "2"
+                            - button "Zbaliť vetvu" [ref=e755]:
+                              - img [ref=e756]
+                        - generic [ref=e758]:
+                          - paragraph [ref=e759]: Manufacturing Eng.
+                          - paragraph [ref=e760]: 2 zamestnanci
+                    - group [ref=e762]:
+                      - generic [ref=e766]:
+                        - generic "Smolár Marek" [ref=e770]
+                        - generic [ref=e771]:
+                          - paragraph [ref=e772]: Manufacturing Engineer
+                          - paragraph [ref=e773]: "50 · #31004120"
+                          - generic [ref=e774]: SAL
+                        - img [ref=e778]
+                        - generic [ref=e781]: "0"
+                    - group [ref=e783]:
+                      - generic [ref=e787]:
+                        - generic "Miča Jozef" [ref=e791]
+                        - generic [ref=e792]:
+                          - paragraph [ref=e793]: Manufacturing engineer
+                          - paragraph [ref=e794]: "50 · #31004915"
+                          - generic [ref=e795]: SAL
+                        - img [ref=e799]
+                        - generic [ref=e802]: "0"
+                    - group [ref=e804]:
+                      - generic [ref=e807]:
+                        - generic [ref=e808]:
+                          - generic [ref=e810]: Sekcia
+                          - generic [ref=e811]:
+                            - generic [ref=e812]: "4"
+                            - button "Zbaliť vetvu" [ref=e813]:
+                              - img [ref=e814]
+                        - generic [ref=e816]:
+                          - paragraph [ref=e817]: Process Engineering IM
+                          - paragraph [ref=e818]: 4 zamestnanci
+                    - group [ref=e820]:
+                      - generic [ref=e824]:
+                        - generic "Pisca Lukáš" [ref=e828]
+                        - generic [ref=e829]:
+                          - paragraph [ref=e830]: Process Engineer IM
+                          - paragraph [ref=e831]: "50 · #31003576"
+                          - generic [ref=e832]: INDIR3
+                        - img [ref=e836]
+                        - generic [ref=e839]: "0"
+                    - group [ref=e841]:
+                      - generic [ref=e845]:
+                        - generic "Studený Jozef" [ref=e849]
+                        - generic [ref=e850]:
+                          - paragraph [ref=e851]: Senior technológ IM
+                          - paragraph [ref=e852]: "50 · #31000208"
+                          - generic [ref=e853]: INDIR3
+                        - img [ref=e857]
+                        - generic [ref=e860]: "0"
+                    - group [ref=e862]:
+                      - generic [ref=e866]:
+                        - generic "Majerský Peter" [ref=e870]
+                        - generic [ref=e871]:
+                          - paragraph [ref=e872]: Process Engineer IM
+                          - paragraph [ref=e873]: "50 · #31000236"
+                          - generic [ref=e874]: INDIR3
+                        - img [ref=e878]
+                        - generic [ref=e881]: "0"
+                    - group [ref=e883]:
+                      - generic [ref=e887]:
+                        - generic "Jurkovič Branislav" [ref=e891]
+                        - generic [ref=e892]:
+                          - paragraph [ref=e893]: Injection Molding Engineer
+                          - paragraph [ref=e894]: "50 · #31001609"
+                          - generic [ref=e895]: SAL
+                        - img [ref=e899]
+                        - generic [ref=e902]: "0"
+                    - group [ref=e904]:
+                      - generic [ref=e907]:
+                        - generic [ref=e908]:
+                          - generic [ref=e910]: Sekcia
+                          - generic [ref=e911]:
+                            - generic [ref=e912]: "1"
+                            - button "Zbaliť vetvu" [ref=e913]:
+                              - img [ref=e914]
+                        - generic [ref=e916]:
+                          - paragraph [ref=e917]: Injection Molding
+                          - paragraph [ref=e918]: 1 zamestnanec
+                    - group [ref=e920]:
+                      - generic [ref=e923]:
+                        - generic [ref=e924]:
+                          - generic "Šišulák Peter" [ref=e928]
+                          - generic [ref=e929]:
+                            - paragraph [ref=e930]: Senior technológ
+                            - paragraph [ref=e931]: "50 · #31000115"
+                            - generic [ref=e932]: INDIR2
+                          - img [ref=e936]
+                          - generic [ref=e939]: "25"
+                        - button "Zbaliť vetvu" [ref=e941]:
+                          - img [ref=e942]
+                    - group [ref=e945]:
+                      - generic [ref=e948]:
+                        - generic [ref=e949]:
+                          - generic [ref=e951]: Sekcia
+                          - generic [ref=e952]:
+                            - generic [ref=e953]: "7"
+                            - button "Zbaliť vetvu" [ref=e954]:
+                              - img [ref=e955]
+                        - generic [ref=e957]:
+                          - paragraph [ref=e958]: Shift A
+                          - paragraph [ref=e959]: 7 zamestnancov
+                    - group [ref=e961]:
+                      - generic [ref=e965]:
+                        - generic "Valla Ivan" [ref=e969]
+                        - generic [ref=e970]:
+                          - paragraph [ref=e971]: Senior Technológ IM
+                          - paragraph [ref=e972]: "50 · #31000485"
+                          - generic [ref=e973]: INDIR2
+                        - img [ref=e977]
+                        - generic [ref=e980]: "0"
+                    - group [ref=e982]:
+                      - generic [ref=e986]:
+                        - generic "Pulmann Tomáš" [ref=e990]
+                        - generic [ref=e991]:
+                          - paragraph [ref=e992]: Menič foriem
+                          - paragraph [ref=e993]: "50 · #31003633"
+                          - generic [ref=e994]: INDIR2
+                        - img [ref=e998]
+                        - generic [ref=e1001]: "0"
+                    - group [ref=e1003]:
+                      - generic [ref=e1007]:
+                        - generic "Černý Lukáš" [ref=e1011]
+                        - generic [ref=e1012]:
+                          - paragraph [ref=e1013]: Technológ IM
+                          - paragraph [ref=e1014]: "50 · #31003768"
+                          - generic [ref=e1015]: INDIR2
+                        - img [ref=e1019]
+                        - generic [ref=e1022]: "0"
+                    - group [ref=e1024]:
+                      - generic [ref=e1028]:
+                        - generic "Mešťan Matúš" [ref=e1032]
+                        - generic [ref=e1033]:
+                          - paragraph [ref=e1034]: Menič foriem
+                          - paragraph [ref=e1035]: "50 · #31004276"
+                          - generic [ref=e1036]: INDIR2
+                        - img [ref=e1040]
+                        - generic [ref=e1043]: "0"
+                    - group [ref=e1045]:
+                      - generic [ref=e1049]:
+                        - generic "Petráš Denis" [ref=e1053]
+                        - generic [ref=e1054]:
+                          - paragraph [ref=e1055]: Technológ IM
+                          - paragraph [ref=e1056]: "50 · #31004283"
+                          - generic [ref=e1057]: INDIR2
+                        - img [ref=e1061]
+                        - generic [ref=e1064]: "0"
+                    - group [ref=e1066]:
+                      - generic [ref=e1070]:
+                        - generic "Petráš Milan" [ref=e1074]
+                        - generic [ref=e1075]:
+                          - paragraph [ref=e1076]: Menič Foriem
+                          - paragraph [ref=e1077]: "50 · #31004489"
+                          - generic [ref=e1078]: INDIR2
+                        - img [ref=e1082]
+                        - generic [ref=e1085]: "0"
+                    - group [ref=e1087]:
+                      - generic [ref=e1091]:
+                        - generic "Keder Milan" [ref=e1095]
+                        - generic [ref=e1096]:
+                          - paragraph [ref=e1097]: Materialista
+                          - paragraph [ref=e1098]: "50 · #31004622"
+                          - generic [ref=e1099]: INDIR2
+                        - img [ref=e1103]
+                        - generic [ref=e1106]: "0"
+                    - group [ref=e1108]:
+                      - generic [ref=e1111]:
+                        - generic [ref=e1112]:
+                          - generic [ref=e1114]: Sekcia
+                          - generic [ref=e1115]:
+                            - generic [ref=e1116]: "7"
+                            - button "Zbaliť vetvu" [ref=e1117]:
+                              - img [ref=e1118]
+                        - generic [ref=e1120]:
+                          - paragraph [ref=e1121]: Shift B
+                          - paragraph [ref=e1122]: 7 zamestnancov
+                    - group [ref=e1124]:
+                      - generic [ref=e1128]:
+                        - generic "Podola Milan" [ref=e1132]
+                        - generic [ref=e1133]:
+                          - paragraph [ref=e1134]: Menič foriem
+                          - paragraph [ref=e1135]: "50 · #31004593"
+                          - generic [ref=e1136]: INDIR2
+                        - img [ref=e1140]
+                        - generic [ref=e1143]: "0"
+                    - group [ref=e1145]:
+                      - generic [ref=e1149]:
+                        - generic "Demin Matej" [ref=e1153]
+                        - generic [ref=e1154]:
+                          - paragraph [ref=e1155]: Technológ IM
+                          - paragraph [ref=e1156]: "50 · #31003405"
+                          - generic [ref=e1157]: INDIR2
+                        - img [ref=e1161]
+                        - generic [ref=e1164]: "0"
+                    - group [ref=e1166]:
+                      - generic [ref=e1170]:
+                        - generic "Uhrinec Vladimír" [ref=e1174]
+                        - generic [ref=e1175]:
+                          - paragraph [ref=e1176]: Technológ IM
+                          - paragraph [ref=e1177]: "50 · #31003839"
+                          - generic [ref=e1178]: INDIR2
+                        - img [ref=e1182]
+                        - generic [ref=e1185]: "0"
+                    - group [ref=e1187]:
+                      - generic [ref=e1191]:
+                        - generic "Kmeť Ján" [ref=e1195]
+                        - generic [ref=e1196]:
+                          - paragraph [ref=e1197]: Technológ IM
+                          - paragraph [ref=e1198]: "50 · #31003910"
+                          - generic [ref=e1199]: INDIR2
+                        - img [ref=e1203]
+                        - generic [ref=e1206]: "0"
+                    - group [ref=e1208]:
+                      - generic [ref=e1212]:
+                        - generic "Havran Ján" [ref=e1216]
+                        - generic [ref=e1217]:
+                          - paragraph [ref=e1218]: Materialista
+                          - paragraph [ref=e1219]: "50 · #31004037"
+                          - generic [ref=e1220]: INDIR2
+                        - img [ref=e1224]
+                        - generic [ref=e1227]: "0"
+                    - group [ref=e1229]:
+                      - generic [ref=e1233]:
+                        - generic "Václavek Frederik" [ref=e1237]
+                        - generic [ref=e1238]:
+                          - paragraph [ref=e1239]: Technológ IM
+                          - paragraph [ref=e1240]: "50 · #31004148"
+                          - generic [ref=e1241]: INDIR2
+                        - img [ref=e1245]
+                        - generic [ref=e1248]: "0"
+                    - group [ref=e1250]:
+                      - generic [ref=e1254]:
+                        - generic "Lukáček Anton" [ref=e1258]
+                        - generic [ref=e1259]:
+                          - paragraph [ref=e1260]: Menič foriem
+                          - paragraph [ref=e1261]: "50 · #31004228"
+                          - generic [ref=e1262]: INDIR2
+                        - img [ref=e1266]
+                        - generic [ref=e1269]: "0"
+                    - group [ref=e1271]:
+                      - generic [ref=e1274]:
+                        - generic [ref=e1275]:
+                          - generic [ref=e1277]: Sekcia
+                          - generic [ref=e1278]:
+                            - generic [ref=e1279]: "7"
+                            - button "Rozbaliť vetvu" [ref=e1280]:
+                              - img [ref=e1281]
+                        - generic [ref=e1283]:
+                          - paragraph [ref=e1284]: Shift C
+                          - paragraph [ref=e1285]: 7 zamestnancov
+                    - group [ref=e1287]:
+                      - generic [ref=e1290]:
+                        - generic [ref=e1291]:
+                          - generic [ref=e1293]: Sekcia
+                          - generic [ref=e1294]:
+                            - generic [ref=e1295]: "4"
+                            - button "Zbaliť vetvu" [ref=e1296]:
+                              - img [ref=e1297]
+                        - generic [ref=e1299]:
+                          - paragraph [ref=e1300]: Senior IM
+                          - paragraph [ref=e1301]: 4 zamestnanci
+                    - group [ref=e1303]:
+                      - generic [ref=e1307]:
+                        - generic "Zuzkovič Adrián" [ref=e1311]
+                        - generic [ref=e1312]:
+                          - paragraph [ref=e1313]: Technológ IM
+                          - paragraph [ref=e1314]: "50 · #31001047"
+                          - generic [ref=e1315]: INDIR2
+                        - img [ref=e1319]
+                        - generic [ref=e1322]: "0"
+                    - group [ref=e1324]:
+                      - generic [ref=e1328]:
+                        - generic "Le Vinh Róbert" [ref=e1332]
+                        - generic [ref=e1333]:
+                          - paragraph [ref=e1334]: Senior Technológ IM
+                          - paragraph [ref=e1335]: "50 · #31003028"
+                          - generic [ref=e1336]: INDIR2
+                        - img [ref=e1340]
+                        - generic [ref=e1343]: "0"
+                    - group [ref=e1345]:
+                      - generic [ref=e1349]:
+                        - generic "Maxian Mário" [ref=e1353]
+                        - generic [ref=e1354]:
+                          - paragraph [ref=e1355]: Senior Technológ IM
+                          - paragraph [ref=e1356]: "50 · #31003634"
+                          - generic [ref=e1357]: INDIR2
+                        - img [ref=e1361]
+                        - generic [ref=e1364]: "0"
+                    - group [ref=e1366]:
+                      - generic [ref=e1370]:
+                        - generic "Belaň Peter" [ref=e1374]
+                        - generic [ref=e1375]:
+                          - paragraph [ref=e1376]: Technológ IM
+                          - paragraph [ref=e1377]: "50 · #31003809"
+                          - generic [ref=e1378]: INDIR2
+                        - img [ref=e1382]
+                        - generic [ref=e1385]: "0"
+                    - group [ref=e1387]:
+                      - generic [ref=e1391]:
+                        - generic "Kúdela Ondrej" [ref=e1395]
+                        - generic [ref=e1396]:
+                          - paragraph [ref=e1397]: Launch Coordinator and Tooling Engineer
+                          - paragraph [ref=e1398]: "50 · #31003412"
+                          - generic [ref=e1399]: SAL
+                        - img [ref=e1403]
+                        - generic [ref=e1406]: "0"
+                    - group [ref=e1408]:
+                      - generic [ref=e1412]:
+                        - generic "Špilár Jozef" [ref=e1416]
+                        - generic [ref=e1417]:
+                          - paragraph [ref=e1418]: Launch Coordinator
+                          - paragraph [ref=e1419]: "50 · #31004412"
+                          - generic [ref=e1420]: SAL
+                        - img [ref=e1424]
+                        - generic [ref=e1427]: "0"
+                    - group [ref=e1429]:
+                      - generic [ref=e1433]:
+                        - generic "Grebáč Roman" [ref=e1437]
+                        - generic [ref=e1438]:
+                          - paragraph [ref=e1439]: Product Engineer
+                          - paragraph [ref=e1440]: "50 · #31003980"
+                          - generic [ref=e1441]: SAL
+                        - img [ref=e1445]
+                        - generic [ref=e1448]: "0"
+                    - group [ref=e1450]:
+                      - generic [ref=e1453]:
+                        - generic [ref=e1456]: Sekcia
+                        - generic [ref=e1457]:
+                          - paragraph [ref=e1458]: Nová sekcia
+                          - paragraph [ref=e1459]: 0 zamestnanci
+              - img
+              - generic "Control Panel" [ref=e1461]:
+                - button "Zoom In" [ref=e1462] [cursor=pointer]:
+                  - img [ref=e1463]
+                - button "Zoom Out" [ref=e1465] [cursor=pointer]:
+                  - img [ref=e1466]
+                - button "Fit View" [ref=e1468] [cursor=pointer]:
+                  - img [ref=e1469]
+                - button "Toggle Interactivity" [ref=e1471] [cursor=pointer]:
+                  - img [ref=e1472]
+              - link "React Flow attribution" [ref=e1475] [cursor=pointer]:
+                - /url: https://reactflow.dev
+                - text: React Flow
+          - complementary [ref=e1477]:
+            - generic [ref=e1478]:
+              - heading "Detail bunky" [level=3] [ref=e1479]
+              - button "Zbaliť" [ref=e1480]: ▶
+            - paragraph [ref=e1484]: Kliknite na zamestnanca alebo voľnú pozíciu v organigrame, aby sa tu zobrazili informácie.

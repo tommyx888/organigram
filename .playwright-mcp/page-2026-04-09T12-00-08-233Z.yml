@@ -1,0 +1,1646 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e26]:
+    - generic [ref=e27]:
+      - generic [ref=e28]: Dashboard
+      - generic [ref=e29]: "Role: admin"
+      - generic [ref=e30]: • martin.ficek@iacgroup.com
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - button "Slovenčina" [pressed] [ref=e33]: SK
+        - button "English" [ref=e34]: EN
+      - button "Odhlasit" [ref=e35]
+  - main [ref=e36]:
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - heading "Organizacna struktura" [level=1] [ref=e39]
+        - paragraph [ref=e40]: Interaktivna org chart ukazka s prepinanim detailov, filtrom oddelenia a farebnym mapovanim typov pozicii.
+        - paragraph [ref=e41]: "Data mode: Supabase configured · Source: iac_employees"
+        - paragraph [ref=e42]: "Role: Editacia povolena"
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - heading "Ovládanie zobrazenia" [level=2] [ref=e46]
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - checkbox "Zamknúť pozície" [ref=e49]
+              - text: Zamknúť pozície
+            - button "Zapnúť mriežku" [ref=e50]
+            - button "Stiahnuť PDF" [ref=e51]
+            - button "Kopírovať odkaz na pohľad" [ref=e52]
+            - button "Zobraziť vrchol" [ref=e53]
+            - button "Rozbaľ všetko" [ref=e54]
+            - button "+ Sekcia" [ref=e55]
+            - button "Nastavenie buniek" [ref=e56]
+        - paragraph [ref=e57]: "Priradenie nadriadeného: ťahajte od spodku karty nadriadeného na horný okraj karty podriadeného. Pod voľnú pozíciu (vacancy) môžete napájať zamestnancov."
+        - generic [ref=e58]:
+          - paragraph [ref=e59]: Oddelenia - vyber zobrazenia
+          - generic [ref=e60]:
+            - button "Cela struktura" [ref=e61]
+            - button "📄 Export všetkých PDF" [ref=e62]:
+              - generic [ref=e63]: 📄
+              - text: Export všetkých PDF
+            - generic [ref=e64]:
+              - button "Production" [ref=e65]
+              - button "Zmeniť manažéra oddelenia" [ref=e66]: ⚙
+            - generic [ref=e67]:
+              - button "Maintenance" [ref=e68]
+              - button "Zmeniť manažéra oddelenia" [ref=e69]: ⚙
+            - generic [ref=e70]:
+              - button "Logistics" [ref=e71]
+              - button "Zmeniť manažéra oddelenia" [ref=e72]: ⚙
+            - generic [ref=e73]:
+              - button "Quality" [ref=e74]
+              - button "Zmeniť manažéra oddelenia" [ref=e75]: ⚙
+            - generic [ref=e76]:
+              - button "Technical" [ref=e77]
+              - button "Zmeniť manažéra oddelenia" [ref=e78]: ⚙
+            - generic [ref=e79]:
+              - button "IT" [ref=e80]
+              - button "Zmeniť manažéra oddelenia" [ref=e81]: ⚙
+            - generic [ref=e82]:
+              - button "HR & HSE" [ref=e83]
+              - button "Zmeniť manažéra oddelenia" [ref=e84]: ⚙
+            - generic [ref=e85]:
+              - button "Finance" [ref=e86]
+              - button "Zmeniť manažéra oddelenia" [ref=e87]: ⚙
+            - generic [ref=e88]:
+              - button "Business" [ref=e89]
+              - button "Zmeniť manažéra oddelenia" [ref=e90]: ⚙
+            - generic [ref=e91]:
+              - button "Program" [ref=e92]
+              - button "Zmeniť manažéra oddelenia" [ref=e93]: ⚙
+        - generic [ref=e94]:
+          - complementary [ref=e95]:
+            - generic [ref=e2165]:
+              - heading "Hierarchia" [level=3] [ref=e2166]
+              - button "◀" [ref=e2167]
+            - generic [ref=e2168]:
+              - generic [ref=e2169]:
+                - generic [ref=e2170]: Od ktorej osoby sa zobrazuje štruktúra
+                - button "— Vyberte osobu —" [ref=e2172]:
+                  - generic [ref=e2173]: Janotka Andrej (#31000154)
+                  - generic [ref=e2174]: ▾
+                - paragraph [ref=e2175]: Štruktúra sa zobrazí od vybranej osoby smerom nadol. Vyhľadajte podľa mena alebo čísla.
+              - generic [ref=e2176]:
+                - generic [ref=e2177]: Zobraziť vrstvy
+                - combobox "Zobraziť vrstvy" [ref=e2178]:
+                  - option "Vrstva 1 — len vybraná osoba"
+                  - option "Vrstvy 1–2 — vrchol + priama línia"
+                  - option "Vrstvy 1–3"
+                  - option "Vrstvy 1–4"
+                  - option "Vrstvy 1–5"
+                  - option "Vrstvy 1–6 — všetko" [selected]
+                - paragraph [ref=e2179]: "Obmedzenie hĺbky stromu: vrstva 1 = vrchol, vrstva 2 = priami podriadení, atď."
+              - generic [ref=e2180]:
+                - generic [ref=e2181]: Zobrazenie vetiev
+                - combobox "Zobrazenie vetiev" [ref=e2182]:
+                  - option "Strom — deti priamo pod nadriadeným" [selected]
+                  - option "Vrstvy — jedna línia na úroveň"
+                  - option "Vedľa seba (vpravo od rodiča)"
+                  - option "Dva stĺpce"
+                - paragraph [ref=e2183]: Strom = podriadení priamo pod nadriadeným. Vrstvy = všetci rovnakej úrovne v jednej línii.
+              - generic [ref=e2184]:
+                - button "+ Pridať voľnú pozíciu (vacancy)" [ref=e2185]
+                - paragraph [ref=e2186]: Voľná pozícia sa zobrazí v strome; pod ňu môžete napájať ľudí.
+              - button "Obnoviť šablónu" [ref=e2188]
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - img "Artifex" [ref=e101]
+              - generic [ref=e102]: Artifex Systems Slovakia
+            - application [ref=e104]:
+              - generic [ref=e106]:
+                - generic:
+                  - generic:
+                    - img
+                    - img:
+                      - group "Edge from root to 31000141" [ref=e1770] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to 31001504" [ref=e1776] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to 31002939" [ref=e1782] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to 31003412" [ref=e1788] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to 31004412" [ref=e1794] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to 31003980" [ref=e1800] [cursor=pointer]
+                    - img:
+                      - group "Edge from root to section-8c12be4d-3f21-45e9-b34c-1d2005a4d84f" [ref=e1806] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31002939 to section-20989496-9455-46e8-b0e5-ec8367072d2c" [ref=e1812] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31002939 to section-994ab4e8-5c7c-4f2b-b03b-edd7503a4dd3" [ref=e1818] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31002939 to section-207cd23f-bc9e-4202-a81d-4e3a1616ea5f" [ref=e1824] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31002939 to section-343a0fad-c3ce-4cd3-9a1b-0c781fa7ba9c" [ref=e1830] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31000192" [ref=e1836] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31001164" [ref=e1842] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31003566" [ref=e1848] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31003540" [ref=e1854] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31003944" [ref=e1860] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31003699" [ref=e1866] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31003977" [ref=e1872] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31004352" [ref=e1878] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31004737" [ref=e1884] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31004862" [ref=e1890] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-20989496-9455-46e8-b0e5-ec8367072d2c to 31004863" [ref=e1896] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-994ab4e8-5c7c-4f2b-b03b-edd7503a4dd3 to 31004120" [ref=e1900] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-994ab4e8-5c7c-4f2b-b03b-edd7503a4dd3 to 31004915" [ref=e1906] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-207cd23f-bc9e-4202-a81d-4e3a1616ea5f to 31003576" [ref=e1912] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-207cd23f-bc9e-4202-a81d-4e3a1616ea5f to 31000208" [ref=e1918] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-207cd23f-bc9e-4202-a81d-4e3a1616ea5f to 31000236" [ref=e1924] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-207cd23f-bc9e-4202-a81d-4e3a1616ea5f to 31001609" [ref=e1930] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-343a0fad-c3ce-4cd3-9a1b-0c781fa7ba9c to 31000115" [ref=e1936] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31000115 to section-3358d8e5-58b7-409e-b885-50a8ddeb2136" [ref=e1940] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31000115 to section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c" [ref=e1946] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31000115 to section-be2533dd-8183-4101-a100-cebfc099ccba" [ref=e1952] [cursor=pointer]
+                    - img:
+                      - group "Edge from 31000115 to section-b94b3fd9-3bef-44e7-a88c-119ed37bbbbf" [ref=e1956] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31000485" [ref=e1962] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31003633" [ref=e1968] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31003768" [ref=e1974] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31004276" [ref=e1980] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31004283" [ref=e1986] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31004489" [ref=e1992] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-3358d8e5-58b7-409e-b885-50a8ddeb2136 to 31004622" [ref=e1998] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31004593" [ref=e2002] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31003405" [ref=e2008] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31003839" [ref=e2014] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31003910" [ref=e2020] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31004037" [ref=e2026] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31004148" [ref=e2032] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-4d12f49c-ecdc-4ec3-bcf2-a172227f0b1c to 31004228" [ref=e2038] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-b94b3fd9-3bef-44e7-a88c-119ed37bbbbf to 31001047" [ref=e2042] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-b94b3fd9-3bef-44e7-a88c-119ed37bbbbf to 31003028" [ref=e2048] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-b94b3fd9-3bef-44e7-a88c-119ed37bbbbf to 31003634" [ref=e2054] [cursor=pointer]
+                    - img:
+                      - group "Edge from section-b94b3fd9-3bef-44e7-a88c-119ed37bbbbf to 31003809" [ref=e2060] [cursor=pointer]
+                  - generic:
+                    - group [ref=e403]:
+                      - generic [ref=e406]:
+                        - generic [ref=e407]:
+                          - generic "Hodor Pavol" [ref=e411]
+                          - generic [ref=e412]:
+                            - paragraph [ref=e413]: Programme Manager
+                            - paragraph [ref=e414]: "90 · #31000283"
+                            - generic [ref=e415]: SAL
+                          - generic [ref=e418]: "49"
+                        - button "Zbaliť vetvu" [ref=e420]:
+                          - img [ref=e421]
+                    - group [ref=e424]:
+                      - generic [ref=e428]:
+                        - generic "Baťovičová Ľubica" [ref=e432]
+                        - generic [ref=e433]:
+                          - paragraph [ref=e434]: Change BOM Coordinator
+                          - paragraph [ref=e435]: "50 · #31000141"
+                          - generic [ref=e436]: SAL
+                        - img [ref=e440]
+                        - generic [ref=e443]: "0"
+                    - group [ref=e445]:
+                      - generic [ref=e449]:
+                        - generic "Durčáková Aneta" [ref=e453]
+                        - generic [ref=e454]:
+                          - paragraph [ref=e455]: Launch Coordinator
+                          - paragraph [ref=e456]: "50 · #31001504"
+                          - generic [ref=e457]: INDIR3
+                        - img [ref=e461]
+                        - generic [ref=e464]: "0"
+                    - group [ref=e466]:
+                      - generic [ref=e469]:
+                        - generic [ref=e470]:
+                          - generic "Matlovič Libor" [ref=e474]
+                          - generic [ref=e475]:
+                            - paragraph [ref=e476]: Senior Process Engineer
+                            - paragraph [ref=e477]: "50 · #31002939"
+                            - generic [ref=e478]: SAL
+                          - img [ref=e482]
+                          - generic [ref=e485]: "43"
+                        - button "Zbaliť vetvu" [ref=e487]:
+                          - img [ref=e488]
+                    - group [ref=e491]:
+                      - generic [ref=e494]:
+                        - generic [ref=e495]:
+                          - generic [ref=e497]: Sekcia
+                          - generic [ref=e498]:
+                            - generic [ref=e499]: "11"
+                            - button "Zbaliť vetvu" [ref=e500]:
+                              - img [ref=e501]
+                        - generic [ref=e503]:
+                          - paragraph [ref=e504]: Process Eng.
+                          - paragraph [ref=e505]: 11 zamestnancov
+                    - group [ref=e507]:
+                      - generic [ref=e511]:
+                        - generic "Janošťak Milan" [ref=e515]
+                        - generic [ref=e516]:
+                          - paragraph [ref=e517]: Process Engineer
+                          - paragraph [ref=e518]: "50 · #31000192"
+                          - generic [ref=e519]: INDIR3
+                        - img [ref=e523]
+                        - generic [ref=e526]: "0"
+                    - group [ref=e528]:
+                      - generic [ref=e532]:
+                        - generic "Slováček Miroslav" [ref=e536]
+                        - generic [ref=e537]:
+                          - paragraph [ref=e538]: Process Engineer
+                          - paragraph [ref=e539]: "50 · #31001164"
+                          - generic [ref=e540]: INDIR3
+                        - img [ref=e544]
+                        - generic [ref=e547]: "0"
+                    - group [ref=e549]:
+                      - generic [ref=e553]:
+                        - generic "Koš Jozef" [ref=e557]
+                        - generic [ref=e558]:
+                          - paragraph [ref=e559]: Process Engineer
+                          - paragraph [ref=e560]: "50 · #31003566"
+                          - generic [ref=e561]: INDIR3
+                        - img [ref=e565]
+                        - generic [ref=e568]: "0"
+                    - group [ref=e570]:
+                      - generic [ref=e574]:
+                        - generic "Pál Štefan" [ref=e578]
+                        - generic [ref=e579]:
+                          - paragraph [ref=e580]: Process Engineer
+                          - paragraph [ref=e581]: "50 · #31003540"
+                          - generic [ref=e582]: INDIR3
+                        - img [ref=e586]
+                        - generic [ref=e589]: "0"
+                    - group [ref=e591]:
+                      - generic [ref=e595]:
+                        - generic "Tóth Ján" [ref=e599]
+                        - generic [ref=e600]:
+                          - paragraph [ref=e601]: Process Engineer
+                          - paragraph [ref=e602]: "50 · #31003944"
+                          - generic [ref=e603]: INDIR3
+                        - img [ref=e607]
+                        - generic [ref=e610]: "0"
+                    - group [ref=e612]:
+                      - generic [ref=e616]:
+                        - generic "Bátovský Juraj" [ref=e620]
+                        - generic [ref=e621]:
+                          - paragraph [ref=e622]: Process Engineer
+                          - paragraph [ref=e623]: "50 · #31003699"
+                          - generic [ref=e624]: SAL
+                        - img [ref=e628]
+                        - generic [ref=e631]: "0"
+                    - group [ref=e633]:
+                      - generic [ref=e637]:
+                        - generic "Starý Peter" [ref=e641]
+                        - generic [ref=e642]:
+                          - paragraph [ref=e643]: Process Engineer
+                          - paragraph [ref=e644]: "50 · #31003977"
+                          - generic [ref=e645]: SAL
+                        - img [ref=e649]
+                        - generic [ref=e652]: "0"
+                    - group [ref=e654]:
+                      - generic [ref=e658]:
+                        - generic "Damborák Roman" [ref=e662]
+                        - generic [ref=e663]:
+                          - paragraph [ref=e664]: Process Engineer
+                          - paragraph [ref=e665]: "50 · #31004352"
+                          - generic [ref=e666]: INDIR3
+                        - img [ref=e670]
+                        - generic [ref=e673]: "0"
+                    - group [ref=e675]:
+                      - generic [ref=e679]:
+                        - generic "Nemec Tomáš" [ref=e683]
+                        - generic [ref=e684]:
+                          - paragraph [ref=e685]: Process Engineer
+                          - paragraph [ref=e686]: "50 · #31004737"
+                          - generic [ref=e687]: INDIR3
+                        - img [ref=e691]
+                        - generic [ref=e694]: "0"
+                    - group [ref=e696]:
+                      - generic [ref=e700]:
+                        - generic "Červenka Dávid" [ref=e704]
+                        - generic [ref=e705]:
+                          - paragraph [ref=e706]: Process Engineer
+                          - paragraph [ref=e707]: "50 · #31004862"
+                          - generic [ref=e708]: INDIR3
+                        - img [ref=e712]
+                        - generic [ref=e715]: "0"
+                    - group [ref=e717]:
+                      - generic [ref=e721]:
+                        - generic "Kašik Jozef" [ref=e725]
+                        - generic [ref=e726]:
+                          - paragraph [ref=e727]: Process Engineer
+                          - paragraph [ref=e728]: "50 · #31004863"
+                          - generic [ref=e729]: INDIR3
+                        - img [ref=e733]
+                        - generic [ref=e736]: "0"
+                    - group [ref=e738]:
+                      - generic [ref=e741]:
+                        - generic [ref=e742]:
+                          - generic [ref=e744]: Sekcia
+                          - generic [ref=e745]:
+                            - generic [ref=e746]: "2"
+                            - button "Zbaliť vetvu" [ref=e747]:
+                              - img [ref=e748]
+                        - generic [ref=e750]:
+                          - paragraph [ref=e751]: Manufacturing Eng.
+                          - paragraph [ref=e752]: 2 zamestnanci
+                    - group [ref=e754]:
+                      - generic [ref=e758]:
+                        - generic "Smolár Marek" [ref=e762]
+                        - generic [ref=e763]:
+                          - paragraph [ref=e764]: Manufacturing Engineer
+                          - paragraph [ref=e765]: "50 · #31004120"
+                          - generic [ref=e766]: SAL
+                        - img [ref=e770]
+                        - generic [ref=e773]: "0"
+                    - group [ref=e775]:
+                      - generic [ref=e779]:
+                        - generic "Miča Jozef" [ref=e783]
+                        - generic [ref=e784]:
+                          - paragraph [ref=e785]: Manufacturing engineer
+                          - paragraph [ref=e786]: "50 · #31004915"
+                          - generic [ref=e787]: SAL
+                        - img [ref=e791]
+                        - generic [ref=e794]: "0"
+                    - group [ref=e796]:
+                      - generic [ref=e799]:
+                        - generic [ref=e800]:
+                          - generic [ref=e802]: Sekcia
+                          - generic [ref=e803]:
+                            - generic [ref=e804]: "4"
+                            - button "Zbaliť vetvu" [ref=e805]:
+                              - img [ref=e806]
+                        - generic [ref=e808]:
+                          - paragraph [ref=e809]: Process Engineering IM
+                          - paragraph [ref=e810]: 4 zamestnanci
+                    - group [ref=e812]:
+                      - generic [ref=e816]:
+                        - generic "Pisca Lukáš" [ref=e820]
+                        - generic [ref=e821]:
+                          - paragraph [ref=e822]: Process Engineer IM
+                          - paragraph [ref=e823]: "50 · #31003576"
+                          - generic [ref=e824]: INDIR3
+                        - img [ref=e828]
+                        - generic [ref=e831]: "0"
+                    - group [ref=e833]:
+                      - generic [ref=e837]:
+                        - generic "Studený Jozef" [ref=e841]
+                        - generic [ref=e842]:
+                          - paragraph [ref=e843]: Senior technológ IM
+                          - paragraph [ref=e844]: "50 · #31000208"
+                          - generic [ref=e845]: INDIR3
+                        - img [ref=e849]
+                        - generic [ref=e852]: "0"
+                    - group [ref=e854]:
+                      - generic [ref=e858]:
+                        - generic "Majerský Peter" [ref=e862]
+                        - generic [ref=e863]:
+                          - paragraph [ref=e864]: Process Engineer IM
+                          - paragraph [ref=e865]: "50 · #31000236"
+                          - generic [ref=e866]: INDIR3
+                        - img [ref=e870]
+                        - generic [ref=e873]: "0"
+                    - group [ref=e875]:
+                      - generic [ref=e879]:
+                        - generic "Jurkovič Branislav" [ref=e883]
+                        - generic [ref=e884]:
+                          - paragraph [ref=e885]: Injection Molding Engineer
+                          - paragraph [ref=e886]: "50 · #31001609"
+                          - generic [ref=e887]: SAL
+                        - img [ref=e891]
+                        - generic [ref=e894]: "0"
+                    - group [ref=e896]:
+                      - generic [ref=e899]:
+                        - generic [ref=e900]:
+                          - generic [ref=e902]: Sekcia
+                          - generic [ref=e903]:
+                            - generic [ref=e904]: "1"
+                            - button "Zbaliť vetvu" [ref=e905]:
+                              - img [ref=e906]
+                        - generic [ref=e908]:
+                          - paragraph [ref=e909]: Injection Molding
+                          - paragraph [ref=e910]: 1 zamestnanec
+                    - group [ref=e912]:
+                      - generic [ref=e915]:
+                        - generic [ref=e916]:
+                          - generic "Šišulák Peter" [ref=e920]
+                          - generic [ref=e921]:
+                            - paragraph [ref=e922]: Senior technológ
+                            - paragraph [ref=e923]: "50 · #31000115"
+                            - generic [ref=e924]: INDIR2
+                          - img [ref=e928]
+                          - generic [ref=e931]: "25"
+                        - button "Zbaliť vetvu" [ref=e933]:
+                          - img [ref=e934]
+                    - group [ref=e937]:
+                      - generic [ref=e940]:
+                        - generic [ref=e941]:
+                          - generic [ref=e943]: Sekcia
+                          - generic [ref=e944]:
+                            - generic [ref=e945]: "7"
+                            - button "Zbaliť vetvu" [ref=e946]:
+                              - img [ref=e947]
+                        - generic [ref=e949]:
+                          - paragraph [ref=e950]: Shift A
+                          - paragraph [ref=e951]: 7 zamestnancov
+                    - group [ref=e953]:
+                      - generic [ref=e957]:
+                        - generic "Valla Ivan" [ref=e961]
+                        - generic [ref=e962]:
+                          - paragraph [ref=e963]: Senior Technológ IM
+                          - paragraph [ref=e964]: "50 · #31000485"
+                          - generic [ref=e965]: INDIR2
+                        - img [ref=e969]
+                        - generic [ref=e972]: "0"
+                    - group [ref=e974]:
+                      - generic [ref=e978]:
+                        - generic "Pulmann Tomáš" [ref=e982]
+                        - generic [ref=e983]:
+                          - paragraph [ref=e984]: Menič foriem
+                          - paragraph [ref=e985]: "50 · #31003633"
+                          - generic [ref=e986]: INDIR2
+                        - img [ref=e990]
+                        - generic [ref=e993]: "0"
+                    - group [ref=e995]:
+                      - generic [ref=e999]:
+                        - generic "Černý Lukáš" [ref=e1003]
+                        - generic [ref=e1004]:
+                          - paragraph [ref=e1005]: Technológ IM
+                          - paragraph [ref=e1006]: "50 · #31003768"
+                          - generic [ref=e1007]: INDIR2
+                        - img [ref=e1011]
+                        - generic [ref=e1014]: "0"
+                    - group [ref=e1016]:
+                      - generic [ref=e1020]:
+                        - generic "Mešťan Matúš" [ref=e1024]
+                        - generic [ref=e1025]:
+                          - paragraph [ref=e1026]: Menič foriem
+                          - paragraph [ref=e1027]: "50 · #31004276"
+                          - generic [ref=e1028]: INDIR2
+                        - img [ref=e1032]
+                        - generic [ref=e1035]: "0"
+                    - group [ref=e1037]:
+                      - generic [ref=e1041]:
+                        - generic "Petráš Denis" [ref=e1045]
+                        - generic [ref=e1046]:
+                          - paragraph [ref=e1047]: Technológ IM
+                          - paragraph [ref=e1048]: "50 · #31004283"
+                          - generic [ref=e1049]: INDIR2
+                        - img [ref=e1053]
+                        - generic [ref=e1056]: "0"
+                    - group [ref=e1058]:
+                      - generic [ref=e1062]:
+                        - generic "Petráš Milan" [ref=e1066]
+                        - generic [ref=e1067]:
+                          - paragraph [ref=e1068]: Menič Foriem
+                          - paragraph [ref=e1069]: "50 · #31004489"
+                          - generic [ref=e1070]: INDIR2
+                        - img [ref=e1074]
+                        - generic [ref=e1077]: "0"
+                    - group [ref=e1079]:
+                      - generic [ref=e1083]:
+                        - generic "Keder Milan" [ref=e1087]
+                        - generic [ref=e1088]:
+                          - paragraph [ref=e1089]: Materialista
+                          - paragraph [ref=e1090]: "50 · #31004622"
+                          - generic [ref=e1091]: INDIR2
+                        - img [ref=e1095]
+                        - generic [ref=e1098]: "0"
+                    - group [ref=e1100]:
+                      - generic [ref=e1103]:
+                        - generic [ref=e1104]:
+                          - generic [ref=e1106]: Sekcia
+                          - generic [ref=e1107]:
+                            - generic [ref=e1108]: "7"
+                            - button "Zbaliť vetvu" [ref=e1109]:
+                              - img [ref=e1110]
+                        - generic [ref=e1112]:
+                          - paragraph [ref=e1113]: Shift B
+                          - paragraph [ref=e1114]: 7 zamestnancov
+                    - group [ref=e1116]:
+                      - generic [ref=e1120]:
+                        - generic "Podola Milan" [ref=e1124]
+                        - generic [ref=e1125]:
+                          - paragraph [ref=e1126]: Menič foriem
+                          - paragraph [ref=e1127]: "50 · #31004593"
+                          - generic [ref=e1128]: INDIR2
+                        - img [ref=e1132]
+                        - generic [ref=e1135]: "0"
+                    - group [ref=e1137]:
+                      - generic [ref=e1141]:
+                        - generic "Demin Matej" [ref=e1145]
+                        - generic [ref=e1146]:
+                          - paragraph [ref=e1147]: Technológ IM
+                          - paragraph [ref=e1148]: "50 · #31003405"
+                          - generic [ref=e1149]: INDIR2
+                        - img [ref=e1153]
+                        - generic [ref=e1156]: "0"
+                    - group [ref=e1158]:
+                      - generic [ref=e1162]:
+                        - generic "Uhrinec Vladimír" [ref=e1166]
+                        - generic [ref=e1167]:
+                          - paragraph [ref=e1168]: Technológ IM
+                          - paragraph [ref=e1169]: "50 · #31003839"
+                          - generic [ref=e1170]: INDIR2
+                        - img [ref=e1174]
+                        - generic [ref=e1177]: "0"
+                    - group [ref=e1179]:
+                      - generic [ref=e1183]:
+                        - generic "Kmeť Ján" [ref=e1187]
+                        - generic [ref=e1188]:
+                          - paragraph [ref=e1189]: Technológ IM
+                          - paragraph [ref=e1190]: "50 · #31003910"
+                          - generic [ref=e1191]: INDIR2
+                        - img [ref=e1195]
+                        - generic [ref=e1198]: "0"
+                    - group [ref=e1200]:
+                      - generic [ref=e1204]:
+                        - generic "Havran Ján" [ref=e1208]
+                        - generic [ref=e1209]:
+                          - paragraph [ref=e1210]: Materialista
+                          - paragraph [ref=e1211]: "50 · #31004037"
+                          - generic [ref=e1212]: INDIR2
+                        - img [ref=e1216]
+                        - generic [ref=e1219]: "0"
+                    - group [ref=e1221]:
+                      - generic [ref=e1225]:
+                        - generic "Václavek Frederik" [ref=e1229]
+                        - generic [ref=e1230]:
+                          - paragraph [ref=e1231]: Technológ IM
+                          - paragraph [ref=e1232]: "50 · #31004148"
+                          - generic [ref=e1233]: INDIR2
+                        - img [ref=e1237]
+                        - generic [ref=e1240]: "0"
+                    - group [ref=e1242]:
+                      - generic [ref=e1246]:
+                        - generic "Lukáček Anton" [ref=e1250]
+                        - generic [ref=e1251]:
+                          - paragraph [ref=e1252]: Menič foriem
+                          - paragraph [ref=e1253]: "50 · #31004228"
+                          - generic [ref=e1254]: INDIR2
+                        - img [ref=e1258]
+                        - generic [ref=e1261]: "0"
+                    - group [ref=e1263]:
+                      - generic [ref=e1266]:
+                        - generic [ref=e1267]:
+                          - generic [ref=e1269]: Sekcia
+                          - generic [ref=e1270]:
+                            - generic [ref=e1271]: "7"
+                            - button "Rozbaliť vetvu" [ref=e1272]:
+                              - img [ref=e1273]
+                        - generic [ref=e1275]:
+                          - paragraph [ref=e1276]: Shift C
+                          - paragraph [ref=e1277]: 7 zamestnancov
+                    - group [ref=e1279]:
+                      - generic [ref=e1282]:
+                        - generic [ref=e1283]:
+                          - generic [ref=e1285]: Sekcia
+                          - generic [ref=e1286]:
+                            - generic [ref=e1287]: "4"
+                            - button "Zbaliť vetvu" [ref=e1288]:
+                              - img [ref=e1289]
+                        - generic [ref=e1291]:
+                          - paragraph [ref=e1292]: Senior IM
+                          - paragraph [ref=e1293]: 4 zamestnanci
+                    - group [ref=e1295]:
+                      - generic [ref=e1299]:
+                        - generic "Zuzkovič Adrián" [ref=e1303]
+                        - generic [ref=e1304]:
+                          - paragraph [ref=e1305]: Technológ IM
+                          - paragraph [ref=e1306]: "50 · #31001047"
+                          - generic [ref=e1307]: INDIR2
+                        - img [ref=e1311]
+                        - generic [ref=e1314]: "0"
+                    - group [ref=e1316]:
+                      - generic [ref=e1320]:
+                        - generic "Le Vinh Róbert" [ref=e1324]
+                        - generic [ref=e1325]:
+                          - paragraph [ref=e1326]: Senior Technológ IM
+                          - paragraph [ref=e1327]: "50 · #31003028"
+                          - generic [ref=e1328]: INDIR2
+                        - img [ref=e1332]
+                        - generic [ref=e1335]: "0"
+                    - group [ref=e1337]:
+                      - generic [ref=e1341]:
+                        - generic "Maxian Mário" [ref=e1345]
+                        - generic [ref=e1346]:
+                          - paragraph [ref=e1347]: Senior Technológ IM
+                          - paragraph [ref=e1348]: "50 · #31003634"
+                          - generic [ref=e1349]: INDIR2
+                        - img [ref=e1353]
+                        - generic [ref=e1356]: "0"
+                    - group [ref=e1358]:
+                      - generic [ref=e1362]:
+                        - generic "Belaň Peter" [ref=e1366]
+                        - generic [ref=e1367]:
+                          - paragraph [ref=e1368]: Technológ IM
+                          - paragraph [ref=e1369]: "50 · #31003809"
+                          - generic [ref=e1370]: INDIR2
+                        - img [ref=e1374]
+                        - generic [ref=e1377]: "0"
+                    - group [ref=e1379]:
+                      - generic [ref=e1383]:
+                        - generic "Kúdela Ondrej" [ref=e1387]
+                        - generic [ref=e1388]:
+                          - paragraph [ref=e1389]: Launch Coordinator and Tooling Engineer
+                          - paragraph [ref=e1390]: "50 · #31003412"
+                          - generic [ref=e1391]: SAL
+                        - img [ref=e1395]
+                        - generic [ref=e1398]: "0"
+                    - group [ref=e1400]:
+                      - generic [ref=e1404]:
+                        - generic "Špilár Jozef" [ref=e1408]
+                        - generic [ref=e1409]:
+                          - paragraph [ref=e1410]: Launch Coordinator
+                          - paragraph [ref=e1411]: "50 · #31004412"
+                          - generic [ref=e1412]: SAL
+                        - img [ref=e1416]
+                        - generic [ref=e1419]: "0"
+                    - group [ref=e1421]:
+                      - generic [ref=e1425]:
+                        - generic "Grebáč Roman" [ref=e1429]
+                        - generic [ref=e1430]:
+                          - paragraph [ref=e1431]: Product Engineer
+                          - paragraph [ref=e1432]: "50 · #31003980"
+                          - generic [ref=e1433]: SAL
+                        - img [ref=e1437]
+                        - generic [ref=e1440]: "0"
+                    - group [ref=e1442]:
+                      - generic [ref=e1445]:
+                        - generic [ref=e1448]: Sekcia
+                        - generic [ref=e1449]:
+                          - paragraph [ref=e1450]: Nová sekcia
+                          - paragraph [ref=e1451]: 0 zamestnanci
+              - img
+              - generic "Control Panel" [ref=e1453]:
+                - button "Zoom In" [ref=e1454] [cursor=pointer]:
+                  - img [ref=e1455]
+                - button "Zoom Out" [disabled]:
+                  - img
+                - button "Fit View" [ref=e1457] [cursor=pointer]:
+                  - img [ref=e1458]
+                - button "Toggle Interactivity" [ref=e1460] [cursor=pointer]:
+                  - img [ref=e1461]
+              - link "React Flow attribution" [ref=e1464] [cursor=pointer]:
+                - /url: https://reactflow.dev
+                - text: React Flow
+          - complementary [ref=e1466]:
+            - generic [ref=e1467]:
+              - heading "Detail bunky" [level=3] [ref=e1468]
+              - button "Zbaliť" [ref=e1469]: ▶
+            - generic [ref=e2066]:
+              - generic [ref=e2067]:
+                - heading "Zamestnanec" [level=3] [ref=e2068]
+                - button "Zavrieť" [ref=e2069]: ✕
+              - generic [ref=e2070]:
+                - generic [ref=e2071]:
+                  - paragraph [ref=e2072]: Fotka
+                  - generic [ref=e2073]:
+                    - button "Odstrániť fotku" [ref=e2074]
+                    - button "Zmeniť fotku" [ref=e2075]
+                  - generic [ref=e2076]:
+                    - generic [ref=e2077]:
+                      - generic [ref=e2078]: Posun X (px)
+                      - slider "Posun X (px)" [ref=e2079]: "0"
+                    - generic [ref=e2080]:
+                      - generic [ref=e2081]: Posun Y (px)
+                      - slider "Posun Y (px)" [ref=e2082]: "0"
+                    - generic [ref=e2084]: "X: 0px, Y: 0px"
+                - generic [ref=e2085]:
+                  - paragraph [ref=e2086]: Meno
+                  - paragraph [ref=e2087]: Hodor Pavol
+                - generic [ref=e2088]:
+                  - paragraph [ref=e2089]: Pozícia
+                  - paragraph [ref=e2090]: Programme Manager
+                - generic [ref=e2091]:
+                  - paragraph [ref=e2092]: Stredisko / Oddelenie
+                  - paragraph [ref=e2093]: "90"
+                  - paragraph [ref=e2094]: Management
+                - generic [ref=e2095]:
+                  - paragraph [ref=e2096]: Os. číslo
+                  - paragraph [ref=e2097]: "31000283"
+                - generic [ref=e2098]:
+                  - paragraph [ref=e2099]: Typ
+                  - paragraph [ref=e2100]: Salaried · SAL
+                - generic [ref=e2101]:
+                  - paragraph [ref=e2102]: Nadriadený
+                  - combobox [ref=e2103]:
+                    - option "— Žiadny (vrchol) —"
+                    - option "Brunovská Natália (#31004918)"
+                    - option "Nemcová Štefánia (#31004919)"
+                    - option "Marešová Katarína (#31004920)"
+                    - option "Hablovič Bohumil (#31000056)"
+                    - option "Šuster Ján (#31000082)"
+                    - option "Martinkovičová (Hájková) Silvia (#31003872)"
+                    - option "Havlíčková Viera (#31000128)"
+                    - option "Drdák Ladislav (#31004852)"
+                    - option "Tirdil Peter (#31000568)"
+                    - option "Velická Rečná Veronika (#31000138)"
+                    - option "Furicová Elisabeta (#31000875)"
+                    - option "Kandra Peter (#31000163)"
+                    - option "Baláž Dušan (#31000030)"
+                    - option "Húbek Adrián (#31000040)"
+                    - option "Adamíková Zlatica (#31000066)"
+                    - option "Suchánková Dana (#31000071)"
+                    - option "Chovancová Marcela (#31000120)"
+                    - option "Michalovičová Petronela (#31000084)"
+                    - option "Šuba Pavel (#31000087)"
+                    - option "Kramárová Dana (#31000179)"
+                    - option "Havlíková Mária (#31000098)"
+                    - option "Deák Dušan (#31000106)"
+                    - option "Košický Roman (#31000113)"
+                    - option "Hrúzová Jana (#31000374)"
+                    - option "Nesnadný František (#31000125)"
+                    - option "Knotková Jana (#31001422)"
+                    - option "Olivová Zuzana (#31000144)"
+                    - option "Hoďová Milica (#31000156)"
+                    - option "Ondriáš Radovan (#31000165)"
+                    - option "Petrík Pavol (#31000173)"
+                    - option "Bánová Dagmar (#31000180)"
+                    - option "Vávra Peter (#31000183)"
+                    - option "Mondec Ioan (#31000190)"
+                    - option "Kadlíček Anton (#31001474)"
+                    - option "Geršičová Linda (#31000216)"
+                    - option "Blažeková Jana (#31000245)"
+                    - option "Mičková Dana (#31000259)"
+                    - option "Hlavatá Mária (#31000260)"
+                    - option "Marčíková Silvia (#31000280)"
+                    - option "Ščasný František (#31000443)"
+                    - option "Hranková Daša (#31001560)"
+                    - option "Ralbovský Róbert (#31000307)"
+                    - option "Klempa Viliam (#31000351)"
+                    - option "Valachovičová Monika (#31000325)"
+                    - option "Putíková Jaroslava (#31000370)"
+                    - option "Vojteková Kristína (#31000373)"
+                    - option "Fridrich Slavomír (#31001585)"
+                    - option "Mráz Roman (#31001637)"
+                    - option "Balúchová Ingrid (#31000433)"
+                    - option "Perička Marek (#31000469)"
+                    - option "Jakúbková Eva (#31000501)"
+                    - option "Furic Pavel (#31000506)"
+                    - option "Horovský Peter (#31000535)"
+                    - option "Reich Miroslav (#31003332)"
+                    - option "Weber Milan (#31000585)"
+                    - option "Šantová Adriana st (#31003449)"
+                    - option "Lisá Nikola (#31000647)"
+                    - option "Kolarik Martina (#31003873)"
+                    - option "Stašek Vladimír (#31000677)"
+                    - option "Hlaváčková Oxana (#31000367)"
+                    - option "Putíková Lucia (#31000680)"
+                    - option "Malatinec Vladimír (#31000745)"
+                    - option "Polláková Jana (#31003946)"
+                    - option "Okenica Ladislav (#31000850)"
+                    - option "Hrćan Marijana (#31004110)"
+                    - option "Milic Ivana (#31004205)"
+                    - option "Mihalovičová Hana (#31000927)"
+                    - option "Krajňák Jozef (#31000934)"
+                    - option "Ružička Simona (#31000423)"
+                    - option "Šrámek Peter (#31004392)"
+                    - option "Cigánková Linda (#31000975)"
+                    - option "Burianová Jarmila (#31001000)"
+                    - option "Gallo Miroslav (#31000426)"
+                    - option "Valentovič Peter (#31001026)"
+                    - option "Vahula Liduška (#31004401)"
+                    - option "Večerková Iva (#31001065)"
+                    - option "Zábojník Michal (#31001070)"
+                    - option "Funková Patrícia (#31001177)"
+                    - option "Hanzalík Vladimír ml. (#31000470)"
+                    - option "Noskovičová Andrea (#31001200)"
+                    - option "Fuksová Terézia (#31001206)"
+                    - option "Danihelová Nikola (#31004787)"
+                    - option "Zavilinská Jaroslava (#31001228)"
+                    - option "Kujanová Marta (#31001259)"
+                    - option "Shnitkovska Oleksandra (#31004806)"
+                    - option "Liptak Jaroslava (#31001266)"
+                    - option "Csáky Gábor (#31001373)"
+                    - option "Lorencová Jaroslava (#31001403)"
+                    - option "Virág Tibor (#31001436)"
+                    - option "Petřeková Alexandra (#31004830)"
+                    - option "Mytrovych (Mumriak) Svitlana (#31004815)"
+                    - option "Čechová Barbora (#31001525)"
+                    - option "Kozaitek Andrej (#31004838)"
+                    - option "Symochko Diana (#31004858)"
+                    - option "Kmec Marek (#31001607)"
+                    - option "Tiurin Yevhen (#31004893)"
+                    - option "Sulaiová Anna (#31002119)"
+                    - option "Dicheva Olena (#31004635)"
+                    - option "Mikulčáková Mária (#31002958)"
+                    - option "Danihel Štefan (#31000639)"
+                    - option "Trávniček Bohumil (#31003021)"
+                    - option "Milutinovic Tatjana (#31003052)"
+                    - option "Hrinková Jana (#31003211)"
+                    - option "Valachovič Ondrej (#31000662)"
+                    - option "Jahelka Marián (#31003312)"
+                    - option "Bolebruch Ľubomir (#31003564)"
+                    - option "Fáber Vladimír (#31003997)"
+                    - option "Kovtsun Mariia (#31003390)"
+                    - option "Korol Tetiana (#31003397)"
+                    - option "Zahryva Nina (#31003435)"
+                    - option "Čechová Jana (#31003461)"
+                    - option "Kozárková Blanka (#31003614)"
+                    - option "Smolinský Martin (#31003630)"
+                    - option "Janeček Miroslav (#31003654)"
+                    - option "Germeková Katarína (#31001198)"
+                    - option "Kiriková Kitti (#31000760)"
+                    - option "Hanzlík Ľubor (#31003690)"
+                    - option "Shevchenko Hennadii (#31003789)"
+                    - option "Burdej Ján (#31003795)"
+                    - option "Šofranko Paljko (#31003820)"
+                    - option "Špirková Adriana (#31003871)"
+                    - option "Horniček Žaneta (#31004279)"
+                    - option "Zhakhalov Yurii (#31003972)"
+                    - option "Iserová Jana (#31001262)"
+                    - option "Prešinská Klára (#31000925)"
+                    - option "Góra René (#31004045)"
+                    - option "Stryhun Tetiana (#31004141)"
+                    - option "Hotra Vita (#31004158)"
+                    - option "Hryshchenko Yurii (#31004185)"
+                    - option "Vysotska Liudmyla (#31004192)"
+                    - option "Lajgut Martin (#31004203)"
+                    - option "Báňová Naďa (#31000985)"
+                    - option "Kozárková Denisa (#31004550)"
+                    - option "Zabadalová Nikola (#31004245)"
+                    - option "Durčáková Linda (#31004257)"
+                    - option "Burtseva Oksana (#31004258)"
+                    - option "Drahošová Iveta (#31004289)"
+                    - option "Daniel Lukáš (#31004292)"
+                    - option "Klenková Daša (#31004310)"
+                    - option "Pavliš Michal (#31001111)"
+                    - option "Duniková Pavlína (#31001112)"
+                    - option "Dzyziuk Dmytro (#31004316)"
+                    - option "Krstić Branislav (#31004384)"
+                    - option "Kokaiko Liudmyla (#31004361)"
+                    - option "Leshko Viktoria (#31004363)"
+                    - option "Kuček Dušan (#31003000)"
+                    - option "Kuník Marek (#31004033)"
+                    - option "Lištiak Vladimír (#31004897)"
+                    - option "Urich Andrej (#31004478)"
+                    - option "Vanek Vladimír (#31004507)"
+                    - option "Nemcová MIroslava (#31002951)"
+                    - option "Žovák Lukáš (#31004581)"
+                    - option "Peťko Ľubomír (#31004434)"
+                    - option "Daniel Dušan (#31004649)"
+                    - option "Poláková Veronika (#31004765)"
+                    - option "Sedlár Vladimír (#31004659)"
+                    - option "Bocharova Olena (#31004666)"
+                    - option "Mechery Rappai Libin (#31004678)"
+                    - option "Roško Peter (#31004346)"
+                    - option "Kryvorot Valentyna (#31004690)"
+                    - option "Kazakeieva Janina (#31004697)"
+                    - option "Turanská Petra (#31004706)"
+                    - option "Bezpalko Olena (#31004730)"
+                    - option "Kummamkottil Prasad Sherin (#31004740)"
+                    - option "Dziuba Serhii (#31004747)"
+                    - option "Demianenko Iryna (#31004760)"
+                    - option "Seliaikovich Andrei (#31004905)"
+                    - option "Schesnovytskyi Valerii (#31004870)"
+                    - option "Vozniuk Valentyn (#31004802)"
+                    - option "Mestvirshvili Elene (#31004805)"
+                    - option "Starova Svitlana (#31004823)"
+                    - option "Líškay Igor (#31001536)"
+                    - option "Purwanti Novi (#31004834)"
+                    - option "Hutajulu Veronika (#31004836)"
+                    - option "Fru Sylvester (#31004869)"
+                    - option "Telehuz Dariia (#31004872)"
+                    - option "Lisá Slávka (#31004874)"
+                    - option "Darwisah Darwisah (#31004881)"
+                    - option "Maistruk Maryna (#31004885)"
+                    - option "Štefániková Blažena (#31004889)"
+                    - option "Sopian Sandi Muhamad (#31004901)"
+                    - option "Valiayeva Natallia (#31004909)"
+                    - option "Rus Martin (#31001596)"
+                    - option "Molli Govinda Raju Badri (#31004916)"
+                    - option "Polák Roman (#31004777)"
+                    - option "Kuchuhura Oleksii (#31004814)"
+                    - option "Poncer Róbert (#31004792)"
+                    - option "Chernenko Serhii (#32332)"
+                    - option "Kniesnerová Ľubica (#31003228)"
+                    - option "Ficek Tomáš (#31003248)"
+                    - option "Tiuliaiev Oleh (#111330)"
+                    - option "Peleshok Pavlo (#111331)"
+                    - option "Kharchenko Svitlana (#31003473)"
+                    - option "Pisca Lukáš (#31003576)"
+                    - option "Germek Štefan (#31000903)"
+                    - option "Levák Matej (#31003928)"
+                    - option "Hačundová Martina (#31003947)"
+                    - option "Grebáč Roman (#31003980)"
+                    - option "Chervenchuk Yevhenii (#31004086)"
+                    - option "Golubovic Dragan (#31004114)"
+                    - option "Georgieva Ivanka (#31004161)"
+                    - option "Kovarovičová Eliška (#31004272)"
+                    - option "Cimerman Ján (#31004275)"
+                    - option "Filip Martin (#31004350)"
+                    - option "Kotvan Lukáš (#31004351)"
+                    - option "Rozbora Marián (#31004387)"
+                    - option "Magát Nikolas (#31004499)"
+                    - option "Rudenko Olena (#31004534)"
+                    - option "Homeniuk Iryna (#31004577)"
+                    - option "Podola Milan (#31004593)"
+                    - option "Danielová Kvetoslava (#31004633)"
+                    - option "Pappachen Biju (#31004672)"
+                    - option "Bokesová Martina (#31004682)"
+                    - option "Tokach Olha (#31004709)"
+                    - option "Žunjić Jelka Trgić (#31004723)"
+                    - option "Havran Dominik (#31004790)"
+                    - option "Gabriš Ľuboš (#31004783)"
+                    - option "Chovancová Kateřina (#31004794)"
+                    - option "Častulíková Radka (#31004827)"
+                    - option "Pánis Lukáš (#31004861)"
+                    - option "Malý Marián (#31004220)"
+                    - option "Janotka Andrej (#31000154)"
+                    - option "Dewi Marini (#111379)"
+                    - option "Simonchenko Yevheniia (#32354)"
+                    - option "Lipský Marek (#31004613)"
+                    - option "Ružička Pavol (#31000057)"
+                    - option "Sari Apriliana Devita (#111389)"
+                    - option "Zeman Peter (#32352)"
+                    - option "Fabian Patrik (#31000003)"
+                    - option "Lukovská Ľubica (#31000005)"
+                    - option "Farský Štefan (#31000007)"
+                    - option "Šuliga Ján (#31000008)"
+                    - option "Chovancová Dana (#31000015)"
+                    - option "Hrúz Pavel (#31000016)"
+                    - option "Valičková Emília (#31000031)"
+                    - option "Malý Juraj (#31000032)"
+                    - option "Studený Jozef (#31000208)"
+                    - option "Baťovičová Ľubica (#31000141)"
+                    - option "Šlesarík Václav (#31000039)"
+                    - option "Martincová Tatiana (#31000563)"
+                    - option "Krupová Kristína (#31000848)"
+                    - option "Cauner Norbert (#31000043)"
+                    - option "Stašek Peter (#31000058)"
+                    - option "Žák Stanislav (#31000042)"
+                    - option "Marčík Vladimír (#31000059)"
+                    - option "Michalovýchová Petra (#31000227)"
+                    - option "Majerský Peter (#31000236)"
+                    - option "Benkovičová Beáta (#31000061)"
+                    - option "Petricev Petar (#31003995)"
+                    - option "Benkovič Miroslav (#31000072)"
+                    - option "Valiček František (#31000075)"
+                    - option "Vašinová Zdenka (#31000076)"
+                    - option "Búriková Ľudmila (#31000077)"
+                    - option "Kinčok Boris (#31000080)"
+                    - option "Sabol Roman (#31000086)"
+                    - option "Jurkovič Michal (#31000092)"
+                    - option "Rehák Peter (#31000093)"
+                    - option "Vašina Marián (#31000089)"
+                    - option "Szmolena Martin-Bertalan (#31000100)"
+                    - option "Ružičková Vlasta (#31000104)"
+                    - option "Vinceková Michaela (#31000105)"
+                    - option "Kadlic Stanislav (#31000109)"
+                    - option "Ožvoldík Denis (#31000107)"
+                    - option "Juchová-Deščíková Helena (#31000111)"
+                    - option "Šišulák Peter (#31000115)"
+                    - option "Pacalaj Marián (#31000114)"
+                    - option "Ščepka Martin (#31000117)"
+                    - option "Špergl Jozef (#31000118)"
+                    - option "Michalík Milan (#31000121)"
+                    - option "Hurbanová Lucia (#31000124)"
+                    - option "Vrablec Marek (#31000132)"
+                    - option "Kotvan Ferdinand (#31000140)"
+                    - option "Kaňková Lucia (#31000145)"
+                    - option "Prokešová Soňa (#31000146)"
+                    - option "Machatová Svetlana (#31000155)"
+                    - option "Hollý Tomáš (#31000160)"
+                    - option "Húšková Ivana (#31000159)"
+                    - option "Nesnadný Jozef (#31000162)"
+                    - option "Spál Marek (#31000167)"
+                    - option "Noskovičová Anna (#31000169)"
+                    - option "Kunák Martin (#31000170)"
+                    - option "Ščepánková Zdena (#31000175)"
+                    - option "Šablicová Renáta (#31000177)"
+                    - option "Magátová Zuzana (#31000178)"
+                    - option "Stanický Patrik (#31000188)"
+                    - option "Knapová Denisa (#31000224)"
+                    - option "Maderičová Michala (#31000243)"
+                    - option "Janošťak Milan (#31000192)"
+                    - option "Thomas Jaroslav (#31000198)"
+                    - option "Kvasnicová Ľubomíra (#31000202)"
+                    - option "Nemcová Lenka (#31000204)"
+                    - option "Černek Daniel (#31000205)"
+                    - option "Búzková Barbora (#31000258)"
+                    - option "Dujsík Tibor (#31000206)"
+                    - option "Klein Jozef (#31000222)"
+                    - option "Kotvanová Hana (#31000223)"
+                    - option "Čiliaková Renáta (#31000247)"
+                    - option "Gachová Regína (#31000250)"
+                    - option "Koreničová Radana (#31000256)"
+                    - option "Tobola Eduard (#31000272)"
+                    - option "Nesvitsky Anton (#61054)"
+                    - option "Valúšková Lucia (#31000276)"
+                    - option "Mackovič Ľubomír (#31000327)"
+                    - option "Klička Karol (#31000281)"
+                    - option "Jankovičová Zlatica (#31000287)"
+                    - option "Ralbovská Pavlína (#31000292)"
+                    - option "Mudroch Ondrej (#31000306)"
+                    - option "Honcharenko Nataliia (#61060)"
+                    - option "Záhorský Róbert (#31000293)"
+                    - option "Kadnárová Lucia (#31000301)"
+                    - option "Toth Jozsef (#110348)"
+                    - option "Šebestová Tatiana ml. (#31000309)"
+                    - option "Kralovičová Jaroslava (#31000322)"
+                    - option "Kolevski Aleksandar (#31000360)"
+                    - option "Kafka Marián (#31000399)"
+                    - option "Tesarovičová Katarína (#31000393)"
+                    - option "Zvirinský Martin (#31000379)"
+                    - option "Jurášová Eva (#31000397)"
+                    - option "Daniel Alojz (#31000388)"
+                    - option "Dérik Josef (#31000400)"
+                    - option "Filip Boris (#31001015)"
+                    - option "Čajková Katarína (#31000403)"
+                    - option "Kováčová Adriana (#31000406)"
+                    - option "Maárová Jana (#31000441)"
+                    - option "Rybár Peter (#31000524)"
+                    - option "Palkovič Tomáš (#31000471)"
+                    - option "Jandíková Markéta (#31000474)"
+                    - option "Veselá Silvia (#31000476)"
+                    - option "Valla Ivan (#31000485)"
+                    - option "Gonczy Ladislav (#31000502)"
+                    - option "Šišolák Juraj (#31000523)"
+                    - option "Kotvan Vladislav (#31000531)"
+                    - option "Mikudík Juraj (#31000529)"
+                    - option "Nagyová Iveta (#31000546)"
+                    - option "Viteková Dáša (#31000570)"
+                    - option "Marík Milan (#31000574)"
+                    - option "Rigáň Martin (#31000590)"
+                    - option "Mikula Ivan (#31000635)"
+                    - option "Hyžová Iveta (#31000619)"
+                    - option "Hajdinová Adela (#31000652)"
+                    - option "Masarovičová Jana (#31000661)"
+                    - option "Chovancová Viera (#31000665)"
+                    - option "Bukovčák Michal (#31000686)"
+                    - option "Sušanín Tamás (#31000673)"
+                    - option "Velšmid Ľubomír (#31001583)"
+                    - option "Moravčíková Mária (#31000675)"
+                    - option "Strasser Rudolf (#31000704)"
+                    - option "Dermek Juraj (#31000742)"
+                    - option "Dermeková Miriam (#31000743)"
+                    - option "Jurkovič Roman (#31000749)"
+                    - option "Buček Jaroslav (#31000025)"
+                    - option "Slováček Miroslav (#31001164)"
+                    - option "Semanický František (#31000795)"
+                    - option "Buček Simon (#31000812)"
+                    - option "Szegény Marek (#31000409)"
+                    - option "Maderičová Monika (#31000916)"
+                    - option "Madáková Viera (#31000896)"
+                    - option "Bikárová Matilda (#31000928)"
+                    - option "Botošová Martina (#31000930)"
+                    - option "Kubina Tomáš (#31000919)"
+                    - option "Zvirinská Zuzana (#31000973)"
+                    - option "Nejezchlebová Lucia (#31000974)"
+                    - option "Horňák Dominik (#31001013)"
+                    - option "Morongová Alžbeta (#31001005)"
+                    - option "Krejčiová Štefánia (#31001008)"
+                    - option "Zuzkovič Adrián (#31001047)"
+                    - option "Hackl Marcel (#31001058)"
+                    - option "Danihelová Lenka (#31001054)"
+                    - option "Rebejová Andrea (#31001132)"
+                    - option "Celláryová Berta (#31001099)"
+                    - option "Furmanek Jozef (#31001114)"
+                    - option "Hurbanová Anna (#31001143)"
+                    - option "Martincová Anna (#31001147)"
+                    - option "Danielová Ľubomíra (#31001149)"
+                    - option "Danielová Katarína (#31001219)"
+                    - option "Chrupka Marián (#31001388)"
+                    - option "Šipkovská Lenka (#31001233)"
+                    - option "Saparová Martina (#31001582)"
+                    - option "Krištoffyová Jana (#31001241)"
+                    - option "Jurík Martin (#31001224)"
+                    - option "Koš Jozef (#31003566)"
+                    - option "Rejzingerová Marta (#31001292)"
+                    - option "Juhás Peter (#31001299)"
+                    - option "Kuklovský Peter (#31001358)"
+                    - option "Bjelončíková Iveta (#31001381)"
+                    - option "Čarská Alena (#31001404)"
+                    - option "Cabadajová Gabriela (#31001433)"
+                    - option "Trubanová Anna (#31001430)"
+                    - option "Durčáková Aneta (#31001504)"
+                    - option "Covaci Florina (#31001515)"
+                    - option "Rindasu Iulian (#31001516)"
+                    - option "Orechovský Miloš (#31001567)"
+                    - option "Ujhelyiová Hana (#31001538)"
+                    - option "Zajacová Ivana (#31001562)"
+                    - option "Polláková Dáša (#31001564)"
+                    - option "Šteffeková Daniela (#31001594)"
+                    - option "Jurkovič Branislav (#31001609)"
+                    - option "Fajnor Marek (#31001611)"
+                    - option "Šuňal Michal (#31002254)"
+                    - option "Sulai Ladi (#31002127)"
+                    - option "Švarba Vladimír (#31002251)"
+                    - option "Matlovič Libor (#31002939)"
+                    - option "Kvaltín Martin (#31002940)"
+                    - option "Le Vinh Róbert (#31003028)"
+                    - option "Ralbovská Viera (#31002978)"
+                    - option "Jurčík Tomáš (#31003017)"
+                    - option "Mudroch Matej (#31003022)"
+                    - option "Iordache Viorel Iosef (#31003049)"
+                    - option "Stankovic Jadranka (#31003059)"
+                    - option "Komloši Marija (#31003203)"
+                    - option "Malík Šimon (#31003220)"
+                    - option "Lazar David (#31003319)"
+                    - option "Baláž Peter (#31003326)"
+                    - option "Hóz Andrej (#31003328)"
+                    - option "Bartoš Adrian (#31003347)"
+                    - option "Uhrincová Jana (#31003360)"
+                    - option "Pál Štefan (#31003540)"
+                    - option "Križ Martin (#31003341)"
+                    - option "Zsigmondová Pavlína (#31003345)"
+                    - option "Zuppa Lukáš (#31003334)"
+                    - option "Leffler Lukáš (#31003386)"
+                    - option "Morvay Samuel (#31003387)"
+                    - option "Kristín Peter (#31003580)"
+                    - option "Kovtsun Viacheslav (#31003391)"
+                    - option "Vidovič Miroslav (#31003579)"
+                    - option "Demin Matej (#31003405)"
+                    - option "Kúdela Ondrej (#31003412)"
+                    - option "Dobronravova Hanna (#31003398)"
+                    - option "Kravchuk Iryna (#31003433)"
+                    - option "Kravchuk Volodymyr (#31003434)"
+                    - option "Volár František (#31003454)"
+                    - option "Zuščík Erik (#31003514)"
+                    - option "Hanč Jozef (#31003538)"
+                    - option "Danielová Dominika (#31003472)"
+                    - option "Baďurová Lucia (#31003527)"
+                    - option "Mareková Silvia (#31003541)"
+                    - option "Výboch Vladimír (#31003567)"
+                    - option "Ďurčová Iveta (#31003548)"
+                    - option "Malíková Věra (#31003557)"
+                    - option "Lanžová Mária (#31003572)"
+                    - option "Škop Ján (#31003609)"
+                    - option "Maxian Mário (#31003634)"
+                    - option "Botko Jaromír (#31003627)"
+                    - option "Šišuláková Mária (#31003619)"
+                    - option "Kohut Halyna (#31004136)"
+                    - option "Pulmann Tomáš (#31003633)"
+                    - option "Tóth Ján (#31003944)"
+                    - option "Šteffek Viktor (#31003650)"
+                    - option "Tkáč Michal (#31003648)"
+                    - option "Sloboda Gregor (#31003945)"
+                    - option "Deac Florentina Bianca (#31004139)"
+                    - option "Novoveský Denis (#31004605)"
+                    - option "Ruman Miroslav (#31003679)"
+                    - option "Libuša Štefan (#31003674)"
+                    - option "Jankovič Jozef (#31003671)"
+                    - option "Bátovský Juraj (#31003699)"
+                    - option "Žamboky Vladimír (#31003703)"
+                    - option "Šopiak Vladimír (#31003719)"
+                    - option "Veselovský František (#31003722)"
+                    - option "Zubák Pavol (#31003725)"
+                    - option "Lypko Viktoriia (#31004619)"
+                    - option "Csonková Lucia (#31004621)"
+                    - option "Michalec Jozef (#31003751)"
+                    - option "Černý Lukáš (#31003768)"
+                    - option "Tindira Richard (#31004643)"
+                    - option "Galečka Martin (#31003739)"
+                    - option "Prevaj Radovan (#31003788)"
+                    - option "Zelenskyi Denys (#31003804)"
+                    - option "Kotlárová Soňa (#31003791)"
+                    - option "Belaň Peter (#31003809)"
+                    - option "Bogdalíková Sára (#31004645)"
+                    - option "Shkatula Mykhailo (#31003818)"
+                    - option "Kašubová Monika (#31003828)"
+                    - option "Uhrinec Vladimír (#31003839)"
+                    - option "Olejar Marek (#31003854)"
+                    - option "Hrebenárová Gabriela (#31003865)"
+                    - option "Knap Marián (#31003875)"
+                    - option "Kmeť Ján (#31003910)"
+                    - option "Jurčišin Peter (#31003938)"
+                    - option "Tarhanchuk Svitlana (#31003941)"
+                    - option "Gajdová Iveta (#31003961)"
+                    - option "Starý Peter (#31003977)"
+                    - option "Milovanović Isidora (#31003971)"
+                    - option "Pálešová Michaela (#31003973)"
+                    - option "Tkachenko Valentyna (#31003987)"
+                    - option "Orgovan Miško (#31003964)"
+                    - option "Pálka Marek (#31003990)"
+                    - option "Vávra Jakub (#31004006)"
+                    - option "Jánoš Dalibor (#31004000)"
+                    - option "Dordevic Danjela (#61330)"
+                    - option "Havran Ján (#31004037)"
+                    - option "Gembiczký Jozef (#31004052)"
+                    - option "Zub Oleksandra (#31004042)"
+                    - option "Dunka Rudolf (#31004066)"
+                    - option "Koštrnová Jarmila (#31004073)"
+                    - option "Zubálik Martin (#31004084)"
+                    - option "Kluka Patrik (#31004085)"
+                    - option "Motúz Tomáš (#31004089)"
+                    - option "Kovač Tanja (#31004090)"
+                    - option "Myronenko Larysa (#110478)"
+                    - option "Pradlička Pavol (#31004116)"
+                    - option "Smolár Marek (#31004120)"
+                    - option "Katanova Yuliia (#31004107)"
+                    - option "Boškovic Goran (#31004113)"
+                    - option "Maryniuk Yulii (#31004125)"
+                    - option "Václavek Frederik (#31004148)"
+                    - option "Blaha Peter (#31004163)"
+                    - option "Nespala Erik (#31004183)"
+                    - option "Valík Vladimír (#31004184)"
+                    - option "Hryshchenko Tetiana (#31004186)"
+                    - option "Fila Marek (#31004196)"
+                    - option "Adamovič Róbert (#31004193)"
+                    - option "Cvečka Radek (#31004219)"
+                    - option "Lukáček Anton (#31004228)"
+                    - option "Koštial Marcel (#31004233)"
+                    - option "Cuninka Matúš (#31004234)"
+                    - option "Mešťan Matúš (#31004276)"
+                    - option "Mozharovska Jana (#110565)"
+                    - option "Filipenko Iryna (#31004259)"
+                    - option "Petráš Denis (#31004283)"
+                    - option "Hilscher Marek (#31004285)"
+                    - option "Ferenčič Dominik (#31004302)"
+                    - option "Strelková Lucia (#31004303)"
+                    - option "Gál Pavel (#31004304)"
+                    - option "Dzyziuk Tetiana (#31004315)"
+                    - option "Záhradníková Ružena (#31004319)"
+                    - option "Nemec Marek (#31004328)"
+                    - option "Sedlák Michal (#31004342)"
+                    - option "Nemec Rastislav (#31004381)"
+                    - option "Damborák Roman (#31004352)"
+                    - option "Vlk Marek (#31004337)"
+                    - option "Dovhanych Nadiia (#31004362)"
+                    - option "Tikhomirova Yulia (#31004368)"
+                    - option "Drozd Lukáš (#31004369)"
+                    - option "Ondrovič Marek (#31004386)"
+                    - option "Vaclavik Juraj Andrej (#31004376)"
+                    - option "Kanakotyin János (#31004389)"
+                    - option "Butta Vasyl (#110634)"
+                    - option "Vidosavijevič Brna Aleksandra (#31004391)"
+                    - option "Mikloš Jozef (#31004393)"
+                    - option "Kucmen Martin (#31004395)"
+                    - option "Hangurbadžo Anton (#31004396)"
+                    - option "Pyshka Olena (#31004398)"
+                    - option "Voltemarová Erika (#31004410)"
+                    - option "Špilár Jozef (#31004412)"
+                    - option "Zubálik Samuel (#31004418)"
+                    - option "Mihovicz Natalia (#110637)"
+                    - option "Sedláková Katarína (#31004404)"
+                    - option "Čemba Ferdinand (#31004426)"
+                    - option "Butaš Boris (#31004437)"
+                    - option "Jánošík Štefan (#31004438)"
+                    - option "Iryna Shnitkovska (#32193)"
+                    - option "Kubiš Filip (#31004452)"
+                    - option "Kovarovičová Stanislava (#31004447)"
+                    - option "Zubák Pavol ml. (#31004477)"
+                    - option "Beneš Juraj (#31004488)"
+                    - option "Petráš Milan (#31004489)"
+                    - option "Mader Marian (#31004491)"
+                    - option "Drinková Anna Mária (#31004494)"
+                    - option "Kováč Ladislav (#31004504)"
+                    - option "Matta Jakub (#31004506)"
+                    - option "Hnilica Dominik (#31004532)"
+                    - option "Ilková Renáta (#31004516)"
+                    - option "Kapitan Alla (#31004524)"
+                    - option "Čarská Helena (#31004528)"
+                    - option "Makyta Branislav (#31004660)"
+                    - option "Vajda Dominik (#31004541)"
+                    - option "Sládek Jaroslav (#31004542)"
+                    - option "Natalia Pavlova (#110708)"
+                    - option "Okopna Daryna (#31004554)"
+                    - option "Mitka Erik (#31004561)"
+                    - option "Škoda Samuel (#31004567)"
+                    - option "Vanek Ondrej (#31004568)"
+                    - option "Tarnavskyy Ivan (#31004576)"
+                    - option "Rak Tomáš (#31004590)"
+                    - option "Bojkovský Marek (#31004592)"
+                    - option "Antal Tomáš (#31004604)"
+                    - option "Kramár Richard (#31004597)"
+                    - option "Keder Milan (#31004622)"
+                    - option "Šebök Mario (#31004624)"
+                    - option "Koch Filip (#31004626)"
+                    - option "Macháček Patrik (#31004632)"
+                    - option "Havran Igor (#31004629)"
+                    - option "Kuchenko Diana (#31004630)"
+                    - option "Makarenko Oksana (#31004634)"
+                    - option "Tiurina Hanna (#31004651)"
+                    - option "Ondriašová Michaela (#31004680)"
+                    - option "Teska Stanislav (#31004654)"
+                    - option "Dzyakanau Dzmitry (#31004664)"
+                    - option "Kollerová Eliška (#31004674)"
+                    - option "Martincová Valéria (#31004675)"
+                    - option "Thaikkattil Johnson Arun (#31004679)"
+                    - option "Lavičková Valentína (#31004683)"
+                    - option "Kanjiranthingal Thomas Fredy (#31004693)"
+                    - option "Basil Baby (#31004703)"
+                    - option "Paul Juniya (#31004704)"
+                    - option "Kalay Ján (#31004714)"
+                    - option "Bocharov Vasyl (#31004724)"
+                    - option "Nemec Tomáš (#31004737)"
+                    - option "Ráczová Michaela (#31004732)"
+                    - option "Jobin Jose (#31004734)"
+                    - option "Ali Akbar Panikka Veettil (#31004739)"
+                    - option "Antu Alwin (#61723)"
+                    - option "Kuchuk Olha (#31004741)"
+                    - option "Kvinikadze Kakhaber (#31004744)"
+                    - option "Mostafa Yasmin (#31004745)"
+                    - option "Drebot Halyna (#31004749)"
+                    - option "Nazarko Kateryna (#31004751)"
+                    - option "Shvachko Tamara (#31004754)"
+                    - option "Hloba Oleksandr (#31004757)"
+                    - option "Bilets Valeriia (#31004762)"
+                    - option "Halušková Natália (#31004769)"
+                    - option "Voronina Nataliia (#31004770)"
+                    - option "Telehuz Valentyn (#31004772)"
+                    - option "Holovka Tetiana (#31004775)"
+                    - option "Malík Lukáš (#31004781)"
+                    - option "Symochko Oleksandr (#31004780)"
+                    - option "Štora Rastislav (#31004793)"
+                    - option "Shmatok Svitlana (#31004800)"
+                    - option "Melnykovych Viktoriia (#31004801)"
+                    - option "Andriichenko Daria (#31004803)"
+                    - option "Ekshmidt Mykhailo (#31004804)"
+                    - option "Bodnariuk Yevhenii (#111009)"
+                    - option "Cullaj Erald (#31004807)"
+                    - option "Mykyta Ruslana (#31004812)"
+                    - option "Tymoshenko Marianna (#31004813)"
+                    - option "Borysenko Júlia (#32170)"
+                    - option "Mytrovych Serhii (#31004822)"
+                    - option "Gončar Serhii (#32171)"
+                    - option "Orshevska Sofiia (#31004826)"
+                    - option "Agustin Vina (#31004832)"
+                    - option "Gultom Linsa Putrina (#31004833)"
+                    - option "Widiyawati Yayuk (#31004835)"
+                    - option "Fitriah Baiq (#31004837)"
+                    - option "Krampl Peter (#31004840)"
+                    - option "Tiulina Nataliia (#31004841)"
+                    - option "Havrysh (Yermilina) Anastasiia (#31004843)"
+                    - option "Kozhemiako Nataliia (#31004846)"
+                    - option "Dordević Vojkan (#60953)"
+                    - option "Favero Del Jan (#31004847)"
+                    - option "Sevriukova Mariia (#31004848)"
+                    - option "Mykyta Olha (#31004849)"
+                    - option "Száková (Majerčíková) Iveta (#31003481)"
+                    - option "Bogdanovič Ljubinko (#61017)"
+                    - option "Podust Iryna (#31004859)"
+                    - option "Sidash Ivan (#31004860)"
+                    - option "Červenka Dávid (#31004862)"
+                    - option "Kašik Jozef (#31004863)"
+                    - option "Húšek Lukáš (#31004867)"
+                    - option "Avdyeyenko Olha (#31004871)"
+                    - option "Švec Roman (#31004873)"
+                    - option "Urbanič Dávid (#31004876)"
+                    - option "Karpechenko Hanna (#31004878)"
+                    - option "Joseph Martin (#31004880)"
+                    - option "Aryianto Hendri (#31004882)"
+                    - option "Saputra Yogi (#31004883)"
+                    - option "Yasin Moh (#31004884)"
+                    - option "Abdalia Ali (#31004886)"
+                    - option "Jose Joy Nithin (#31004887)"
+                    - option "Štefánik Jozef (#31004888)"
+                    - option "Layandi Octasylva Rodman (#31004890)"
+                    - option "Asri Muhamad Apizal (#31004891)"
+                    - option "Jamalludin Jamlludin (#31004892)"
+                    - option "Galba Richard (#31004896)"
+                    - option "Jurenka Sebastián (#31004894)"
+                    - option "Holovko Artem (#31004727)"
+                    - option "Colanggo Arcayan Colyn Angelie (#31004898)"
+                    - option "Rosete Marife (#31004899)"
+                    - option "Ofemaria Montiverde Maribel (#31004900)"
+                    - option "Teslia Nina (#31004902)"
+                    - option "Gulve Laxman Ganesh (#31004903)"
+                    - option "Andrew Aldrin (#31004904)"
+                    - option "Kumar Sai Getti (#31004906)"
+                    - option "Singh Kuldip (#31004907)"
+                    - option "Singh Davinder (#31004908)"
+                    - option "Seivaldová Beáta (#31004912)"
+                    - option "Zaqiyuddin Khaesy Muhammad (#31004910)"
+                    - option "Singh Arashpreet (#31004911)"
+                    - option "Berta Peter (#31004913)"
+                    - option "Vajo Martin (#31004914)"
+                    - option "Hačunda Filip (#31004895)"
+                    - option "Jakabová Vladimíra (#31000853)"
+                    - option "Ficek Martin (#31001091)"
+                    - option "Khomiuk Taras (#61040)"
+                    - option "Sergei Shaposhnikov (#111081)"
+                    - option "Leo Bagas Dewanata (#111084)"
+                    - option "Muhamad Asori (#111085)"
+                    - option "Tkachuk Radyslav (#32200)"
+                    - option "Tkachuk Nadiia (#32199)"
+                    - option "Dwi Noviani (#111099)"
+                    - option "Rahajro Trimo (#111101)"
+                    - option "Riki Antono (#111096)"
+                    - option "Yanyan Junianto (#111100)"
+                    - option "Prasetiya Erix (#111110)"
+                    - option "Kutasova Nataliia (#32210)"
+                    - option "Byvalina Olena (#32211)"
+                    - option "Hurin Serhii (#32214)"
+                    - option "Siryk Yulliia (#32217)"
+                    - option "Hurina Svitlana (#32215)"
+                    - option "Yasa I Made (#111121)"
+                    - option "Mamun Sukron (#111139)"
+                    - option "Maulana Jeky (#111135)"
+                    - option "Filiuk Mykola (#32231)"
+                    - option "Benny Alwin (#61912)"
+                    - option "Bramasti Mara Firmania (#111151)"
+                    - option "Ahmadi Ahmadi (#111182)"
+                    - option "Alamsyah Wahid Ali (#111186)"
+                    - option "Ayep Ayep (#111181)"
+                    - option "Basirin Basirin (#111185)"
+                    - option "Khasani Dodi Iqbal (#111187)"
+                    - option "Muhamad Arifin (#111189)"
+                    - option "Mykhailovska Iryna (#111179)"
+                    - option "Suparto Suparto (#111184)"
+                    - option "Kniaz Anna (#32253)"
+                    - option "Šereš Vojtech (#61954)"
+                    - option "Samsul Samsul (#111215)"
+                    - option "Ihnatieva Alina (#111235)"
+                    - option "Mizun Szvetlana (#111256)"
+                    - option "Zaitsev Konstantyn (#61974)"
+                    - option "Perstynska Veronika (#61971)"
+                    - option "Pipska Halyna (#61969)"
+                    - option "Polák Dušan (#61970)"
+                    - option "Zima Ján (#61972)"
+                    - option "Umbri Muhammad (#111267)"
+                    - option "Rasyid Abdul (#111269)"
+                    - option "Khoroshkovska Liubov (#32276)"
+                    - option "Yatsyshyn Yaroslav (#111275)"
+                    - option "Kernichanskyi Valentyn (#111281)"
+                    - option "Khrokalo Vitalii (#111279)"
+                    - option "Safronova Anna (#111276)"
+                    - option "Savka Roman (#111280)"
+                    - option "Artiukh Serhii (#32279)"
+                    - option "Tetianenko Vitalii (#32290)"
+                    - option "Hutsuliak Alina (#111304)"
+                    - option "Rehák Martin (#32296)"
+                    - option "Ruban Dmytro (#111314)"
+                    - option "Ilchenko Iryna (#61984)"
+                    - option "Harkusha Serhii (#32303)"
+                    - option "Bulatov Oleksandr (#61989)"
+                    - option "Ungureanu Alexandru (#32308)"
+                    - option "Konečná Andrea (#61996)"
+                    - option "Barrientos Espinosa Juan Valentin (#190051)"
+                    - option "Pichkar Denys (#111348)"
+                    - option "Pukman Olha (#111349)"
+                    - option "Kyrychenko Valentyn (#111353)"
+                    - option "Peller Martin (#190056)"
+                    - option "Hačunda Marek (#190055)"
+                    - option "Korol Nazar (#62004)"
+                    - option "Mikhailova Anna (#62003)"
+                    - option "Zhakata Memory (#111360)"
+                    - option "Ninik Fitriani (#111363)"
+                    - option "Supriyanto Supriyanto (#111362)"
+                    - option "Sytar Andriana (#32342)"
+                    - option "Ivan Nataliia (#32338)"
+                    - option "Andrieiev Oleksandr (#32339)"
+                    - option "Lemishko Yevhenii (#32341)"
+                    - option "Doboni Dmytro (#32340)"
+                    - option "Aidarus Shayma (#111365)"
+                    - option "Kabak Sergen (#111366)"
+                    - option "Kimenko Oksana (#32343)"
+                    - option "Tangelmayer Peter (#190067)"
+                    - option "Kryvosheiev Oleksandr (#111368)"
+                    - option "Hliebova Svitlana (#32346)"
+                    - option "Yeremenko Serhii (#32345)"
+                    - option "Dubei Ivan (#111374)"
+                    - option "Hliebov Artur (#32349)"
+                    - option "Vereš Tibor (#190072)"
+                    - option "Olahová Romana (#190075)"
+                    - option "Matkurbanova Andriana (#62007)"
+                    - option "Amaliah Amaliah (#111380)"
+                    - option "Vach Milan (#190077)"
+                    - option "Bublikova Svitlana (#62009)"
+                    - option "Shvaliuk Semen (#62008)"
+                    - option "Adamova Oksana (#32356)"
+                    - option "Hrebík Stanislav (#31004917)" [selected]
+                    - option "Bureš Jozef (#31000088)"
+                    - option "Kordoš Miroslav (#31000920)"
+                    - option "Báleš Róbert (#31003728)"
+                    - option "Oreská Lucia (#31000164)"
+                    - option "Blažek Peter (#31001503)"
+                    - option "Píš Zlatko (#190078)"
+                    - option "Salayová Lenka (#190079)"
+                    - option "Kantsedal Tetiana (#62012)"
+                    - option "Halai Vitalina (#62010)"
+                    - option "Singh Jaswinder (#62011)"
+                    - option "Muhlis Muhlis (#111400)"
+                    - option "Novokhatnii Vitalii (#32358)"
+                    - option "Novokhatnia Nataliia (#32359)"
+                    - option "Fadhoil Muhammad Mazzila (#111390)"
+                    - option "Tarasenko Oleksandr (#111388)"
+                    - option "Smrtič Roman (#190082)"
+                    - option "Bučič Michal (#190081)"
+                    - option "Karalo Zdenko (#32361)"
+                    - option "Horváthová Simona (#32360)"
+                    - option "Marchenko Maryna (#32362)"
+                    - option "Graceia Glory (#111392)"
+                    - option "Susanti Susanti (#111394)"
+                    - option "Marchuk Artur (#111395)"
+                    - option "Zakuraiev Volodymyr (#111397)"
+                    - option "Prayoga Riko (#111401)"
+                    - option "Soleh Choirus (#111403)"
+                    - option "Tafsiri Ilyas (#111402)"
+                    - option "Puha Kristina (#32364)"
+                    - option "Melnyk Mykhailo (#32365)"
+                    - option "Ismanto Ismanto (#111404)"
+                    - option "Mandzic Veronica (#111405)"
+                    - option "Ilič Tamara (#62014)"
+                    - option "Delafani Indriyani (#111406)"
+                    - option "Jamilah Tuti (#111407)"
+                    - option "Ferentsi Antonina (#32366)"
+                    - option "Mohanakumar Reji Amal Mohan (#62016)"
+                    - option "Gupta Yash (#62017)"
+                    - option "Milchenko Valerii (#32368)"
+                    - option "Yahya Muhammad (#111411)"
+                    - option "Nagy Adrian (#190085)"
+                    - option "Omelianenko Oleksandr (#111412)"
+                    - option "Kavický Lukáš (#190087)"
+                    - option "Trúnek Martin (#190088)"
+                    - option "Karutsiak Mykola (#111413)"
+                    - option "Miča Jozef (#31004915)"
+                - generic [ref=e2104]:
+                  - paragraph [ref=e2105]: Farba karty
+                  - generic [ref=e2106]:
+                    - button "#1e3a5f" [ref=e2107]
+                    - button "#0f766e" [ref=e2108]
+                    - button "#0369a1" [ref=e2109]
+                    - button "#b45309" [ref=e2110]
+                    - button "#be123c" [ref=e2111]
+                    - button "#6b21a8" [ref=e2112]
+                    - button "#15803d" [ref=e2113]
+                    - button "#4f46e5" [ref=e2114]
+                    - button "#21394F" [ref=e2115]
+                    - button "#949C58" [ref=e2116]
+                - generic [ref=e2117]:
+                  - paragraph [ref=e2118]: Zobrazovanie podriadených
+                  - paragraph [ref=e2119]: "Ako sa majú zobrazovať hierarchicky pod vami: v jednej línii, v pároch alebo po štyroch."
+                  - generic [ref=e2120]:
+                    - button "Vedľa seba" [ref=e2121]
+                    - button "V pároch (dva stĺpce)" [ref=e2122]
+                    - button "V sekciách po 4" [ref=e2123]
+                    - button "Voľné rozloženie" [ref=e2124]
+                - generic [ref=e2125]:
+                  - paragraph [ref=e2126]: Poradie podriadených v línii
+                  - paragraph [ref=e2127]: Zmena poradia ľudí zobrazených pod vami. Ukladá sa do nastavení organigramu.
+                  - list [ref=e2128]:
+                    - listitem [ref=e2129]:
+                      - generic "Baťovičová Ľubica" [ref=e2130]
+                      - generic [ref=e2131]:
+                        - button "Posunúť hore" [disabled]: ▲
+                        - button "Posunúť dole" [ref=e2132]: ▼
+                    - listitem [ref=e2133]:
+                      - generic "Durčáková Aneta" [ref=e2134]
+                      - generic [ref=e2135]:
+                        - button "Posunúť hore" [ref=e2136]: ▲
+                        - button "Posunúť dole" [ref=e2137]: ▼
+                    - listitem [ref=e2138]:
+                      - generic "Matlovič Libor" [ref=e2139]
+                      - generic [ref=e2140]:
+                        - button "Posunúť hore" [ref=e2141]: ▲
+                        - button "Posunúť dole" [ref=e2142]: ▼
+                    - listitem [ref=e2143]:
+                      - generic "Kúdela Ondrej" [ref=e2144]
+                      - generic [ref=e2145]:
+                        - button "Posunúť hore" [ref=e2146]: ▲
+                        - button "Posunúť dole" [ref=e2147]: ▼
+                    - listitem [ref=e2148]:
+                      - generic "Špilár Jozef" [ref=e2149]
+                      - generic [ref=e2150]:
+                        - button "Posunúť hore" [ref=e2151]: ▲
+                        - button "Posunúť dole" [ref=e2152]: ▼
+                    - listitem [ref=e2153]:
+                      - generic "Grebáč Roman" [ref=e2154]
+                      - generic [ref=e2155]:
+                        - button "Posunúť hore" [ref=e2156]: ▲
+                        - button "Posunúť dole" [ref=e2157]: ▼
+                    - listitem [ref=e2158]:
+                      - generic "[Sekcia] Nová sekcia" [ref=e2159]
+                      - generic [ref=e2160]:
+                        - button "Posunúť hore" [ref=e2161]: ▲
+                        - button "Posunúť dole" [disabled]: ▼
+                - generic [ref=e2162]:
+                  - paragraph [ref=e2163]: Rolovanie vetvy
+                  - button "Rozbaliť vetvu" [ref=e2164]

@@ -1,0 +1,22 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e26]:
+    - generic [ref=e27]:
+      - generic [ref=e28]: Dashboard
+      - generic [ref=e29]: "Role: admin"
+      - generic [ref=e30]: • martin.ficek@iacgroup.com
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - button "Slovenčina" [pressed] [ref=e33]: SK
+        - button "English" [ref=e34]: EN
+      - button "Odhlasit" [ref=e35]
+  - main [ref=e36]:
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - heading "Organizacna struktura" [level=1] [ref=e39]
+        - paragraph [ref=e40]: Interaktivna org chart ukazka s prepinanim detailov, filtrom oddelenia a farebnym mapovanim typov pozicii.
+        - paragraph [ref=e41]: "Data mode: Supabase configured · Source: local"
+        - paragraph [ref=e42]: "Role: Editacia povolena"
+      - paragraph [ref=e43]: Nacitavam data...

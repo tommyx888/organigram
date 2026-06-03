@@ -1,0 +1,70 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]: Dashboard
+      - generic [ref=e17]: "Role: admin"
+      - generic [ref=e18]: • martin.ficek@iacgroup.com
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - button "Slovenčina" [pressed] [ref=e21]: SK
+        - button "English" [ref=e22]: EN
+      - button "Odhlasit" [ref=e23]
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - heading "Job Description knižnica" [level=1] [ref=e27]
+        - paragraph [ref=e28]: Pozície sú naviazané na verziované dokumenty, ktoré prechádzajú schvaľovacím workflow.
+        - paragraph [ref=e29]: "Data mode: Supabase + local fallback"
+        - paragraph [ref=e30]: "Role: Editacia povolena"
+      - generic [ref=e31]:
+        - heading "Priradené pozície" [level=2] [ref=e32]
+        - list [ref=e33]:
+          - listitem [ref=e34]:
+            - generic [ref=e35]:
+              - paragraph [ref=e36]: Manufacturing Team Leader
+              - paragraph [ref=e37]: MFG-LEAD-001 · v3
+            - generic [ref=e38]:
+              - generic [ref=e39]: approved
+              - button "Upraviť" [ref=e40]
+          - listitem [ref=e41]:
+            - generic [ref=e42]:
+              - paragraph [ref=e43]: HR Business Partner
+              - paragraph [ref=e44]: HR-BP-002 · v2
+            - generic [ref=e45]:
+              - generic [ref=e46]: review
+              - button "Upraviť" [ref=e47]
+          - listitem [ref=e48]:
+            - generic [ref=e49]:
+              - paragraph [ref=e50]: QMS Engineer
+              - paragraph [ref=e51]: QMS-ENG-010 · v1
+            - generic [ref=e52]:
+              - generic [ref=e53]: draft
+              - button "Upraviť" [ref=e54]
+      - generic [ref=e55]:
+        - generic [ref=e56]:
+          - heading "Job Description Editor" [level=2] [ref=e57]
+          - generic [ref=e58]: "State: approved"
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - text: Position Code
+            - textbox "Position Code" [ref=e61]: MFG-LEAD-001
+          - generic [ref=e62]:
+            - text: Position Title
+            - textbox "Position Title" [ref=e63]: Manufacturing Team Leader
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - text: Responsibilities
+            - textbox "Responsibilities" [ref=e66]: Lead shift operations, coordinate staffing, ensure quality compliance, and escalate process deviations.
+          - generic [ref=e67]:
+            - text: Requirements
+            - textbox "Requirements" [ref=e68]: 3+ years in manufacturing, people leadership, Lean basics, quality systems knowledge.
+          - generic [ref=e69]:
+            - text: KPIs
+            - textbox "KPIs" [ref=e70]: OEE, scrap rate, rework ratio, attendance stability, safety incidents.
+        - generic [ref=e71]:
+          - button "Save draft" [ref=e72]
+          - button "Send to review" [ref=e73]
+          - button "Approve version" [ref=e74]

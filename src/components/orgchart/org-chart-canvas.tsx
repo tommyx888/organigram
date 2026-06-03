@@ -662,11 +662,23 @@ function OrgNode({ data }: NodeProps<Node<OrgNodeData, "orgNode">>) {
             nodeHeight={data.nodeHeight}
           />
           {showExpand && (
-            <div className="absolute bottom-2 right-2">
-              <ExpandCollapseButton
-                isCollapsed={data.isCollapsed ?? false}
-                onToggle={data.onToggleCollapse!}
-              />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2" style={{ zIndex: 30 }}>
+              <button
+                type="button"
+                className="nodrag flex shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-slate-600 shadow-md hover:bg-slate-50 hover:text-slate-900 focus:outline-none"
+                style={{ width: Math.round((data.nodeHeight ?? 100) * 0.19), height: Math.round((data.nodeHeight ?? 100) * 0.19) }}
+                onClick={(e) => { e.stopPropagation(); data.onToggleCollapse!(); }}
+              >
+                {data.isCollapsed ? (
+                  <svg style={{ width: "55%", height: "55%" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                ) : (
+                  <svg style={{ width: "55%", height: "55%" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
+                )}
+              </button>
             </div>
           )}
         </div>
@@ -919,6 +931,15 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const [sectionGroups, setSectionGroupsState] = useState<SectionGroup[]>(() =>
     getInitialFromSettings(initialSettings, "sectionGroups", () => []) ?? [],
   );
+  // Sync sectionGroups ked sa initialSettings nacitaju z DB (async)
+  const prevInitialSettingsRef = useRef(initialSettings);
+  useEffect(() => {
+    if (initialSettings !== prevInitialSettingsRef.current) {
+      prevInitialSettingsRef.current = initialSettings;
+      const fromDb = getInitialFromSettings(initialSettings, "sectionGroups", () => null);
+      if (fromDb !== null) setSectionGroupsState(fromDb);
+    }
+  }, [initialSettings]);
   const setSectionGroups = useCallback(
     (next: SectionGroup[]) => {
       setSectionGroupsState(next);
@@ -1418,7 +1439,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
   const expansionStyle = chartAppearance.expansionStyle ?? "tree";
   const layoutRowGap = chartAppearance.rowGap ?? LAYOUT_ROW_GAP;
-  const layoutNodeGapX = chartAppearance.nodeGapX ?? LAYOUT_NODE_GAP_X;
+  // nodeGapX - fixna mala hodnota, neskalu s kartami
+  const baseNodeGapX = chartAppearance.nodeGapX ?? LAYOUT_NODE_GAP_X;
+  const layoutNodeGapX = baseNodeGapX;
   const hierarchyLayoutPositions = useMemo(() => {
     const centerX = 520;
     const rootChildStyle = childLayoutByNodeId[effectiveRootId ?? ""] ?? "row";
@@ -1778,11 +1801,13 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             title: vac.title,
             isRoot: false,
             hasChildren: vacChildren.length > 0,
+            totalSubordinateCount: totalSubordinateCountByNodeId.get(vac.id) ?? 0,
             isCollapsed: collapsedNodeIds.has(vac.id),
             onToggleCollapse: () => toggleCollapsed(vac.id),
             hideHandles,
             nodeWidth,
             nodeHeight,
+            fontScale,
             candidateName: vac.candidateName ?? null,
             startDate: vac.startDate ?? null,
             category: vac.category ?? null,
@@ -2374,8 +2399,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   }, [departmentManagers, selectedDepartment]);
 
   const downloadChartAsPdf = useCallback(async (quality: ExportQuality = "high") => {
-    // Exportujeme reactFlowContainerRef - cisto ReactFlow bez wrapper border/rounded
-    const container = reactFlowContainerRef.current;
+    // Exportujeme chartContainerRef - cely wrapper vratane logo headera
+    const container = chartContainerRef.current;
     const rfInstance = reactFlowInstanceRef.current;
     if (!container || !rfInstance) return;
     setIsExportingPdf(true);
@@ -2399,6 +2424,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       text.replace(/lab\([^)]*\)/g, "rgb(248, 250, 252)").replace(/oklch\([^)]*\)/g, "rgb(248, 250, 252)");
     const restored: { el: HTMLStyleElement; content: string }[] = [];
     const prevViewport = typeof rfInstance.getViewport === "function" ? rfInstance.getViewport() : null;
+    let savedBorderRadius = "";
+    let savedBorder = "";
 
     try {
       // 1. Stripuj nekompatibilne farby
@@ -2414,6 +2441,12 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       overlay.id = styleId;
       overlay.textContent = hexOverrides;
       document.head.appendChild(overlay);
+
+      // Fix: docasne odstran rounded/border ktore sposobuju glitch v html-to-image
+      savedBorderRadius = container.style.borderRadius;
+      savedBorder = container.style.border;
+      container.style.borderRadius = "0";
+      container.style.border = "none";
 
       // 2. FitView - zobrazi cely orgchart, padding 0 = ziadne extra miesto
       rfInstance.fitView({ padding: 0.02, duration: 0 });
@@ -2493,32 +2526,48 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
       const croppedCanvas = cropCanvasToContent(canvas);
 
-      // 6. Zostav PDF - vzdy A4 landscape, obsah roztiahnuty na celu stranu
+      // 6. Zostav PDF - vzdy A4 landscape, obsah zarovnany pod nazov spolocnosti
       const { jsPDF } = await import("jspdf");
       const margin = 6; // mm okraje
+      const headerH = 14; // mm - miesto pre nazov spolocnosti navrchu
       const A4_W = 297; // mm landscape
       const A4_H = 210; // mm landscape
       const availW = A4_W - margin * 2;
-      const availH = A4_H - margin * 2;
+      const availH = A4_H - margin - headerH - margin; // zvysok pod headerom
       // Zmestit obsah na stranu so zachovanim pomeru
       const scale = Math.min(availW / croppedCanvas.width, availH / croppedCanvas.height);
       const imgW = croppedCanvas.width * scale;
       const imgH = croppedCanvas.height * scale;
-      const imgX = (A4_W - imgW) / 2;
-      const imgY = (A4_H - imgH) / 2;
+      const imgX = (A4_W - imgW) / 2; // horizontalne centrovany
+      const imgY = headerH + margin;   // vzdy pod headerom
       const doc = new jsPDF({
         unit: "mm",
         format: "a4",
         orientation: "landscape",
         compress: true,
       });
+
+      // Nazov spolocnosti navrchu, zarovnany rovnako ako obsah (vľavo)
+      const now = new Date();
+      const stamp = "" + now.getFullYear() + String(now.getMonth() + 1).padStart(2, "0") + String(now.getDate()).padStart(2, "0");
+      doc.setFontSize(10);
+      doc.setTextColor(33, 57, 79);
+      doc.setFont("helvetica", "bold");
+      doc.text("Artifex Systems Slovakia s.r.o.", imgX, margin + 4);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(148, 156, 88);
+      doc.text("Organigram  ·  " + stamp, imgX, margin + 9);
+      // tenka ciara pod headerom
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.line(imgX, headerH + margin - 1, imgX + imgW, headerH + margin - 1);
+
       const imgData = format === "PNG"
         ? croppedCanvas.toDataURL("image/png")
         : croppedCanvas.toDataURL("image/jpeg", imgQuality ?? 0.95);
       doc.addImage(imgData, format, imgX, imgY, imgW, imgH, undefined, quality === "ultra" ? "FAST" : "MEDIUM");
 
-      const now = new Date();
-      const stamp = "" + now.getFullYear() + String(now.getMonth() + 1).padStart(2, "0") + String(now.getDate()).padStart(2, "0");
       doc.save("organigram-" + quality + "-" + stamp + ".pdf");
 
     } catch (err) {
@@ -2526,6 +2575,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     } finally {
       overlay?.remove();
       restored.forEach(({ el, content }) => { el.textContent = content; });
+      // Obnov border/radius
+      container.style.borderRadius = savedBorderRadius ?? "";
+      container.style.border = savedBorder ?? "";
       if (prevViewport && typeof rfInstance.setViewport === "function") {
         rfInstance.setViewport(prevViewport, { duration: 0 });
       }
@@ -2927,24 +2979,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[#f8fafc]"
           style={{ height: "72vh" }}
         >
+          {/* Logo header — nad orgchartom, karty ho neprekriju */}
+          <div className="pointer-events-none flex shrink-0 flex-col items-center gap-1 py-3 bg-[#f8fafc]" style={{ zIndex: 20 }}>
+            <img src="/artifex-logo.png" alt="Artifex" style={{ height: 40, width: "auto", objectFit: "contain" }} />
+            <span className="font-bold tracking-wide" style={{ color: "var(--artifex-navy)", fontFamily: "var(--font-display)", fontSize: 16 }}>
+              Artifex Systems Slovakia s.r.o.
+            </span>
+          </div>
           <div ref={reactFlowContainerRef} className="relative min-h-0 flex-1 overflow-hidden">
-            {/* Logo overlay - stred hore, logo + nazov pod seba */}
-            <div
-              className="pointer-events-none absolute top-5 left-0 right-0 flex flex-col items-center gap-2"
-              style={{ zIndex: 15 }}
-            >
-              <img
-                src="/artifex-logo.png"
-                alt="Artifex"
-                style={{ height: 48, width: "auto", objectFit: "contain" }}
-              />
-              <span
-                className="font-bold tracking-wide"
-                style={{ color: "var(--artifex-navy)", fontFamily: "var(--font-display)", fontSize: 18 }}
-              >
-                Artifex Systems Slovakia s.r.o.
-              </span>
-            </div>
           <ReactFlow
             proOptions={{ hideAttribution: true }}
             onInit={(instance) => {
