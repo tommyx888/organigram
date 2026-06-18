@@ -43,6 +43,24 @@ export function HomeContent() {
             </p>
             <p className="mt-1 text-sm text-slate-600">{t("home.jobLibraryDesc")}</p>
           </Link>
+          <Link
+            href="/projects"
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-[var(--artifex-steel)] hover:shadow-sm"
+          >
+            <p className="text-sm font-semibold text-[var(--artifex-navy)]">
+              Projektový tracking
+            </p>
+            <p className="mt-1 text-sm text-slate-600">Sledovanie nábehov projektov — pridelenie ľudí, alokácie, termíny (L463 a ďalšie).</p>
+          </Link>
+          <Link
+            href="/interim"
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-[var(--artifex-steel)] hover:shadow-sm"
+          >
+            <p className="text-sm font-semibold text-[var(--artifex-navy)]">
+              Interim ludia
+            </p>
+            <p className="mt-1 text-sm text-slate-600">Tracking interim pracovnikov napriec projektmi - ukony, terminy, poznamky.</p>
+          </Link>
         </div>
       </section>
     </main>

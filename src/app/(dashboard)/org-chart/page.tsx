@@ -157,6 +157,10 @@ export default function OrgChartPage() {
         <header>
           <h1 className="text-3xl font-bold text-[var(--artifex-navy)]">{t("orgChart.pageTitle")}</h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">{t("orgChart.pageDesc")}</p>
+          <a href="/projects"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[var(--artifex-navy)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--artifex-navy)] transition hover:bg-slate-50">
+            → Projektový tracking (L463 a ďalšie)
+          </a>
           <p className="mt-2 text-xs text-slate-500">
             Data mode: {isSupabasePublicConfigured ? t("dashboard.dataModeSupabase") : t("dashboard.dataModeLocal")} ·
             Source: {dataSource}
