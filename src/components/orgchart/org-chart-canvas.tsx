@@ -1179,6 +1179,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     generalManagerId: false,
     sectionGroups: false,
     vacancies: false,
+    departmentManagers: false,
+    selectedDepartment: false,
   });
 
   useEffect(() => {
@@ -1233,6 +1235,25 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     dbSettingsAppliedRef.current.generalManagerId = true;
     setGeneralManagerIdState(gm);
   }, [initialSettings?.generalManagerId]);
+
+  const lastDeptManagersFromDbRef = useRef<string>("");
+  useEffect(() => {
+    const dm = initialSettings?.departmentManagers;
+    if (!dm || typeof dm !== "object") return;
+    const json = JSON.stringify(dm);
+    if (json === lastDeptManagersFromDbRef.current) return;
+    lastDeptManagersFromDbRef.current = json;
+    dbSettingsAppliedRef.current.departmentManagers = true;
+    setDepartmentManagersState(dm);
+  }, [initialSettings?.departmentManagers]);
+
+  useEffect(() => {
+    if (dbSettingsAppliedRef.current.selectedDepartment) return;
+    const dept = initialSettings?.selectedDepartment;
+    if (!dept || typeof dept !== "string") return;
+    dbSettingsAppliedRef.current.selectedDepartment = true;
+    setSelectedDepartmentState(dept);
+  }, [initialSettings?.selectedDepartment]);
 
   // Sync sectionGroups z DB - pouzivame JSON porovnanie aby sme predisli infinite loop
   const lastSgFromDbRef = useRef<string>("");
@@ -1524,6 +1545,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         const next = { ...prev };
         if (employeeId == null) delete next[department];
         else next[department] = employeeId;
+        lastDeptManagersFromDbRef.current = JSON.stringify(next);
         return next;
       });
     },
@@ -2945,7 +2967,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         departmentManagers={departmentManagers}
         onDepartmentManagerChange={handleSetDepartmentManager}
         employees={rawRecords}
-        allowEdit={allowEdit && onSettingsChange != null}
+        allowEdit={allowEdit}
         onExportAllDepartmentsPdf={downloadAllDepartmentsPdf}
         isExportingAllPdf={isExportingAllPdf}
       />

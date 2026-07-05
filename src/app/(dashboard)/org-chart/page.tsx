@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { ErrorFallback } from "@/components/error-fallback";
 import { canEdit, useAuthContext } from "@/components/auth/auth-context";
 import { OrgChartCanvas } from "@/components/orgchart/org-chart-canvas";
+import { SharePublicLinkButton } from "@/components/orgchart/share-public-link-button";
 import { useTranslation } from "@/lib/i18n/context";
 import { OrgChartSettingsProvider, useOrgChartSettings } from "@/components/orgchart/org-chart-settings-context";
 import type { OrgChartSettingsPayload } from "@/lib/org/org-chart-settings-types";
@@ -161,6 +162,7 @@ export default function OrgChartPage() {
             className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[var(--artifex-navy)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--artifex-navy)] transition hover:bg-slate-50">
             → Projektový tracking (L463 a ďalšie)
           </a>
+          {allowEdit ? <SharePublicLinkButton /> : null}
           <p className="mt-2 text-xs text-slate-500">
             Data mode: {isSupabasePublicConfigured ? t("dashboard.dataModeSupabase") : t("dashboard.dataModeLocal")} ·
             Source: {dataSource}

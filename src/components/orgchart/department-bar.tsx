@@ -52,7 +52,7 @@ export function DepartmentBar({
   const [openManagerFor, setOpenManagerFor] = useState<string | null>(null);
   const [dropdownAnchor, setDropdownAnchor] = useState<{ x: number; y: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const anchorRef = useRef<HTMLButtonElement>(null);
+  const anchorRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,7 +65,7 @@ export function DepartmentBar({
     setOpenManagerFor(dep);
     setDropdownAnchor(null);
     requestAnimationFrame(() => {
-      const el = anchorRef.current;
+      const el = anchorRefs.current[dep];
       if (el && typeof document !== "undefined") {
         const rect = el.getBoundingClientRect();
         setDropdownAnchor({ x: rect.left, y: rect.bottom + 4 });
@@ -155,7 +155,9 @@ export function DepartmentBar({
               {allowEdit && (
                 <>
                   <button
-                    ref={openManagerFor === dep ? anchorRef : undefined}
+                    ref={(el) => {
+                      anchorRefs.current[dep] = el;
+                    }}
                     type="button"
                     onClick={() => (openManagerFor === dep ? closeDropdown() : openDropdown(dep))}
                     className={`rounded-lg p-1.5 transition-colors ${

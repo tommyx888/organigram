@@ -1,0 +1,185 @@
+/* Verejný náhľad organigramu – CSS strom + vizuálne detaily */
+
+.pub-org {
+  --otree-line: #c7d2de;
+  background:
+    radial-gradient(1200px 500px at 85% -10%, rgba(148, 156, 88, 0.08), transparent 60%),
+    radial-gradient(900px 420px at -10% 0%, rgba(33, 57, 79, 0.07), transparent 55%),
+    #f7f9fb;
+  min-height: 100vh;
+}
+
+/* ── Org strom (čisté CSS konektory) ─────────────────────────── */
+.otree {
+  display: inline-flex;
+  min-width: 100%;
+  justify-content: center;
+}
+
+.otree ul {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: 30px;
+}
+
+/* zvislá čiara od rodiča nadol k horizontále detí */
+.otree ul ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 30px;
+  border-left: 2px solid var(--otree-line);
+}
+
+.otree li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 14px 0;
+}
+
+/* horizontálne ramená + zvislý zvod ku karte */
+.otree li::before,
+.otree li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 30px;
+  border-top: 2px solid var(--otree-line);
+}
+
+.otree li::after {
+  right: auto;
+  left: 50%;
+  border-left: 2px solid var(--otree-line);
+}
+
+.otree li:only-child::before,
+.otree li:only-child::after {
+  display: none;
+}
+
+.otree li:only-child {
+  padding-top: 0;
+}
+
+/* prvé/posledné dieťa – zaoblené rohy konektorov */
+.otree li:first-child::before {
+  border-top: none;
+}
+
+.otree li:last-child::after {
+  border-top: none;
+  border-left: none;
+}
+
+.otree li:last-child::before {
+  border-right: 2px solid var(--otree-line);
+  border-radius: 0 10px 0 0;
+}
+
+.otree li:first-child::after {
+  border-radius: 10px 0 0 0;
+}
+
+/* koreň stromu – bez konektorov a odsadenia */
+.otree > ul {
+  padding-top: 0;
+}
+
+.otree > ul > li {
+  padding-top: 0;
+}
+
+.otree > ul > li::before,
+.otree > ul > li::after {
+  display: none;
+}
+
+/* ── Scrollovanie širokých stromov ───────────────────────────── */
+.otree-scroll {
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #b7c3ce transparent;
+}
+
+.otree-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.otree-scroll::-webkit-scrollbar-thumb {
+  background: #c3ced9;
+  border-radius: 8px;
+}
+
+.otree-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Jemný nástup sekcií ─────────────────────────────────────── */
+@keyframes pub-org-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pub-rise {
+  animation: pub-org-rise 0.5s ease both;
+}
+
+/* ── Tlač ────────────────────────────────────────────────────── */
+@media print {
+  .pub-org {
+    background: #fff;
+  }
+
+  .pub-no-print {
+    display: none !important;
+  }
+
+  .pub-dept-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .otree-scroll {
+    overflow: visible;
+  }
+}
+
+/* ── Prerušovaná (nepriama) línia vo vedení ──────────────────── */
+.otree li.otree-dashed-link::before,
+.otree li.otree-dashed-link::after {
+  border-top-style: dashed;
+  border-color: #a8b8c6;
+}
+
+.otree li.otree-dashed-link::after {
+  border-left-style: dashed;
+}
+
+.otree li.otree-dashed-link:last-child::before {
+  border-right-style: dashed;
+}
+
+/* Poistky: pri prvom/poslednom prerušovanom prvku nesmie dashed override
+   znovu zapnúť odstránené ramená konektora (spôsobovalo prečnievajúcu čiaru). */
+.otree li.otree-dashed-link:first-child::before {
+  border-top: none;
+}
+
+.otree li.otree-dashed-link:last-child::after {
+  border-top: none;
+  border-left: none;
+}

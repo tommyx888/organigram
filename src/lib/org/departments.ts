@@ -11,6 +11,8 @@ export const MAIN_DEPARTMENTS = [
   "IT",
   "HR & HSE",
   "Finance",
+  "Purchase",
+  "CI",
   "Business",
   "Program",
 ] as const;

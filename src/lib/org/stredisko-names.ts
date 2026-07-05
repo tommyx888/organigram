@@ -13,6 +13,7 @@ export const STREDISKO_NAMES: Record<string, string> = {
   "80": "Finance",
   "90": "Management",
   "91": "CI",
+  "92": "Purchase",
   "95": "Business",
   "98": "Programe",
 };
