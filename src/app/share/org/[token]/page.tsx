@@ -5,7 +5,7 @@
  * Prístup cez zdieľateľný odkaz /share/org/[token] – bez prihlásenia.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 import type { PublicOrgPayload, PublicOrgPerson } from "@/lib/org/public-org-types";
@@ -96,6 +96,10 @@ const HIDDEN_DEPT_SECTIONS = new Set(["90"]);
 const DEPT_REMAP: Record<string, { code: string; name: string }> = {
   "93": { code: "92", name: "Purchase" },
 };
+
+function countEmployees(people: PublicOrgPerson[]): number {
+  return people.filter((p) => !p.isVacancy).length;
+}
 
 function deptColor(code: string, index: number): string {
   return DEPT_COLORS[code] ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length];
@@ -406,34 +410,36 @@ function DeptSection({
       className="pub-dept-section pub-rise scroll-mt-28 rounded-3xl border border-slate-200/70 bg-white/70 p-6 backdrop-blur-sm md:p-8"
       style={{ boxShadow: "0 14px 40px rgba(33,57,79,0.07)" }}
     >
-      <header className="mb-2 flex flex-wrap items-center gap-3">
-        <span
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black text-white"
-          style={{ background: color }}
-        >
-          {code}
-        </span>
-        <h3 className="text-xl font-bold text-[var(--artifex-navy)] md:text-2xl">{name}</h3>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-          {people.length} {people.length === 1 ? (lang === "sk" ? "osoba" : "person") : L[lang].people}
-        </span>
-        <span className="ml-auto hidden h-1 flex-1 rounded-full opacity-20 md:block" style={{ background: color, maxWidth: 220 }} />
-      </header>
+      <div className="pub-dept-content">
+        <header className="mb-2 flex flex-wrap items-center gap-3">
+          <span
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black text-white"
+            style={{ background: color }}
+          >
+            {code}
+          </span>
+          <h3 className="text-xl font-bold text-[var(--artifex-navy)] md:text-2xl">{name}</h3>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+            {people.length} {people.length === 1 ? (lang === "sk" ? "osoba" : "person") : L[lang].people}
+          </span>
+          <span className="ml-auto hidden h-1 flex-1 rounded-full opacity-20 md:block" style={{ background: color, maxWidth: 220 }} />
+        </header>
 
-      <div className="otree-scroll">
-        <div className="otree">
-          <ul>
-            {lead ? (
-              <OrgTree
-                node={{ person: lead, children: underLead }}
-                color={color}
-                rootBadge={t.deptLead}
-              />
-            ) : null}
-            {others.map((root) => (
-              <OrgTree key={root.person.id} node={root} color={color} depth={lead ? 1 : 0} />
-            ))}
-          </ul>
+        <div className="otree-scroll">
+          <div className="otree">
+            <ul>
+              {lead ? (
+                <OrgTree
+                  node={{ person: lead, children: underLead }}
+                  color={color}
+                  rootBadge={t.deptLead}
+                />
+              ) : null}
+              {others.map((root) => (
+                <OrgTree key={root.person.id} node={root} color={color} depth={lead ? 1 : 0} />
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </section>
@@ -469,6 +475,51 @@ export default function PublicOrgPage() {
       cancelled = true;
     };
   }, [token]);
+
+  /** Pred tlačou/PDF zmenší len príliš široké stromy (vedenie). */
+  const applyPrintScale = useCallback(() => {
+    const marginPx = 32;
+    const availableW = window.innerWidth - marginPx;
+
+    document.querySelectorAll<HTMLElement>(".otree-scroll").forEach((scroll) => {
+      const otree = scroll.querySelector<HTMLElement>(".otree");
+      if (!otree) return;
+      const contentW = otree.scrollWidth;
+      if (contentW <= availableW) return;
+
+      const scale = availableW / contentW;
+      otree.style.transform = `scale(${scale})`;
+      otree.style.transformOrigin = "top center";
+      scroll.style.marginInline = "auto";
+      scroll.dataset.printScaled = "1";
+    });
+  }, []);
+
+  const resetPrintScale = useCallback(() => {
+    document.querySelectorAll<HTMLElement>(".otree-scroll").forEach((scroll) => {
+      const otree = scroll.querySelector<HTMLElement>(".otree");
+      scroll.style.marginInline = "";
+      delete scroll.dataset.printScaled;
+      if (otree) {
+        otree.style.transform = "";
+        otree.style.transformOrigin = "";
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("beforeprint", applyPrintScale);
+    window.addEventListener("afterprint", resetPrintScale);
+    return () => {
+      window.removeEventListener("beforeprint", applyPrintScale);
+      window.removeEventListener("afterprint", resetPrintScale);
+    };
+  }, [applyPrintScale, resetPrintScale]);
+
+  const handlePrint = useCallback(() => {
+    applyPrintScale();
+    window.print();
+  }, [applyPrintScale]);
 
   const departments = useMemo(() => {
     if (!data) return [];
@@ -623,7 +674,7 @@ export default function PublicOrgPage() {
               </div>
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="rounded-full border border-white/25 px-4 py-1.5 text-xs font-semibold text-white/90 transition hover:bg-white/10"
               >
                 {t.print}
@@ -633,7 +684,7 @@ export default function PublicOrgPage() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur">
-              {data.people.length} {t.employees}
+              {countEmployees(data.people)} {t.employees}
             </span>
             <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur">
               {departments.length} {t.departments.toLowerCase()}
@@ -677,93 +728,95 @@ export default function PublicOrgPage() {
             style={{ boxShadow: "0 14px 40px rgba(33,57,79,0.07)" }}
           >
 
-            <header className="mb-4 flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--artifex-navy)] text-white">
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M12 2l2.4 4.86 5.36.78-3.88 3.78.92 5.34L12 14.24l-4.8 2.52.92-5.34-3.88-3.78 5.36-.78L12 2z" />
-                </svg>
-              </span>
-              <h2 className="text-xl font-bold text-[var(--artifex-navy)] md:text-2xl">{t.leadership}</h2>
-            </header>
+            <div className="pub-dept-content">
+              <header className="mb-4 flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--artifex-navy)] text-white">
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M12 2l2.4 4.86 5.36.78-3.88 3.78.92 5.34L12 14.24l-4.8 2.52.92-5.34-3.88-3.78 5.36-.78L12 2z" />
+                  </svg>
+                </span>
+                <h2 className="text-xl font-bold text-[var(--artifex-navy)] md:text-2xl">{t.leadership}</h2>
+              </header>
 
-            <div className="otree-scroll">
-              <div className="otree">
-                <ul>
-                  <li>
-                    <PersonCard person={mainRoot.person} color="#21394F" size="xl" />
-                    {leadership.solid.length + leadership.dashed.length > 0 ? (
-                      <ul>
-                        {leadership.solid.map((child, i) => {
-                          if (child.person.isVacancy) {
+              <div className="otree-scroll">
+                <div className="otree">
+                  <ul>
+                    <li>
+                      <PersonCard person={mainRoot.person} color="#21394F" size="xl" />
+                      {leadership.solid.length + leadership.dashed.length > 0 ? (
+                        <ul>
+                          {leadership.solid.map((child, i) => {
+                            if (child.person.isVacancy) {
+                              return (
+                                <li key={child.person.id}>
+                                  <VacancyCard person={child.person} label={t.vacancy} />
+                                  {child.children.length > 0 ? (
+                                    <ul>
+                                      {[...child.children]
+                                        .sort((a, b) => a.person.name.localeCompare(b.person.name, "sk"))
+                                        .map((gc, j) => {
+                                        const led = ledDeptByManager.get(gc.person.id);
+                                        const color = led?.color ?? deptColor(gc.person.department, j);
+                                        const badge =
+                                          led?.name ??
+                                          STREDISKO_NAMES[gc.person.department] ??
+                                          gc.person.departmentName ??
+                                          gc.person.department;
+                                        return (
+                                          <li key={gc.person.id}>
+                                            <PersonCard person={gc.person} color={color} size="lg" deptBadge={badge} />
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                  ) : null}
+                                </li>
+                              );
+                            }
+                            const led = ledDeptByManager.get(child.person.id);
+                            const color = led?.color ?? deptColor(child.person.department, i);
+                            const badge =
+                              led?.name ??
+                              STREDISKO_NAMES[child.person.department] ??
+                              child.person.departmentName ??
+                              child.person.department;
                             return (
                               <li key={child.person.id}>
-                                <VacancyCard person={child.person} label={t.vacancy} />
-                                {child.children.length > 0 ? (
-                                  <ul>
-                                    {[...child.children]
-                                      .sort((a, b) => a.person.name.localeCompare(b.person.name, "sk"))
-                                      .map((gc, j) => {
-                                      const led = ledDeptByManager.get(gc.person.id);
-                                      const color = led?.color ?? deptColor(gc.person.department, j);
-                                      const badge =
-                                        led?.name ??
-                                        STREDISKO_NAMES[gc.person.department] ??
-                                        gc.person.departmentName ??
-                                        gc.person.department;
-                                      return (
-                                        <li key={gc.person.id}>
-                                          <PersonCard person={gc.person} color={color} size="lg" deptBadge={badge} />
-                                        </li>
-                                      );
-                                    })}
-                                  </ul>
-                                ) : null}
+                                <PersonCard person={child.person} color={color} size="lg" deptBadge={badge} />
                               </li>
                             );
-                          }
-                          const led = ledDeptByManager.get(child.person.id);
-                          const color = led?.color ?? deptColor(child.person.department, i);
-                          const badge =
-                            led?.name ??
-                            STREDISKO_NAMES[child.person.department] ??
-                            child.person.departmentName ??
-                            child.person.department;
-                          return (
-                            <li key={child.person.id}>
-                              <PersonCard person={child.person} color={color} size="lg" deptBadge={badge} />
-                            </li>
-                          );
-                        })}
-                        {leadership.dashed.map((child, i) => {
-                          const led = ledDeptByManager.get(child.person.id);
-                          const color = led?.color ?? deptColor(child.person.department, i + 6);
-                          const badge =
-                            led?.name ??
-                            STREDISKO_NAMES[child.person.department] ??
-                            child.person.departmentName ??
-                            child.person.department;
-                          return (
-                            <li key={child.person.id} className="otree-dashed-link">
-                              <PersonCard person={child.person} color={color} size="md" deptBadge={badge} />
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : null}
-                  </li>
-                </ul>
+                          })}
+                          {leadership.dashed.map((child, i) => {
+                            const led = ledDeptByManager.get(child.person.id);
+                            const color = led?.color ?? deptColor(child.person.department, i + 6);
+                            const badge =
+                              led?.name ??
+                              STREDISKO_NAMES[child.person.department] ??
+                              child.person.departmentName ??
+                              child.person.department;
+                            return (
+                              <li key={child.person.id} className="otree-dashed-link">
+                                <PersonCard person={child.person} color={color} size="md" deptBadge={badge} />
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : null}
+                    </li>
+                  </ul>
+                </div>
               </div>
-            </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-slate-500">
-              <span className="flex items-center gap-2">
-                <span className="inline-block h-0 w-8 border-t-2 border-[#8fa1b3]" />
-                {t.legendSolid}
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="inline-block h-0 w-8 border-t-2 border-dashed border-[#8fa1b3]" />
-                {t.legendDashed}
-              </span>
+              <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-slate-500">
+                <span className="flex items-center gap-2">
+                  <span className="inline-block h-0 w-8 border-t-2 border-[#8fa1b3]" />
+                  {t.legendSolid}
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="inline-block h-0 w-8 border-t-2 border-dashed border-[#8fa1b3]" />
+                  {t.legendDashed}
+                </span>
+              </div>
             </div>
           </section>
         ) : null}

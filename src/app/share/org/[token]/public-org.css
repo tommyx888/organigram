@@ -103,8 +103,11 @@
 
 /* ── Scrollovanie širokých stromov ───────────────────────────── */
 .otree-scroll {
+  /* padding hore kvôli avatarom vystupujúcim nad kartu – inak overflow-x:auto oreže obsah */
   overflow-x: auto;
-  padding-bottom: 10px;
+  padding-top: 48px;
+  margin-top: -40px;
+  padding-bottom: 12px;
   scrollbar-width: thin;
   scrollbar-color: #b7c3ce transparent;
 }
@@ -140,6 +143,11 @@
 
 /* ── Tlač ────────────────────────────────────────────────────── */
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
   .pub-org {
     background: #fff;
   }
@@ -148,13 +156,40 @@
     display: none !important;
   }
 
+  /* Hero zaberie celú prvú stranu */
+  .pub-org > header {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  /* Vedenie a každé oddelenie na vlastnej strane – zabráni „useknutiu“ medzi stránkami */
+  #leadership,
+  section[id^="dept-"] {
+    break-before: page;
+    page-break-before: always;
+  }
+
   .pub-dept-section {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  /* Hlavička + strom držia pokope na jednej strane */
+  .pub-dept-content {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
   .otree-scroll {
-    overflow: visible;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    padding-top: 48px;
+    margin-top: -40px;
+  }
+
+  .otree-scroll[data-print-scaled] .otree {
+    transform-origin: top center;
   }
 }
 
