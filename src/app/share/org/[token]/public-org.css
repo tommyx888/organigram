@@ -162,8 +162,27 @@
     page-break-after: always;
   }
 
-  /* Vedenie a každé oddelenie na vlastnej strane – zabráni „useknutiu“ medzi stránkami */
-  #leadership,
+  /* Vedenie – celá sekcia na jednej strane (škálovanie cez JS) */
+  #leadership {
+    break-before: page;
+    page-break-before: always;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  #leadership[data-print-fit] {
+    overflow: hidden;
+  }
+
+  #leadership[data-print-fit] .pub-dept-content {
+    margin-inline: auto;
+  }
+
+  .pub-print-scale-host {
+    transform-origin: top left;
+  }
+
+  /* Každé oddelenie na vlastnej strane */
   section[id^="dept-"] {
     break-before: page;
     page-break-before: always;

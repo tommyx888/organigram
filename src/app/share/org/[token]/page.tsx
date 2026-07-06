@@ -97,6 +97,78 @@ const DEPT_REMAP: Record<string, { code: string; name: string }> = {
   "93": { code: "92", name: "Purchase" },
 };
 
+const PRINT_PAGE_MM = { width: 297, height: 210, margin: 10 }; // A4 landscape
+
+function mmToPx(mm: number): number {
+  return (mm * 96) / 25.4;
+}
+
+function getPrintArea(): { width: number; height: number } {
+  const { width, height, margin } = PRINT_PAGE_MM;
+  return {
+    width: mmToPx(width - margin * 2),
+    height: mmToPx(height - margin * 2),
+  };
+}
+
+/** Zmenší obsah do boxu – clip drží skutočnú veľkosť, host sa škáluje z ľavého horného rohu. */
+function scaleToFit(
+  clip: HTMLElement,
+  host: HTMLElement,
+  availW: number,
+  availH?: number,
+): number {
+  const scrollEls = [...host.querySelectorAll<HTMLElement>(".otree-scroll")];
+  const savedScroll = scrollEls.map((s) => ({
+    overflow: s.style.overflow,
+    width: s.style.width,
+  }));
+  scrollEls.forEach((s) => {
+    s.style.overflow = "visible";
+    s.style.width = "max-content";
+  });
+
+  const prevHostWidth = host.style.width;
+  host.style.width = "max-content";
+  const naturalW = host.scrollWidth;
+  const naturalH = host.scrollHeight;
+  host.style.width = prevHostWidth;
+
+  scrollEls.forEach((s, i) => {
+    s.style.overflow = savedScroll[i].overflow;
+    s.style.width = savedScroll[i].width;
+  });
+
+  const scale = Math.min(1, availW / naturalW, availH ? availH / naturalH : 1);
+  const scaledW = Math.ceil(naturalW * scale);
+  const scaledH = Math.ceil(naturalH * scale);
+
+  clip.style.width = `${scaledW}px`;
+  clip.style.height = `${scaledH}px`;
+  clip.style.marginInline = "auto";
+  clip.style.overflow = "hidden";
+
+  host.style.width = `${naturalW}px`;
+  host.style.height = `${naturalH}px`;
+  host.style.transform = `scale(${scale})`;
+  host.style.transformOrigin = "top left";
+  clip.dataset.printScaled = "1";
+
+  return scaledH;
+}
+
+function resetScaleFit(clip: HTMLElement, host: HTMLElement) {
+  clip.style.width = "";
+  clip.style.height = "";
+  clip.style.marginInline = "";
+  clip.style.overflow = "";
+  delete clip.dataset.printScaled;
+  host.style.width = "";
+  host.style.height = "";
+  host.style.transform = "";
+  host.style.transformOrigin = "";
+}
+
 function countEmployees(people: PublicOrgPerson[]): number {
   return people.filter((p) => !p.isVacancy).length;
 }
@@ -476,34 +548,48 @@ export default function PublicOrgPage() {
     };
   }, [token]);
 
-  /** Pred tlačou/PDF zmenší len príliš široké stromy (vedenie). */
+  /** Pred tlačou/PDF: vedenie na jeden slide, ostatné oddelenia len podľa šírky. */
   const applyPrintScale = useCallback(() => {
-    const marginPx = 32;
-    const availableW = window.innerWidth - marginPx;
+    const { width: pageW, height: pageH } = getPrintArea();
+    const sectionPad = 64;
+    const availW = pageW - sectionPad;
+    const availH = pageH - sectionPad;
 
-    document.querySelectorAll<HTMLElement>(".otree-scroll").forEach((scroll) => {
+    const leadership = document.getElementById("leadership");
+    if (leadership) {
+      const clip = leadership.querySelector<HTMLElement>(".pub-dept-content");
+      const host = leadership.querySelector<HTMLElement>(".pub-print-scale-host");
+      if (clip && host) {
+        const scaledH = scaleToFit(clip, host, availW, availH);
+        leadership.style.height = `${scaledH + sectionPad}px`;
+        leadership.style.overflow = "hidden";
+        leadership.dataset.printFit = "1";
+      }
+    }
+
+    document.querySelectorAll<HTMLElement>('section[id^="dept-"] .otree-scroll').forEach((scroll) => {
       const otree = scroll.querySelector<HTMLElement>(".otree");
       if (!otree) return;
-      const contentW = otree.scrollWidth;
-      if (contentW <= availableW) return;
-
-      const scale = availableW / contentW;
-      otree.style.transform = `scale(${scale})`;
-      otree.style.transformOrigin = "top center";
-      scroll.style.marginInline = "auto";
-      scroll.dataset.printScaled = "1";
+      if (otree.scrollWidth <= availW) return;
+      scaleToFit(scroll, otree, availW);
     });
   }, []);
 
   const resetPrintScale = useCallback(() => {
+    const leadership = document.getElementById("leadership");
+    if (leadership) {
+      const clip = leadership.querySelector<HTMLElement>(".pub-dept-content");
+      const host = leadership.querySelector<HTMLElement>(".pub-print-scale-host");
+      if (clip && host) resetScaleFit(clip, host);
+      leadership.style.height = "";
+      leadership.style.overflow = "";
+      delete leadership.dataset.printFit;
+    }
+
     document.querySelectorAll<HTMLElement>(".otree-scroll").forEach((scroll) => {
       const otree = scroll.querySelector<HTMLElement>(".otree");
-      scroll.style.marginInline = "";
-      delete scroll.dataset.printScaled;
-      if (otree) {
-        otree.style.transform = "";
-        otree.style.transformOrigin = "";
-      }
+      if (!otree || !scroll.dataset.printScaled) return;
+      resetScaleFit(scroll, otree);
     });
   }, []);
 
@@ -518,7 +604,9 @@ export default function PublicOrgPage() {
 
   const handlePrint = useCallback(() => {
     applyPrintScale();
-    window.print();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => window.print());
+    });
   }, [applyPrintScale]);
 
   const departments = useMemo(() => {
@@ -729,6 +817,7 @@ export default function PublicOrgPage() {
           >
 
             <div className="pub-dept-content">
+              <div className="pub-print-scale-host">
               <header className="mb-4 flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--artifex-navy)] text-white">
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -816,6 +905,7 @@ export default function PublicOrgPage() {
                   <span className="inline-block h-0 w-8 border-t-2 border-dashed border-[#8fa1b3]" />
                   {t.legendDashed}
                 </span>
+              </div>
               </div>
             </div>
           </section>
