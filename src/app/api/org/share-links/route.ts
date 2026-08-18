@@ -1,10 +1,18 @@
 import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
-import { isPublicOrgScope, type PublicOrgScope } from "@/lib/org/public-org-types";
+import {
+  isPublicOrgScope,
+  parseExportDepartments,
+  parsePublicCardFields,
+  type PublicOrgScope,
+} from "@/lib/org/public-org-types";
 import { createServerSupabaseClientWithUser } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic";
+const SHARE_LINK_COLUMNS =
+  "id, token, label, is_enabled, expires_at, created_at, scope, export_departments, card_fields";
+const SHARE_LINK_COLUMNS_LEGACY = "id, token, label, is_enabled, expires_at, created_at, scope";
+const SHARE_LINK_COLUMNS_MIN = "id, token, label, is_enabled, expires_at, created_at";
 
 /**
  * Správa verejných zdieľateľných odkazov na organigram.
@@ -24,13 +32,22 @@ export async function GET(request: NextRequest) {
 
   let { data, error } = await supabase
     .from("org_share_links")
-    .select("id, token, label, is_enabled, expires_at, created_at, scope")
+    .select(SHARE_LINK_COLUMNS)
     .order("created_at", { ascending: false });
+
+  if (error && /export_departments|card_fields/i.test(error.message)) {
+    const retry = await supabase
+      .from("org_share_links")
+      .select(SHARE_LINK_COLUMNS_LEGACY)
+      .order("created_at", { ascending: false });
+    data = retry.data ?? [];
+    error = retry.error;
+  }
 
   if (error && /scope/i.test(error.message)) {
     const retry = await supabase
       .from("org_share_links")
-      .select("id, token, label, is_enabled, expires_at, created_at")
+      .select(SHARE_LINK_COLUMNS_MIN)
       .order("created_at", { ascending: false });
     data = (retry.data ?? []).map((row) => ({ ...row, scope: "salaried" }));
     error = retry.error;
@@ -47,11 +64,21 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => ({}))) as {
     label?: string;
     scope?: string;
+    departments?: unknown;
+    cardFields?: unknown;
   };
   const scope: PublicOrgScope = isPublicOrgScope(body.scope) ? body.scope : "salaried";
   const defaultLabel =
     scope === "salaried_indirect" ? "Verejný náhľad (SAL + Indirect)" : "Verejný náhľad (SAL)";
   const label = String(body.label ?? "").trim() || defaultLabel;
+  const exportDepartments = parseExportDepartments(body.departments);
+  if (exportDepartments && exportDepartments.length === 0) {
+    return NextResponse.json({ error: "no_departments" }, { status: 400 });
+  }
+  const cardFields = parsePublicCardFields(body.cardFields, scope);
+  if (!Object.values(cardFields).some(Boolean)) {
+    return NextResponse.json({ error: "no_card_fields" }, { status: 400 });
+  }
 
   // Company id z RLS kontextu používateľa
   const { data: roleRow } = await supabase
@@ -65,13 +92,30 @@ export async function POST(request: NextRequest) {
 
   const token = randomBytes(24).toString("base64url");
 
-  const SHARE_LINK_COLUMNS = "id, token, label, is_enabled, expires_at, created_at, scope";
+  const insertRow = {
+    company_id: roleRow.company_id,
+    token,
+    label,
+    scope,
+    export_departments: exportDepartments,
+    card_fields: cardFields,
+  };
 
   let { data, error } = await supabase
     .from("org_share_links")
-    .insert({ company_id: roleRow.company_id, token, label, scope })
+    .insert(insertRow)
     .select(SHARE_LINK_COLUMNS)
     .single();
+
+  if (error && /export_departments|card_fields/i.test(error.message)) {
+    return NextResponse.json(
+      {
+        error: "export_options_missing",
+        message: "Najprv spustite migráciu 013_org_share_export_options.sql.",
+      },
+      { status: 503 },
+    );
+  }
 
   if (error && /scope/i.test(error.message)) {
     if (scope !== "salaried") {
@@ -83,7 +127,7 @@ export async function POST(request: NextRequest) {
     const retry = await supabase
       .from("org_share_links")
       .insert({ company_id: roleRow.company_id, token, label })
-      .select("id, token, label, is_enabled, expires_at, created_at")
+      .select(SHARE_LINK_COLUMNS_MIN)
       .single();
     data = retry.data ? { ...retry.data, scope: "salaried" } : retry.data;
     error = retry.error;

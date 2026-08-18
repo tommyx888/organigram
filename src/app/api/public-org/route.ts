@@ -4,6 +4,8 @@ import { loadOrgRecords } from "@/lib/org/server-repository";
 import {
   isPublicOrgScope,
   matchesPublicOrgScope,
+  parseExportDepartments,
+  parsePublicCardFields,
   publicPersonType,
   type PublicOrgPayload,
   type PublicOrgPerson,
@@ -32,9 +34,21 @@ export async function GET(request: NextRequest) {
 
   let { data: link, error: linkError } = await client
     .from("org_share_links")
-    .select("id, company_id, is_enabled, expires_at, scope")
+    .select("id, company_id, is_enabled, expires_at, scope, export_departments, card_fields")
     .eq("token", token)
     .maybeSingle();
+
+  if (linkError && /export_departments|card_fields/i.test(linkError.message)) {
+    const retry = await client
+      .from("org_share_links")
+      .select("id, company_id, is_enabled, expires_at, scope")
+      .eq("token", token)
+      .maybeSingle();
+    link = retry.data
+      ? { ...retry.data, export_departments: null, card_fields: null }
+      : retry.data;
+    linkError = retry.error;
+  }
 
   if (linkError && /scope/i.test(linkError.message)) {
     const retry = await client
@@ -57,6 +71,13 @@ export async function GET(request: NextRequest) {
   }
 
   const scope: PublicOrgScope = isPublicOrgScope(link.scope) ? link.scope : "salaried";
+  const departments = parseExportDepartments(
+    (link as { export_departments?: unknown }).export_departments,
+  );
+  const cardFields = parsePublicCardFields(
+    (link as { card_fields?: unknown }).card_fields,
+    scope,
+  );
 
   const result = await loadOrgRecords({ mode: "live", companyId: link.company_id });
 
@@ -124,6 +145,8 @@ export async function GET(request: NextRequest) {
     generatedAt: new Date().toISOString(),
     people,
     scope,
+    departments,
+    cardFields,
   };
 
   return NextResponse.json(payload, {

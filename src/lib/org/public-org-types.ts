@@ -3,6 +3,8 @@
  * Payload obsahuje iba aktívnych zamestnancov podľa scope odkazu a bezpečné polia.
  */
 
+import { STREDISKO_NAMES } from "./stredisko-names";
+
 export type PublicOrgScope = "salaried" | "salaried_indirect";
 
 export const PUBLIC_ORG_SCOPES: PublicOrgScope[] = ["salaried", "salaried_indirect"];
@@ -12,6 +14,65 @@ export function isPublicOrgScope(value: unknown): value is PublicOrgScope {
 }
 
 export type PublicOrgPersonType = "salaried" | "indirect";
+
+export const PUBLIC_EXPORT_LEADERSHIP = "__leadership__";
+
+export type PublicCardFieldId = "photo" | "name" | "position" | "department" | "typeLabel";
+
+export type PublicOrgCardFields = Record<PublicCardFieldId, boolean>;
+
+export const PUBLIC_CARD_FIELD_KEYS: PublicCardFieldId[] = [
+  "photo",
+  "name",
+  "position",
+  "department",
+  "typeLabel",
+];
+
+export const PUBLIC_CARD_FIELD_LABELS: Record<PublicCardFieldId, string> = {
+  photo: "Fotka",
+  name: "Meno",
+  position: "Pozícia",
+  department: "Oddelenie",
+  typeLabel: "Typ (SAL / Indirect)",
+};
+
+export function defaultPublicCardFields(scope: PublicOrgScope): PublicOrgCardFields {
+  return {
+    photo: true,
+    name: true,
+    position: true,
+    department: true,
+    typeLabel: scope === "salaried_indirect",
+  };
+}
+
+export function parsePublicCardFields(value: unknown, scope: PublicOrgScope): PublicOrgCardFields {
+  const base = defaultPublicCardFields(scope);
+  if (!value || typeof value !== "object" || Array.isArray(value)) return base;
+  const raw = value as Record<string, unknown>;
+  for (const key of PUBLIC_CARD_FIELD_KEYS) {
+    if (typeof raw[key] === "boolean") base[key] = raw[key];
+  }
+  return base;
+}
+
+/** null = všetky oddelenia (staré odkazy). */
+export function parseExportDepartments(value: unknown): string[] | null {
+  if (value == null) return null;
+  if (!Array.isArray(value)) return null;
+  const codes = value.map((v) => String(v).trim()).filter(Boolean);
+  return codes.length ? codes : [];
+}
+
+export function publicExportDepartmentOptions(): { code: string; name: string }[] {
+  return [
+    { code: PUBLIC_EXPORT_LEADERSHIP, name: "Vedenie spoločnosti" },
+    ...Object.entries(STREDISKO_NAMES)
+      .filter(([code]) => code !== "90")
+      .map(([code, name]) => ({ code, name })),
+  ];
+}
 
 export type PublicOrgPerson = {
   /** Interné id na stavbu stromu (os_c). Nezobrazuje sa v UI. */
@@ -37,6 +98,9 @@ export type PublicOrgPayload = {
   people: PublicOrgPerson[];
   /** Ak chýba (staré odkazy), ide o SAL-only náhľad. */
   scope?: PublicOrgScope;
+  /** null / chýba = všetky oddelenia. Inak kódy stredísk + __leadership__. */
+  departments?: string[] | null;
+  cardFields?: PublicOrgCardFields;
 };
 
 export function matchesPublicOrgScope(

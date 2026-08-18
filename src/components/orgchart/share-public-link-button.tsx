@@ -5,9 +5,15 @@
  * Zobrazuje sa iba adminovi / hr_editorovi na stránke organigramu.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { PublicOrgScope } from "@/lib/org/public-org-types";
+import type { PublicOrgCardFields, PublicOrgScope } from "@/lib/org/public-org-types";
+import {
+  PUBLIC_CARD_FIELD_KEYS,
+  PUBLIC_CARD_FIELD_LABELS,
+  defaultPublicCardFields,
+  publicExportDepartmentOptions,
+} from "@/lib/org/public-org-types";
 import { supabaseClient } from "@/lib/supabase/client";
 
 type ShareLink = {
@@ -18,6 +24,8 @@ type ShareLink = {
   expires_at: string | null;
   created_at: string;
   scope?: PublicOrgScope | null;
+  export_departments?: string[] | null;
+  card_fields?: PublicOrgCardFields | null;
 };
 
 type SharePublicLinkButtonProps = {
@@ -67,11 +75,18 @@ function copyForScope(scope: PublicOrgScope) {
 export function SharePublicLinkButton(props: SharePublicLinkButtonProps) {
   const scope: PublicOrgScope = props.scope ?? "salaried";
   const copy = copyForScope(scope);
+  const deptOptions = useMemo(() => publicExportDepartmentOptions(), []);
   const [open, setOpen] = useState(false);
   const [links, setLinks] = useState<ShareLink[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [selectedDepts, setSelectedDepts] = useState<Set<string>>(
+    () => new Set(deptOptions.map((d) => d.code)),
+  );
+  const [cardFields, setCardFields] = useState<PublicOrgCardFields>(() =>
+    defaultPublicCardFields(scope),
+  );
 
   const load = useCallback(async () => {
     const headers = await authHeaders();
@@ -92,10 +107,31 @@ export function SharePublicLinkButton(props: SharePublicLinkButtonProps) {
   }, [scope]);
 
   useEffect(() => {
-    if (open) void load();
-  }, [open, load]);
+    if (open) {
+      setSelectedDepts(new Set(deptOptions.map((d) => d.code)));
+      setCardFields(defaultPublicCardFields(scope));
+      void load();
+    }
+  }, [open, load, deptOptions, scope]);
+
+  function toggleDept(code: string) {
+    setSelectedDepts((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  }
 
   async function createLink() {
+    if (selectedDepts.size === 0) {
+      setError("Vyberte aspoň jedno oddelenie alebo vedenie.");
+      return;
+    }
+    if (!PUBLIC_CARD_FIELD_KEYS.some((key) => cardFields[key])) {
+      setError("Vyberte aspoň jeden údaj na kartách.");
+      return;
+    }
     setBusy(true);
     setError(null);
     const headers = await authHeaders();
@@ -106,15 +142,22 @@ export function SharePublicLinkButton(props: SharePublicLinkButtonProps) {
     const res = await fetch("/api/org/share-links", {
       method: "POST",
       headers,
-      body: JSON.stringify({ label: copy.defaultLabel, scope }),
+      body: JSON.stringify({
+        label: copy.defaultLabel,
+        scope,
+        departments: [...selectedDepts],
+        cardFields,
+      }),
     });
     setBusy(false);
     if (!res.ok) {
       const json = (await res.json().catch(() => ({}))) as { error?: string };
       setError(
-        json.error === "scope_column_missing"
-          ? "Chýba stĺpec scope v databáze – spustite migráciu 011_org_share_links_scope.sql."
-          : "Vytvorenie odkazu zlyhalo (potrebné admin práva).",
+        json.error === "export_options_missing"
+          ? "Chýbajú stĺpce exportu v databáze – spustite migráciu 013_org_share_export_options.sql."
+          : json.error === "scope_column_missing"
+            ? "Chýba stĺpec scope v databáze – spustite migráciu 011_org_share_links_scope.sql."
+            : "Vytvorenie odkazu zlyhalo (potrebné admin práva).",
       );
       return;
     }
@@ -153,6 +196,8 @@ export function SharePublicLinkButton(props: SharePublicLinkButtonProps) {
     }
   }
 
+  const allDeptsSelected = selectedDepts.size === deptOptions.length;
+
   return (
     <>
       <button
@@ -169,7 +214,7 @@ export function SharePublicLinkButton(props: SharePublicLinkButtonProps) {
       {open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={() => setOpen(false)}>
           <div
-            className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
@@ -225,6 +270,60 @@ export function SharePublicLinkButton(props: SharePublicLinkButtonProps) {
                   </div>
                 ))
               )}
+            </div>
+
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Oddelenia v exporte
+                </h3>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedDepts(
+                      allDeptsSelected ? new Set() : new Set(deptOptions.map((d) => d.code)),
+                    )
+                  }
+                  className="text-[11px] font-semibold text-[var(--artifex-navy)] hover:underline"
+                >
+                  {allDeptsSelected ? "Zrušiť výber" : "Vybrať všetky"}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                {deptOptions.map((dept) => (
+                  <label key={dept.code} className="flex items-center gap-2 rounded-lg px-1.5 py-1 text-xs text-slate-700 hover:bg-white">
+                    <input
+                      type="checkbox"
+                      checked={selectedDepts.has(dept.code)}
+                      onChange={() => toggleDept(dept.code)}
+                    />
+                    <span>{dept.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Údaje na kartách
+              </h3>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                {(scope === "salaried_indirect"
+                  ? PUBLIC_CARD_FIELD_KEYS
+                  : PUBLIC_CARD_FIELD_KEYS.filter((key) => key !== "typeLabel")
+                ).map((key) => (
+                  <label key={key} className="flex items-center gap-2 rounded-lg px-1.5 py-1 text-xs text-slate-700 hover:bg-white">
+                    <input
+                      type="checkbox"
+                      checked={cardFields[key]}
+                      onChange={() =>
+                        setCardFields((prev) => ({ ...prev, [key]: !prev[key] }))
+                      }
+                    />
+                    <span>{PUBLIC_CARD_FIELD_LABELS[key]}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             {error ? <p className="mt-3 text-xs text-red-600">{error}</p> : null}

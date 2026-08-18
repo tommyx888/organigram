@@ -5,10 +5,15 @@
  * Prístup cez zdieľateľný odkaz /share/org/[token] – bez prihlásenia.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState, createContext } from "react";
 import { useParams } from "next/navigation";
 
-import type { PublicOrgPayload, PublicOrgPerson } from "@/lib/org/public-org-types";
+import type { PublicOrgCardFields, PublicOrgPayload, PublicOrgPerson } from "@/lib/org/public-org-types";
+import {
+  PUBLIC_EXPORT_LEADERSHIP,
+  defaultPublicCardFields,
+  parsePublicCardFields,
+} from "@/lib/org/public-org-types";
 import { STREDISKO_NAMES } from "@/lib/org/stredisko-names";
 
 import "./public-org.css";
@@ -90,6 +95,11 @@ const DEPT_COLORS: Record<string, string> = {
 };
 
 const FALLBACK_COLORS = ["#21394F", "#949C58", "#D4517E", "#F06909", "#75909C", "#3E6B8C"];
+
+const CardFieldsContext = createContext<PublicOrgCardFields>(defaultPublicCardFields("salaried"));
+function useCardFields() {
+  return useContext(CardFieldsContext);
+}
 
 /**
  * Vedenie – plná čiara (priama línia riadenia) pre menovaných priamych podriadených.
@@ -311,46 +321,56 @@ function PersonCard({
   deptBadge?: string | null;
   typeBadge?: string | null;
 }) {
+  const fields = useCardFields();
   const dims =
     size === "xl"
       ? { w: 280, avatar: 88, name: 17, pos: 13 }
       : size === "lg"
         ? { w: 230, avatar: 64, name: 14, pos: 12 }
         : { w: 200, avatar: 48, name: 13, pos: 11 };
+  const showPhoto = fields.photo;
+  const showDept = fields.department && deptBadge;
+  const showType = fields.typeLabel && typeBadge;
 
   return (
     <div
       className="relative flex flex-col items-center rounded-2xl border border-slate-200/80 bg-white px-4 pb-4 text-center"
       style={{
         width: dims.w,
-        paddingTop: dims.avatar / 2 + 14,
-        marginTop: dims.avatar / 2,
+        paddingTop: showPhoto ? dims.avatar / 2 + 14 : 16,
+        marginTop: showPhoto ? dims.avatar / 2 : 0,
         boxShadow: "0 10px 30px rgba(33,57,79,0.10), 0 2px 8px rgba(33,57,79,0.06)",
       }}
     >
       <div className="absolute inset-x-0 top-0 h-1.5 rounded-t-2xl" style={{ background: color }} />
-      <div
-        className="absolute left-1/2 -translate-x-1/2"
-        style={{ top: -dims.avatar / 2 }}
-      >
-        <Avatar person={person} size={dims.avatar} ring={color} />
-      </div>
+      {showPhoto ? (
+        <div
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{ top: -dims.avatar / 2 }}
+        >
+          <Avatar person={person} size={dims.avatar} ring={color} />
+        </div>
+      ) : null}
 
-      <p
-        className="line-clamp-2 font-bold leading-snug text-[var(--artifex-navy)]"
-        style={{ fontSize: dims.name }}
-        title={person.name}
-      >
-        {person.name}
-      </p>
-      <p
-        className="mt-1 line-clamp-2 leading-snug text-slate-500"
-        style={{ fontSize: dims.pos }}
-        title={person.position}
-      >
-        {person.position}
-      </p>
-      {deptBadge ? (
+      {fields.name ? (
+        <p
+          className="line-clamp-2 font-bold leading-snug text-[var(--artifex-navy)]"
+          style={{ fontSize: dims.name }}
+          title={person.name}
+        >
+          {person.name}
+        </p>
+      ) : null}
+      {fields.position ? (
+        <p
+          className="mt-1 line-clamp-2 leading-snug text-slate-500"
+          style={{ fontSize: dims.pos }}
+          title={person.position}
+        >
+          {person.position}
+        </p>
+      ) : null}
+      {showDept ? (
         <span
           className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
           style={{ background: color }}
@@ -358,10 +378,10 @@ function PersonCard({
           {deptBadge}
         </span>
       ) : null}
-      {typeBadge ? (
+      {showType ? (
         <span
           className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-            deptBadge ? "mt-1" : "mt-2"
+            showDept ? "mt-1" : "mt-2"
           }`}
           style={{
             background: person.personType === "indirect" ? "#75909C22" : "#21394F14",
@@ -420,6 +440,7 @@ function StackColumn({
   color: string;
   typeLabels: { salaried: string; indirect: string } | null;
 }) {
+  const fields = useCardFields();
   return (
     <div className="flex flex-col gap-2">
       {nodes.map((n) => (
@@ -432,15 +453,19 @@ function StackColumn({
             boxShadow: "0 4px 14px rgba(33,57,79,0.07)",
           }}
         >
-          <Avatar person={n.person} size={34} ring={color} />
+          {fields.photo ? <Avatar person={n.person} size={34} ring={color} /> : null}
           <div className="min-w-0 text-left">
-            <p className="truncate text-[12px] font-bold text-[var(--artifex-navy)]" title={n.person.name}>
-              {n.person.name}
-            </p>
-            <p className="truncate text-[10.5px] text-slate-500" title={n.person.position}>
-              {n.person.position}
-            </p>
-            {typeLabelFor(n.person, typeLabels) ? (
+            {fields.name ? (
+              <p className="truncate text-[12px] font-bold text-[var(--artifex-navy)]" title={n.person.name}>
+                {n.person.name}
+              </p>
+            ) : null}
+            {fields.position ? (
+              <p className="truncate text-[10.5px] text-slate-500" title={n.person.position}>
+                {n.person.position}
+              </p>
+            ) : null}
+            {fields.typeLabel && typeLabelFor(n.person, typeLabels) ? (
               <p
                 className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide"
                 style={{ color: n.person.personType === "indirect" ? "#75909C" : "#21394F" }}
@@ -754,6 +779,7 @@ export default function PublicOrgPage() {
 
   const departments = useMemo(() => {
     if (!data) return [];
+    const allowed = data.departments ? new Set(data.departments) : null;
     const byDept = new Map<string, PublicOrgPerson[]>();
     const nameOverride = new Map<string, string>();
     data.people.forEach((p) => {
@@ -762,6 +788,7 @@ export default function PublicOrgPage() {
       const key = remap?.code ?? (p.department || "—");
       if (remap) nameOverride.set(key, remap.name);
       if (HIDDEN_DEPT_SECTIONS.has(key)) return; // 90 Management pokrýva sekcia Vedenie
+      if (allowed && !allowed.has(key)) return;
       const list = byDept.get(key) ?? [];
       list.push(p);
       byDept.set(key, list);
@@ -830,9 +857,34 @@ export default function PublicOrgPage() {
 
   const t = L[lang];
   const mixedScope = data?.scope === "salaried_indirect";
-  const typeLabels = mixedScope
-    ? { salaried: t.typeSalaried, indirect: t.typeIndirect }
-    : null;
+  const cardFields = useMemo(
+    () =>
+      parsePublicCardFields(
+        data?.cardFields,
+        data?.scope === "salaried_indirect" ? "salaried_indirect" : "salaried",
+      ),
+    [data],
+  );
+  const showLeadership =
+    !data?.departments || data.departments.includes(PUBLIC_EXPORT_LEADERSHIP);
+  const typeLabels =
+    mixedScope && cardFields.typeLabel
+      ? { salaried: t.typeSalaried, indirect: t.typeIndirect }
+      : null;
+  const visiblePeople = useMemo(() => {
+    if (!data) return [];
+    const selected = data.departments;
+    if (selected == null) return data.people.filter((p) => !p.isVacancy);
+    const allowed = new Set(selected);
+    const includeLeadership = allowed.has(PUBLIC_EXPORT_LEADERSHIP);
+    return data.people.filter((p) => {
+      if (p.isVacancy) return false;
+      const key = DEPT_REMAP[p.department]?.code ?? (p.department || "—");
+      if (allowed.has(key)) return true;
+      return includeLeadership && HIDDEN_DEPT_SECTIONS.has(key);
+    });
+  }, [data]);
+  const visibleEmployeeCount = visiblePeople.length;
 
   if (state === "loading") {
     return (
@@ -862,6 +914,7 @@ export default function PublicOrgPage() {
   }
 
   return (
+    <CardFieldsContext.Provider value={cardFields}>
     <main className="pub-org min-h-screen pb-16">
       {/* ── Hero ─────────────────────────────────────────────── */}
       <header
@@ -931,12 +984,12 @@ export default function PublicOrgPage() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur">
-              {countEmployees(data.people)} {t.employees}
+              {visibleEmployeeCount} {t.employees}
             </span>
             {mixedScope ? (
               <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur">
-                {data.people.filter((p) => !p.isVacancy && p.personType !== "indirect").length} SAL ·{" "}
-                {data.people.filter((p) => !p.isVacancy && p.personType === "indirect").length}{" "}
+                {visiblePeople.filter((p) => p.personType !== "indirect").length} SAL ·{" "}
+                {visiblePeople.filter((p) => p.personType === "indirect").length}{" "}
                 {t.typeIndirect}
               </span>
             ) : null}
@@ -953,12 +1006,14 @@ export default function PublicOrgPage() {
       {/* ── Rýchla navigácia po oddeleniach ─────────────────── */}
       <nav className="pub-no-print sticky top-0 z-30 border-b border-slate-200/70 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-[1400px] gap-2 overflow-x-auto px-6 py-2.5 md:px-10">
-          <a
-            href="#leadership"
-            className="shrink-0 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-[var(--artifex-navy)] transition hover:border-[var(--artifex-navy)]"
-          >
-            ★ {t.leadership}
-          </a>
+          {showLeadership ? (
+            <a
+              href="#leadership"
+              className="shrink-0 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-[var(--artifex-navy)] transition hover:border-[var(--artifex-navy)]"
+            >
+              ★ {t.leadership}
+            </a>
+          ) : null}
           {departments.map((d) => (
             <a
               key={d.code}
@@ -975,7 +1030,7 @@ export default function PublicOrgPage() {
 
       <div className="mx-auto max-w-[1400px] space-y-10 px-6 pt-10 md:px-10">
         {/* ── Vedenie ─────────────────────────────────────────── */}
-        {mainRoot ? (
+        {mainRoot && showLeadership ? (
           <section
             id="leadership"
             className="pub-dept-section pub-rise scroll-mt-28 rounded-3xl border border-slate-200/70 bg-white/70 p-6 backdrop-blur-sm md:p-8"
@@ -1127,5 +1182,6 @@ export default function PublicOrgPage() {
         </footer>
       </div>
     </main>
+    </CardFieldsContext.Provider>
   );
 }
