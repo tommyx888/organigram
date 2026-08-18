@@ -40,7 +40,11 @@ export async function GET(request: NextRequest) {
       .from("org_share_links")
       .select(SHARE_LINK_COLUMNS_LEGACY)
       .order("created_at", { ascending: false });
-    data = retry.data ?? [];
+    data = (retry.data ?? []).map((row) => ({
+      ...row,
+      export_departments: null,
+      card_fields: null,
+    }));
     error = retry.error;
   }
 
@@ -49,7 +53,12 @@ export async function GET(request: NextRequest) {
       .from("org_share_links")
       .select(SHARE_LINK_COLUMNS_MIN)
       .order("created_at", { ascending: false });
-    data = (retry.data ?? []).map((row) => ({ ...row, scope: "salaried" }));
+    data = (retry.data ?? []).map((row) => ({
+      ...row,
+      scope: "salaried",
+      export_departments: null,
+      card_fields: null,
+    }));
     error = retry.error;
   }
 
@@ -129,7 +138,9 @@ export async function POST(request: NextRequest) {
       .insert({ company_id: roleRow.company_id, token, label })
       .select(SHARE_LINK_COLUMNS_MIN)
       .single();
-    data = retry.data ? { ...retry.data, scope: "salaried" } : retry.data;
+    data = retry.data
+      ? { ...retry.data, scope: "salaried", export_departments: null, card_fields: null }
+      : retry.data;
     error = retry.error;
   }
 

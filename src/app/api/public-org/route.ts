@@ -56,7 +56,9 @@ export async function GET(request: NextRequest) {
       .select("id, company_id, is_enabled, expires_at")
       .eq("token", token)
       .maybeSingle();
-    link = retry.data ? { ...retry.data, scope: "salaried" } : retry.data;
+    link = retry.data
+      ? { ...retry.data, scope: "salaried", export_departments: null, card_fields: null }
+      : retry.data;
     linkError = retry.error;
   }
 
