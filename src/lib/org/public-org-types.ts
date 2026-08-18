@@ -47,12 +47,28 @@ export function defaultPublicCardFields(scope: PublicOrgScope): PublicOrgCardFie
   };
 }
 
+function asBoolean(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (value === "true" || value === 1) return true;
+  if (value === "false" || value === 0) return false;
+  return null;
+}
+
 export function parsePublicCardFields(value: unknown, scope: PublicOrgScope): PublicOrgCardFields {
   const base = defaultPublicCardFields(scope);
-  if (!value || typeof value !== "object" || Array.isArray(value)) return base;
-  const raw = value as Record<string, unknown>;
+  let rawValue = value;
+  if (typeof rawValue === "string") {
+    try {
+      rawValue = JSON.parse(rawValue) as unknown;
+    } catch {
+      return base;
+    }
+  }
+  if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) return base;
+  const raw = rawValue as Record<string, unknown>;
   for (const key of PUBLIC_CARD_FIELD_KEYS) {
-    if (typeof raw[key] === "boolean") base[key] = raw[key];
+    const parsed = asBoolean(raw[key]);
+    if (parsed !== null) base[key] = parsed;
   }
   return base;
 }

@@ -111,14 +111,14 @@ export async function GET(request: NextRequest) {
 
   const people: PublicOrgPerson[] = included.map((r) => ({
     id: r.employeeId,
-    name: r.fullName,
-    position: r.positionName,
+    name: cardFields.name ? r.fullName : "",
+    position: cardFields.position ? r.positionName : "",
     department: r.department,
     departmentName: getStrediskoDisplayName(r.department, r.departmentName ?? r.oddelenie),
     // Manažér sa posiela iba ak je tiež v zobrazenom sete (osoba alebo vacancy).
     managerId:
       r.managerEmployeeId && includedIds.has(r.managerEmployeeId) ? r.managerEmployeeId : null,
-    photoUrl: r.photoUrl ?? null,
+    photoUrl: cardFields.photo ? (r.photoUrl ?? null) : null,
     personType: publicPersonType(r),
   }));
 

@@ -5,13 +5,12 @@
  * Prístup cez zdieľateľný odkaz /share/org/[token] – bez prihlásenia.
  */
 
-import { useCallback, useContext, useEffect, useMemo, useState, createContext } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 import type { PublicOrgCardFields, PublicOrgPayload, PublicOrgPerson } from "@/lib/org/public-org-types";
 import {
   PUBLIC_EXPORT_LEADERSHIP,
-  defaultPublicCardFields,
   parsePublicCardFields,
 } from "@/lib/org/public-org-types";
 import { STREDISKO_NAMES } from "@/lib/org/stredisko-names";
@@ -95,11 +94,6 @@ const DEPT_COLORS: Record<string, string> = {
 };
 
 const FALLBACK_COLORS = ["#21394F", "#949C58", "#D4517E", "#F06909", "#75909C", "#3E6B8C"];
-
-const CardFieldsContext = createContext<PublicOrgCardFields>(defaultPublicCardFields("salaried"));
-function useCardFields() {
-  return useContext(CardFieldsContext);
-}
 
 /**
  * Vedenie – plná čiara (priama línia riadenia) pre menovaných priamych podriadených.
@@ -279,10 +273,12 @@ function Avatar({
   person,
   size,
   ring,
+  showName = true,
 }: {
   person: PublicOrgPerson;
   size: number;
   ring: string;
+  showName?: boolean;
 }) {
   return (
     <div
@@ -301,7 +297,18 @@ function Avatar({
           className="flex h-full w-full items-center justify-center font-bold text-white"
           style={{ background: `linear-gradient(135deg, ${ring}, ${ring}bb)`, fontSize: size * 0.36 }}
         >
-          {initials(person.name)}
+          {showName ? (
+            initials(person.name)
+          ) : (
+            <svg
+              className="h-[55%] w-[55%] text-white/90"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden
+            >
+              <path d="M12 12a4 4 0 100-8 4 4 0 000 8zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5z" />
+            </svg>
+          )}
         </div>
       )}
     </div>
@@ -314,14 +321,15 @@ function PersonCard({
   size = "md",
   deptBadge,
   typeBadge,
+  fields,
 }: {
   person: PublicOrgPerson;
   color: string;
   size?: "xl" | "lg" | "md";
   deptBadge?: string | null;
   typeBadge?: string | null;
+  fields: PublicOrgCardFields;
 }) {
-  const fields = useCardFields();
   const dims =
     size === "xl"
       ? { w: 280, avatar: 88, name: 17, pos: 13 }
@@ -329,6 +337,7 @@ function PersonCard({
         ? { w: 230, avatar: 64, name: 14, pos: 12 }
         : { w: 200, avatar: 48, name: 13, pos: 11 };
   const showPhoto = fields.photo;
+  const showName = fields.name && Boolean(person.name);
   const showDept = fields.department && deptBadge;
   const showType = fields.typeLabel && typeBadge;
 
@@ -348,11 +357,11 @@ function PersonCard({
           className="absolute left-1/2 -translate-x-1/2"
           style={{ top: -dims.avatar / 2 }}
         >
-          <Avatar person={person} size={dims.avatar} ring={color} />
+          <Avatar person={person} size={dims.avatar} ring={color} showName={fields.name} />
         </div>
       ) : null}
 
-      {fields.name ? (
+      {showName ? (
         <p
           className="line-clamp-2 font-bold leading-snug text-[var(--artifex-navy)]"
           style={{ fontSize: dims.name }}
@@ -435,12 +444,13 @@ function StackColumn({
   nodes,
   color,
   typeLabels,
+  fields,
 }: {
   nodes: TreeNode[];
   color: string;
   typeLabels: { salaried: string; indirect: string } | null;
+  fields: PublicOrgCardFields;
 }) {
-  const fields = useCardFields();
   return (
     <div className="flex flex-col gap-2">
       {nodes.map((n) => (
@@ -453,9 +463,11 @@ function StackColumn({
             boxShadow: "0 4px 14px rgba(33,57,79,0.07)",
           }}
         >
-          {fields.photo ? <Avatar person={n.person} size={34} ring={color} /> : null}
+          {fields.photo ? (
+            <Avatar person={n.person} size={34} ring={color} showName={fields.name} />
+          ) : null}
           <div className="min-w-0 text-left">
-            {fields.name ? (
+            {fields.name && n.person.name ? (
               <p className="truncate text-[12px] font-bold text-[var(--artifex-navy)]" title={n.person.name}>
                 {n.person.name}
               </p>
@@ -486,12 +498,14 @@ function OrgTree({
   depth = 0,
   rootBadge,
   typeLabels,
+  fields,
 }: {
   node: TreeNode;
   color: string;
   depth?: number;
   rootBadge?: string | null;
   typeLabels: { salaried: string; indirect: string } | null;
+  fields: PublicOrgCardFields;
 }) {
   const branches = node.children.filter((c) => c.children.length > 0);
   const leaves = node.children.filter((c) => c.children.length === 0);
@@ -505,6 +519,7 @@ function OrgTree({
         size={depth === 0 ? "lg" : "md"}
         deptBadge={depth === 0 ? rootBadge : undefined}
         typeBadge={typeLabelFor(node.person, typeLabels)}
+        fields={fields}
       />
       {node.children.length > 0 ? (
         <ul>
@@ -515,11 +530,12 @@ function OrgTree({
               color={color}
               depth={depth + 1}
               typeLabels={typeLabels}
+              fields={fields}
             />
           ))}
           {stackLeaves ? (
             <li>
-              <StackColumn nodes={leaves} color={color} typeLabels={typeLabels} />
+              <StackColumn nodes={leaves} color={color} typeLabels={typeLabels} fields={fields} />
             </li>
           ) : (
             leaves.map((child) => (
@@ -529,6 +545,7 @@ function OrgTree({
                 color={color}
                 depth={depth + 1}
                 typeLabels={typeLabels}
+                fields={fields}
               />
             ))
           )}
@@ -547,6 +564,7 @@ function DeptSection({
   allById,
   globalRootId,
   typeLabels,
+  fields,
 }: {
   code: string;
   name: string;
@@ -556,6 +574,7 @@ function DeptSection({
   allById: Map<string, PublicOrgPerson>;
   globalRootId: string | null;
   typeLabels: { salaried: string; indirect: string } | null;
+  fields: PublicOrgCardFields;
 }) {
   const { lead, underLead, others } = useMemo(() => {
     const inDept = new Set(people.map((p) => p.id));
@@ -600,6 +619,7 @@ function DeptSection({
                   color={color}
                   rootBadge={t.deptLead}
                   typeLabels={typeLabels}
+                  fields={fields}
                 />
               ) : null}
               {others.map((root) => (
@@ -609,6 +629,7 @@ function DeptSection({
                   color={color}
                   depth={lead ? 1 : 0}
                   typeLabels={typeLabels}
+                  fields={fields}
                 />
               ))}
             </ul>
@@ -857,14 +878,13 @@ export default function PublicOrgPage() {
 
   const t = L[lang];
   const mixedScope = data?.scope === "salaried_indirect";
-  const cardFields = useMemo(
-    () =>
-      parsePublicCardFields(
-        data?.cardFields,
-        data?.scope === "salaried_indirect" ? "salaried_indirect" : "salaried",
-      ),
-    [data],
-  );
+  const cardFields = useMemo(() => {
+    const payload = data as (PublicOrgPayload & { card_fields?: unknown }) | null;
+    return parsePublicCardFields(
+      payload?.cardFields ?? payload?.card_fields,
+      payload?.scope === "salaried_indirect" ? "salaried_indirect" : "salaried",
+    );
+  }, [data]);
   const showLeadership =
     !data?.departments || data.departments.includes(PUBLIC_EXPORT_LEADERSHIP);
   const typeLabels =
@@ -914,7 +934,6 @@ export default function PublicOrgPage() {
   }
 
   return (
-    <CardFieldsContext.Provider value={cardFields}>
     <main className="pub-org min-h-screen pb-16">
       {/* ── Hero ─────────────────────────────────────────────── */}
       <header
@@ -1057,6 +1076,7 @@ export default function PublicOrgPage() {
                         color="#21394F"
                         size="xl"
                         typeBadge={typeLabelFor(mainRoot.person, typeLabels)}
+                        fields={cardFields}
                       />
                       {leadership.solid.length + leadership.dashed.length > 0 ? (
                         <ul>
@@ -1085,6 +1105,7 @@ export default function PublicOrgPage() {
                                               size="lg"
                                               deptBadge={badge}
                                               typeBadge={typeLabelFor(gc.person, typeLabels)}
+                                              fields={cardFields}
                                             />
                                           </li>
                                         );
@@ -1109,6 +1130,7 @@ export default function PublicOrgPage() {
                                   size="lg"
                                   deptBadge={badge}
                                   typeBadge={typeLabelFor(child.person, typeLabels)}
+                                  fields={cardFields}
                                 />
                               </li>
                             );
@@ -1129,6 +1151,7 @@ export default function PublicOrgPage() {
                                   size="md"
                                   deptBadge={badge}
                                   typeBadge={typeLabelFor(child.person, typeLabels)}
+                                  fields={cardFields}
                                 />
                               </li>
                             );
@@ -1167,6 +1190,7 @@ export default function PublicOrgPage() {
             allById={allById}
             globalRootId={mainRoot?.person.id ?? null}
             typeLabels={typeLabels}
+            fields={cardFields}
           />
         ))}
 
@@ -1182,6 +1206,5 @@ export default function PublicOrgPage() {
         </footer>
       </div>
     </main>
-    </CardFieldsContext.Provider>
   );
 }
