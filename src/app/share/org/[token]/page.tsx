@@ -24,7 +24,8 @@ const L: Record<Lang, Record<string, string>> = {
     employees: "zamestnancov",
     employees2: "zamestnanci",
     people: "ľudí",
-    print: "Tlačiť / PDF",
+    print: "Stiahnuť PDF",
+    preparingPdf: "Pripravujem PDF…",
     generated: "Vygenerované",
     confidential:
       "Tento náhľad je určený na zdieľanie mimo organizácie a obsahuje iba aktívnych THP (salaried) zamestnancov.",
@@ -49,7 +50,8 @@ const L: Record<Lang, Record<string, string>> = {
     employees: "employees",
     employees2: "employees",
     people: "people",
-    print: "Print / PDF",
+    print: "Download PDF",
+    preparingPdf: "Preparing PDF…",
     generated: "Generated",
     confidential:
       "This view is intended for sharing outside the organization and contains active salaried employees only.",
@@ -599,6 +601,7 @@ export default function PublicOrgPage() {
   const [lang, setLang] = useState<Lang>("sk");
   const [data, setData] = useState<PublicOrgPayload | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -659,12 +662,59 @@ export default function PublicOrgPage() {
     };
   }, [applyPrintScale, resetPrintScale]);
 
-  const handlePrint = useCallback(() => {
-    applyPrintScale();
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => window.print());
-    });
-  }, [applyPrintScale]);
+  const handlePrint = useCallback(async () => {
+    const sections = [...document.querySelectorAll<HTMLElement>("section.pub-dept-section")];
+    if (sections.length === 0 || pdfBusy) return;
+    setPdfBusy(true);
+    const restored: { el: HTMLElement; overflow: string; width: string }[] = [];
+    try {
+      const { toCanvas } = await import("html-to-image");
+      const { jsPDF } = await import("jspdf");
+      const { canvasToFitJpeg } = await import("@/lib/org/pdf-image");
+
+      sections.forEach((section) => {
+        section.querySelectorAll<HTMLElement>(".otree-scroll").forEach((s) => {
+          restored.push({ el: s, overflow: s.style.overflow, width: s.style.width });
+          s.style.overflow = "visible";
+          s.style.width = "max-content";
+        });
+      });
+
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+      let first = true;
+      for (const section of sections) {
+        const canvas = await toCanvas(section, {
+          pixelRatio: 2,
+          cacheBust: true,
+          backgroundColor: "#ffffff",
+          skipFonts: false,
+        });
+        const jpeg = canvasToFitJpeg(canvas, 2200, 0.8);
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const margin = 8;
+        const scale = Math.min((pageW - margin * 2) / jpeg.width, (pageH - margin * 2) / jpeg.height);
+        const imgW = jpeg.width * scale;
+        const imgH = jpeg.height * scale;
+        if (!first) doc.addPage("a4", "landscape");
+        first = false;
+        doc.addImage(jpeg.dataUrl, "JPEG", (pageW - imgW) / 2, (pageH - imgH) / 2, imgW, imgH, undefined, "MEDIUM");
+      }
+      doc.save("organizacna-struktura.pdf");
+    } catch (err) {
+      console.error("Public org PDF export failed:", err);
+      applyPrintScale();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => window.print());
+      });
+    } finally {
+      restored.forEach(({ el, overflow, width }) => {
+        el.style.overflow = overflow;
+        el.style.width = width;
+      });
+      setPdfBusy(false);
+    }
+  }, [applyPrintScale, pdfBusy]);
 
   const departments = useMemo(() => {
     if (!data) return [];
@@ -823,10 +873,11 @@ export default function PublicOrgPage() {
               </div>
               <button
                 type="button"
-                onClick={handlePrint}
-                className="rounded-full border border-white/25 px-4 py-1.5 text-xs font-semibold text-white/90 transition hover:bg-white/10"
+                onClick={() => void handlePrint()}
+                disabled={pdfBusy}
+                className="rounded-full border border-white/25 px-4 py-1.5 text-xs font-semibold text-white/90 transition hover:bg-white/10 disabled:opacity-60"
               >
-                {t.print}
+                {pdfBusy ? t.preparingPdf : t.print}
               </button>
             </div>
           </div>

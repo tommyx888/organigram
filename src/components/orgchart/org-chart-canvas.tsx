@@ -2364,6 +2364,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
       const { toCanvas } = await import("html-to-image");
       const { jsPDF } = await import("jspdf");
+      const { canvasToFitJpeg } = await import("@/lib/org/pdf-image");
       const exportBackground = "#f8fafc";
 
       const captureCurrentView = async (): Promise<HTMLCanvasElement> => {
@@ -2378,7 +2379,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         });
         await new Promise((r) => requestAnimationFrame(r));
         const canvas = await toCanvas(container, {
-          pixelRatio: 3,
+          pixelRatio: 2,
           cacheBust: true,
           backgroundColor: exportBackground,
           skipFonts: false,
@@ -2431,22 +2432,27 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
         const isLandscape = cropped.width >= cropped.height;
         if (firstPage) {
-          doc = new jsPDF({ orientation: isLandscape ? "landscape" : "portrait", unit: "mm", format: "a4" });
+          doc = new jsPDF({
+            orientation: isLandscape ? "landscape" : "portrait",
+            unit: "mm",
+            format: "a4",
+            compress: true,
+          });
           firstPage = false;
         } else {
           doc!.addPage("a4", isLandscape ? "landscape" : "portrait");
         }
 
+        const jpeg = canvasToFitJpeg(cropped, 2200, 0.8);
         const pageW = doc!.internal.pageSize.getWidth();
         const pageH = doc!.internal.pageSize.getHeight();
         const margin = 4;
-        const scale = Math.min((pageW - margin*2) / cropped.width, (pageH - margin*2) / cropped.height);
-        const imgW = cropped.width * scale;
-        const imgH = cropped.height * scale;
+        const scale = Math.min((pageW - margin * 2) / jpeg.width, (pageH - margin * 2) / jpeg.height);
+        const imgW = jpeg.width * scale;
+        const imgH = jpeg.height * scale;
         const imgX = (pageW - imgW) / 2;
         const imgY = (pageH - imgH) / 2;
-        const imgData = cropped.toDataURL("image/png");
-        doc!.addImage(imgData, "PNG", imgX, imgY, imgW, imgH);
+        doc!.addImage(jpeg.dataUrl, "JPEG", imgX, imgY, imgW, imgH, undefined, "MEDIUM");
 
         // Pridaj názov oddelenia ako text (malý, vpravo hore)
         const label = dept === "all" ? "Cela struktura" : dept;
