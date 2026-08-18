@@ -3,6 +3,8 @@
  * Inšpirované best practices a modernými organigramami (gradient, pill, bubble štýly).
  */
 
+import type { KatType } from "@/lib/org/types";
+
 export type ConnectionLineStyle = "straight" | "step" | "smoothstep";
 export type ConnectionMarker = "arrow" | "arrowClosed" | "none";
 
@@ -89,6 +91,8 @@ export interface ChartAppearanceState {
   nodeGapX?: number;
   /** Ak je neprázdne, zobrazia sa len karty s touto farbou (hex). Prázdne/undefined = zobraziť všetky. */
   visibleCardColors?: string[];
+  /** Ak je neprázdne, zobrazia sa len tieto KAT kategórie. Prázdne/undefined = zobraziť všetky. */
+  visibleKats?: KatType[];
   /** Globálna mierka bunky (karty). 1 = 100 %. */
   nodeScale?: number;
   /** Dodatočná mierka šírky bunky (detailný tuning). 1 = 100 %. */
@@ -167,6 +171,7 @@ export const DEFAULT_CHART_APPEARANCE: ChartAppearanceState = {
   rowGap: 28,
   nodeGapX: 24,
   visibleCardColors: undefined,
+  visibleKats: undefined,
   nodeScale: 1,
   nodeWidthScale: 1,
   nodeHeightScale: 1,
@@ -239,6 +244,7 @@ function mergeAppearance(
     rowGap: partial.rowGap ?? base.rowGap ?? 28,
     nodeGapX: partial.nodeGapX ?? base.nodeGapX ?? 24,
     visibleCardColors: partial.visibleCardColors !== undefined ? partial.visibleCardColors : base.visibleCardColors,
+    visibleKats: partial.visibleKats !== undefined ? partial.visibleKats : base.visibleKats,
     nodeScale: partial.nodeScale ?? base.nodeScale ?? 1,
     nodeWidthScale: partial.nodeWidthScale ?? base.nodeWidthScale ?? 1,
     nodeHeightScale: partial.nodeHeightScale ?? base.nodeHeightScale ?? 1,

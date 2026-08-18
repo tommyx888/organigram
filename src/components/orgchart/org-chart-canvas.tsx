@@ -80,7 +80,8 @@ import {
 } from "@/lib/org/hierarchy-settings";
 import type { OrgChartSettingsPayload } from "@/lib/org/org-chart-settings-types";
 import { DEFAULT_CHART_APPEARANCE } from "@/lib/org/chart-appearance";
-import { ALLOWED_KAT_VALUES, type EmployeeRecord, type VacancyPlaceholder, type SectionGroup } from "@/lib/org/types";
+import { DISPLAY_KAT_CATEGORIES, type EmployeeRecord, type VacancyPlaceholder, type SectionGroup } from "@/lib/org/types";
+import { getDisplayKat, normalizeKat } from "@/lib/org/position-type";
 import { supabaseClient } from "@/lib/supabase/client";
 import { brandTokens } from "@/styles/tokens";
 
@@ -1022,7 +1023,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     return loadCollapsedNodes();
   });
 
-  /** Farby KAT: východzie z tokens + prepis z nastavení (umožňuje nastaviť SAL, INDIR1, INDIR2, INDIR3…). */
+  /** Farby KAT: východzie z tokens + prepis z nastavení (SAL, INDIR1–3, DIR). */
   const effectiveKatColors = useMemo((): Record<string, string> => ({
     ...(brandTokens.katColors as Record<string, string>),
     ...(initialSettings?.katColors ?? {}),
@@ -1090,12 +1091,6 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     [onSettingsChange],
   );
   const nodesRef = useRef<OrgFlowNode[]>([]);
-
-  const recordsWithKat = useMemo(() => {
-    const allowed = new Set(ALLOWED_KAT_VALUES);
-    const withKat = rawRecords.filter((r) => r.kat != null && allowed.has(r.kat));
-    return withKat.length > 0 ? withKat : rawRecords;
-  }, [rawRecords]);
 
   /** Pri zobrazení oddelenia: koreň stromu je manažér oddelenia; inak GM. */
   const effectiveRootId = useMemo(() => {
@@ -1422,17 +1417,80 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     return result;
   }, [hierarchyChildrenAll, rawRecords]);
 
-  /** Hĺbka uzla: root = 1, priami podriadení = 2, atď. (bez ohľadu na collapse / max layers). */
+  const recordById = useMemo(() => {
+    const map = new Map<string, EmployeeRecord>();
+    rawRecords.forEach((r) => map.set(r.employeeId, r));
+    return map;
+  }, [rawRecords]);
+
+  const vacancyById = useMemo(() => {
+    const map = new Map<string, VacancyPlaceholder>();
+    vacancies.forEach((v) => map.set(v.id, v));
+    return map;
+  }, [vacancies]);
+
+  const visibleKatSet = useMemo(() => {
+    const selected = chartAppearance.visibleKats;
+    if (!selected?.length) return null;
+    return new Set(selected);
+  }, [chartAppearance.visibleKats]);
+
+  const isKatFilterVisible = useCallback(
+    (id: string): boolean => {
+      if (!visibleKatSet) return true;
+      if (isSectionId(id)) return true;
+      if (isVacancyId(id)) {
+        const kat = normalizeKat(vacancyById.get(id)?.category);
+        if (!kat) return true;
+        return visibleKatSet.has(kat);
+      }
+      const rec = recordById.get(id);
+      if (!rec) return true;
+      return visibleKatSet.has(getDisplayKat(rec));
+    },
+    [visibleKatSet, vacancyById, recordById],
+  );
+
+  const getRawChildren = useCallback(
+    (nodeId: string): string[] => {
+      const raw =
+        nodeId === "root"
+          ? orderedHierarchyChildren.get(effectiveRootId ?? "__root") ?? []
+          : orderedHierarchyChildren.get(nodeId) ?? [];
+      const idToExclude =
+        nodeId === "root" ? (effectiveRootId ?? FALLBACK_GM_EMPLOYEE_ID) : nodeId;
+      return raw.filter((id) => id !== idToExclude);
+    },
+    [orderedHierarchyChildren, effectiveRootId],
+  );
+
+  const getVisibleKatChildren = useCallback(
+    (nodeId: string): string[] => {
+      const out: string[] = [];
+      const visited = new Set<string>();
+      function walk(parentId: string) {
+        for (const id of getRawChildren(parentId)) {
+          if (visited.has(id)) continue;
+          visited.add(id);
+          if (isKatFilterVisible(id)) out.push(id);
+          else walk(id);
+        }
+      }
+      walk(nodeId);
+      return out;
+    },
+    [getRawChildren, isKatFilterVisible],
+  );
+
+  /** Hĺbka vo filtrovanom strome (skryté kategórie sa preskočia). */
   const depthByNodeId = useMemo(() => {
     const map = new Map<string, number>();
     map.set("root", 1);
     const queue: string[] = ["root"];
-    const getKids = (id: string) =>
-      id === "root" ? orderedHierarchyChildren.get(effectiveRootId ?? "__root") ?? [] : orderedHierarchyChildren.get(id) ?? [];
     while (queue.length > 0) {
       const id = queue.shift()!;
       const d = map.get(id)!;
-      getKids(id).forEach((kid) => {
+      getVisibleKatChildren(id).forEach((kid) => {
         if (!map.has(kid)) {
           map.set(kid, d + 1);
           queue.push(kid);
@@ -1440,24 +1498,16 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       });
     }
     return map;
-  }, [orderedHierarchyChildren, effectiveRootId]);
+  }, [getVisibleKatChildren]);
 
   const getChildrenForLayout = useCallback(
     (nodeId: string): string[] => {
       if (collapsedNodeIds.has(nodeId)) return [];
       const depth = depthByNodeId.get(nodeId) ?? 1;
       if (depth >= maxVisibleLayers) return [];
-      const raw =
-        nodeId === "root"
-          ? orderedHierarchyChildren.get(effectiveRootId ?? "__root") ?? []
-          : orderedHierarchyChildren.get(nodeId) ?? [];
-      // Nikdy nezobrazovať uzol ako vlastného potomka. Pre root: odstrániť osobu, ktorá sa ako root zobrazuje
-      // (vybraná osoba alebo fallback), aby sa pri „žiadna vybraná“ nezdvojal (root = fallback, deti z __root obsahujú toho istého).
-      const idToExclude =
-        nodeId === "root" ? (effectiveRootId ?? FALLBACK_GM_EMPLOYEE_ID) : nodeId;
-      return raw.filter((id) => id !== idToExclude);
+      return getVisibleKatChildren(nodeId);
     },
-    [orderedHierarchyChildren, effectiveRootId, collapsedNodeIds, depthByNodeId, maxVisibleLayers],
+    [collapsedNodeIds, depthByNodeId, maxVisibleLayers, getVisibleKatChildren],
   );
 
   const expansionStyle = chartAppearance.expansionStyle ?? "tree";
@@ -1561,7 +1611,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     return { type: "placeholder" as const };
   }, [effectiveRootId, rawRecords, vacancies]);
 
-  const rootHasChildren = (orderedHierarchyChildren.get(effectiveRootId ?? "__root") ?? []).length > 0;
+  const rootHasChildren = getVisibleKatChildren("root").length > 0;
   const rootIsCollapsed = collapsedNodeIds.has("root");
 
   const handleAlignToTemplate = useCallback(() => {
@@ -1665,9 +1715,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       const customColor = employeeColors[record.employeeId];
       if (customColor) return customColor;
       if (appearance.colorScheme === "byPosition" && (record.kat || record.positionType)) {
-        return record.kat
-          ? (effectiveKatColors[record.kat] ?? brandTokens.positionTypeColors[record.positionType])
-          : brandTokens.positionTypeColors[record.positionType];
+        return effectiveKatColors[getDisplayKat(record)] ?? brandTokens.positionTypeColors[record.positionType];
       }
       const a = getNodeAccent(appearance, { levelIndex: levelIdx, positionType: record.positionType, kat: record.kat ?? undefined });
       return a?.type === "solid" && a.color ? a.color : (brandTokens.colors.navy as string);
@@ -1699,7 +1747,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         customColor
           ? { type: "solid" as const, color: customColor }
           : appearance.colorScheme === "byPosition" && (record.kat || record.positionType)
-            ? { type: "solid" as const, color: record.kat ? (effectiveKatColors[record.kat] ?? brandTokens.positionTypeColors[record.positionType]) : brandTokens.positionTypeColors[record.positionType] }
+            ? { type: "solid" as const, color: effectiveKatColors[getDisplayKat(record)] ?? brandTokens.positionTypeColors[record.positionType] }
             : accent;
       list.push({
         id: "root",
@@ -1815,7 +1863,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       } else if (isVacancyId(id)) {
         const vac = vacancies.find((v) => v.id === id);
         if (!vac) return;
-        const vacChildren = orderedHierarchyChildren.get(vac.id) ?? [];
+        const vacChildren = getVisibleKatChildren(vac.id);
         list.push({
           id: vac.id,
           type: "vacancy",
@@ -1854,9 +1902,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           customColor
             ? { type: "solid" as const, color: customColor }
             : appearance.colorScheme === "byPosition" && (record.kat || record.positionType)
-              ? { type: "solid" as const, color: record.kat ? (effectiveKatColors[record.kat] ?? brandTokens.positionTypeColors[record.positionType]) : brandTokens.positionTypeColors[record.positionType] }
+              ? { type: "solid" as const, color: effectiveKatColors[getDisplayKat(record)] ?? brandTokens.positionTypeColors[record.positionType] }
               : accent;
-        const empChildren = orderedHierarchyChildren.get(record.employeeId) ?? [];
+        const empChildren = getVisibleKatChildren(record.employeeId);
         list.push({
           id: record.employeeId,
           type: "orgNode",
@@ -1929,6 +1977,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     photoOffsetX,
     photoOffsetY,
     sectionGroups,
+    getVisibleKatChildren,
+    getChildrenForLayout,
   ]);
 
   /** Pre vybraného zamestnanca: zoznam priamych podriadených v aktuálnom poradí (pre panel „Poradie podriadených“). */
@@ -2874,7 +2924,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                 {showKatColorsSettings && (
                   <>
                     <p className="mb-3 mt-2 text-xs text-slate-600">
-                      Jednotná farba pre všetky bunky danej kategórie (SAL, INDIR1, INDIR2, INDIR3).
+                      Jednotná farba pre všetky bunky danej kategórie (Salaried, Indirect 3–1, Direct).
                     </p>
                     <div className="mb-3 flex flex-wrap gap-2">
                       <button
@@ -2883,9 +2933,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                           onSettingsChange({
                             katColors: {
                               SAL: brandTokens.katColors.SAL,
-                              INDIR1: brandTokens.katColors.INDIR1,
-                              INDIR2: brandTokens.katColors.INDIR2,
                               INDIR3: brandTokens.katColors.INDIR3,
+                              INDIR2: brandTokens.katColors.INDIR2,
+                              INDIR1: brandTokens.katColors.INDIR1,
+                              DIR: brandTokens.katColors.DIR,
                             },
                           });
                         }}
@@ -2902,7 +2953,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                       </button>
                     </div>
                     <div className="space-y-2">
-                      {(["SAL", "INDIR1", "INDIR2", "INDIR3"] as const).map((katKey) => {
+                      {DISPLAY_KAT_CATEGORIES.map((katKey) => {
                         const currentHex =
                           effectiveKatColors[katKey] ??
                           (brandTokens.katColors as Record<string, string>)[katKey] ??
@@ -3511,7 +3562,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                   const reportCount = rawRecords.filter((r) => r.managerEmployeeId === vac.id).length
                   + vacancies.filter((v) => v.parentId === vac.id).length;
 
-                  const CATEGORIES = ["SAL", "DIR", "INDIR", "INDIR2", "INDIR3"];
+                  const CATEGORIES = [...DISPLAY_KAT_CATEGORIES];
 
                   function saveVacancyField(patch: Partial<Omit<VacancyPlaceholder, 'id'>>) {
                   const updated: VacancyPlaceholder = { ...vac, ...patch } as VacancyPlaceholder;

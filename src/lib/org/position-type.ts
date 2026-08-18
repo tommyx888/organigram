@@ -1,16 +1,25 @@
 import type { KatType, PositionType } from "./types";
-import { ALLOWED_KAT_VALUES } from "./types";
 
-const allowedKatSet = new Set<string>(ALLOWED_KAT_VALUES);
+/** Normalizuje kat_atos / kat na SAL, INDIR1–3 alebo DIR. */
+export function normalizeKat(raw: string | null | undefined): KatType | undefined {
+  const k = String(raw ?? "").trim().toUpperCase().replace(/\s+/g, "");
+  if (!k) return undefined;
+  if (k === "SAL" || k === "SALARIED") return "SAL";
+  if (k === "DIR" || k === "DIRECT") return "DIR";
+  if (k === "INDIR3" || k === "INDIRECT3") return "INDIR3";
+  if (k === "INDIR2" || k === "INDIRECT2") return "INDIR2";
+  if (k === "INDIR1" || k === "INDIRECT1" || k === "INDIR" || k === "INDIRECT") return "INDIR1";
+  if (k.startsWith("INDIR")) return "INDIR1";
+  return undefined;
+}
 
 /** Position type from kat_atos / kat: SAL → salaried, INDIR* → indirect, DIR → direct. */
 export function mapKatToPositionType(katRaw: string): PositionType | null {
-  const k = katRaw.trim().toUpperCase().replace(/\s+/g, "");
-  if (!k) return null;
-  if (k === "SAL" || k === "SALARIED") return "salaried";
-  if (k === "DIR" || k === "DIRECT") return "direct";
-  if (k === "INDIR2" || k === "INDIR3" || k.startsWith("INDIR")) return "indirect";
-  return null;
+  const kat = normalizeKat(katRaw);
+  if (!kat) return null;
+  if (kat === "SAL") return "salaried";
+  if (kat === "DIR") return "direct";
+  return "indirect";
 }
 
 export function mapEmployeeTypeToPositionType(value: string | undefined | null): PositionType | null {
@@ -49,18 +58,21 @@ export function resolvePositionType(
   );
 }
 
-/** KAT badge pre kartu (SAL, INDIR2, INDIR3) — kat_atos, potom kat. */
+/** KAT badge pre kartu (SAL, INDIR1–3, DIR) — kat_atos, potom kat. */
 export function resolveKatBadge(
   katAtos: string | undefined | null,
   kat: string | undefined | null,
 ): KatType | undefined {
-  const katAtosNorm = String(katAtos ?? "").trim().toUpperCase().replace(/\s+/g, "");
-  const katNorm = String(kat ?? "").trim().toUpperCase().replace(/\s+/g, "");
+  return normalizeKat(katAtos) ?? normalizeKat(kat);
+}
 
-  if (allowedKatSet.has(katAtosNorm)) return katAtosNorm as KatType;
-  if (allowedKatSet.has(katNorm)) return katNorm as KatType;
-  if (mapKatToPositionType(katAtosNorm) === "salaried" || mapKatToPositionType(katNorm) === "salaried") {
-    return "SAL";
-  }
-  return undefined;
+/** Kategória pre filter a farby: uložené KAT, inak odvodené z positionType. */
+export function getDisplayKat(record: {
+  kat?: KatType | null;
+  positionType: PositionType;
+}): KatType {
+  if (record.kat) return record.kat;
+  if (record.positionType === "salaried") return "SAL";
+  if (record.positionType === "direct") return "DIR";
+  return "INDIR1";
 }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import type {
@@ -16,6 +16,8 @@ import {
   DEFAULT_CHART_APPEARANCE,
   DEFAULT_UNIFIED_COLOR,
 } from "@/lib/org/chart-appearance";
+import { DISPLAY_KAT_CATEGORIES, type KatType } from "@/lib/org/types";
+import { brandTokens } from "@/styles/tokens";
 import { useTranslation } from "@/lib/i18n/context";
 
 export type FilterColorOption = { hex: string; label: string };
@@ -78,6 +80,14 @@ const EXPANSION_STYLE_KEYS: Record<ExpansionStyle, string> = {
   twocol: "orgChart.expansionTwocolShort",
 };
 
+const KAT_LABEL_KEYS: Record<KatType, string> = {
+  SAL: "orgChart.katSalaried",
+  INDIR3: "orgChart.katIndirect3",
+  INDIR2: "orgChart.katIndirect2",
+  INDIR1: "orgChart.katIndirect1",
+  DIR: "orgChart.katDirect",
+};
+
 export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
   const { t } = useTranslation();
   const { appearance, onAppearanceChange, filterColorOptions } = props;
@@ -98,6 +108,18 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
   const isFilterActive = visibleCardColors.length > 0;
   const isColorVisible = (hex: string) =>
     !isFilterActive || visibleCardColors.includes(hex);
+
+  const visibleKats = appearance.visibleKats ?? [];
+  const setVisibleKats = (next: KatType[] | undefined) => {
+    onAppearanceChange({ ...appearance, visibleKats: next?.length ? next : undefined });
+  };
+  const toggleVisibleKat = (kat: KatType) => {
+    const current = new Set(visibleKats);
+    if (current.has(kat)) current.delete(kat);
+    else current.add(kat);
+    setVisibleKats(current.size ? ([...current] as KatType[]) : undefined);
+  };
+  const isKatFilterActive = visibleKats.length > 0;
 
   const expansionStyle = appearance.expansionStyle ?? "tree";
 
@@ -685,6 +707,62 @@ export function ChartAppearanceControls(props: ChartAppearanceControlsProps) {
                 Artifex jednotná
               </button>
             </div>
+          </div>
+        </section>
+
+        {/* Zobrazenie podľa kategórie */}
+        <section>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {t("orgChart.filterByCategory")}
+          </h4>
+          <p className="mb-2 text-xs text-slate-600">
+            {isKatFilterActive
+              ? t("orgChart.filterByCategoryActiveHint")
+              : t("orgChart.filterByCategoryInactiveHint")}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {DISPLAY_KAT_CATEGORIES.map((kat) => {
+              const isSelected = isKatFilterActive && visibleKats.includes(kat);
+              const isOtherSelected = isKatFilterActive && !isSelected;
+              const hex = brandTokens.katColors[kat];
+              return (
+                <button
+                  key={kat}
+                  type="button"
+                  onClick={() => toggleVisibleKat(kat)}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-sm transition-all ${
+                    isSelected
+                      ? "border-transparent ring-2 ring-offset-1 bg-white font-semibold"
+                      : isOtherSelected
+                        ? "border-slate-200 bg-white opacity-35 hover:opacity-70"
+                        : "border-slate-200 bg-white hover:bg-slate-50"
+                  }`}
+                  style={isSelected ? { boxShadow: `0 0 0 2px ${hex}` } : {}}
+                >
+                  <span
+                    className="inline-block h-4 w-4 shrink-0 rounded border border-slate-300"
+                    style={{ backgroundColor: hex }}
+                  />
+                  <span className={isSelected ? "text-slate-900" : "text-slate-700"}>
+                    {t(KAT_LABEL_KEYS[kat])}
+                  </span>
+                  {isSelected && (
+                    <span className="text-[10px]" style={{ color: hex }}>
+                      &#10003;
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            {isKatFilterActive && (
+              <button
+                type="button"
+                onClick={() => setVisibleKats(undefined)}
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+              >
+                {t("common.showAll")}
+              </button>
+            )}
           </div>
         </section>
 

@@ -2,7 +2,7 @@ import Papa from "papaparse";
 
 import { PRODUCTION_COLLAPSED_STREDISKA } from "@/lib/org/stredisko-names";
 import type { EmployeeRecord, ImportIssue, OrgImportResult, PositionType } from "@/lib/org/types";
-import { ALLOWED_KAT_VALUES, type KatType } from "@/lib/org/types";
+import { normalizeKat } from "@/lib/org/position-type";
 
 export function parseCsvImport(source: string): OrgImportResult {
   const parsed = Papa.parse<Record<string, string>>(source, { header: true, skipEmptyLines: true });
@@ -33,11 +33,9 @@ export function parseCsvImport(source: string): OrgImportResult {
     }
   });
 
-  const allowedKatSet = new Set<string>(ALLOWED_KAT_VALUES);
-
   activeRows.forEach(({ row, rowNumber }) => {
     const katRaw = (row.kat_atos ?? row.kat ?? "").trim().toUpperCase().replace(/\s+/g, "");
-    const kat = allowedKatSet.has(katRaw) ? (katRaw as KatType) : undefined;
+    const kat = normalizeKat(katRaw);
 
     const employeeId = (row.os_c || "").trim();
     const fullName = (row.meno || "").trim();

@@ -1,9 +1,18 @@
 export type PositionType = "salaried" | "indirect" | "direct";
 
-/** KAT values shown in org chart; only these are loaded. */
-export type KatType = "INDIR2" | "INDIR3" | "SAL";
+/** KAT values used for display, colours and the category filter. */
+export type KatType = "SAL" | "INDIR3" | "INDIR2" | "INDIR1" | "DIR";
 
-export const ALLOWED_KAT_VALUES: KatType[] = ["INDIR2", "INDIR3", "SAL"];
+export const ALLOWED_KAT_VALUES: KatType[] = ["SAL", "INDIR3", "INDIR2", "INDIR1", "DIR"];
+
+/** Poradie v nastaveniach: Salaried, Indirect 3, Indirect 2, Indirect 1, Direct. */
+export const DISPLAY_KAT_CATEGORIES: readonly KatType[] = [
+  "SAL",
+  "INDIR3",
+  "INDIR2",
+  "INDIR1",
+  "DIR",
+];
 
 export type EmployeeRecord = {
   employeeId: string;
@@ -16,7 +25,7 @@ export type EmployeeRecord = {
   positionType: PositionType;
   positionName: string;
   managerEmployeeId?: string | null;
-  /** KAT from source; only INDIR2, INDIR3, SAL are loaded and displayed. */
+  /** KAT from source (SAL, INDIR1–3, DIR). */
   kat?: KatType | null;
   /** URL fotky (z Supabase Storage alebo lokálne); trvalo uložené pri zdroji employees. */
   photoUrl?: string | null;

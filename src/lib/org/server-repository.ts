@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { defaultEmployeeRecords } from "@/lib/org/mock-data";
 import { PRODUCTION_COLLAPSED_STREDISKA } from "@/lib/org/stredisko-names";
 import type { EmployeeRecord, ImportIssue, OrgDataLoadResult, OrgSource, PositionType, SourceAttempt } from "@/lib/org/types";
-import { ALLOWED_KAT_VALUES, type KatType } from "@/lib/org/types";
+import { normalizeKat } from "@/lib/org/position-type";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type LoadOptions = {
@@ -196,13 +196,11 @@ async function loadFromIacEmployees(
   const sourceRowsForRecords: Array<Record<string, unknown>> = [];
   const seenIds = new Set<string>();
 
-  const allowedKatSet = new Set<string>(ALLOWED_KAT_VALUES);
-
   activeRows.forEach((rawRow, index) => {
     const row = rawRow as Record<string, unknown>;
     const rowNumber = index + 2;
     const katRaw = String(row.kat_atos ?? row.kat ?? "").trim().toUpperCase().replace(/\s+/g, "");
-    const kat = allowedKatSet.has(katRaw) ? (katRaw as KatType) : undefined;
+    const kat = normalizeKat(katRaw);
 
     const employeeId = String(row.os_c ?? "").trim();
     const fullName = String(row.meno ?? "").trim();

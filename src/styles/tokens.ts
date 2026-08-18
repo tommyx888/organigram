@@ -19,12 +19,13 @@ export const brandTokens = {
     indirect: "#75909C",
     direct: "#F06909",
   },
-  /** Colors for KAT (INDIR1, INDIR2, INDIR3, SAL) to differentiate in org chart. */
+  /** Colors for KAT (SAL, INDIR1–3, DIR) to differentiate in org chart. */
   katColors: {
-    INDIR1: "#64748b",
-    INDIR2: "#75909C",
-    INDIR3: "#949C58",
     SAL: "#21394F",
+    INDIR3: "#949C58",
+    INDIR2: "#75909C",
+    INDIR1: "#64748b",
+    DIR: "#F06909",
   },
   node: {
     borderRadius: 24,

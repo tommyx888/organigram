@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import type { PublicOrgScope } from "@/lib/org/public-org-types";
 import { supabaseClient } from "@/lib/supabase/client";
 
 type ShareLink = {
@@ -16,6 +17,11 @@ type ShareLink = {
   is_enabled: boolean;
   expires_at: string | null;
   created_at: string;
+  scope?: PublicOrgScope | null;
+};
+
+type SharePublicLinkButtonProps = {
+  scope?: PublicOrgScope;
 };
 
 async function authHeaders(): Promise<Record<string, string> | null> {
@@ -35,7 +41,32 @@ function shareUrl(token: string): string {
   return `${origin}/share/org/${token}`;
 }
 
-export function SharePublicLinkButton() {
+function copyForScope(scope: PublicOrgScope) {
+  if (scope === "salaried_indirect") {
+    return {
+      button: "Verejný náhľad (SAL + Indirect)",
+      title: "Verejný náhľad — SAL + Indirect",
+      description:
+        "Odkaz zobrazuje aktívnych SAL (THP) aj indirect zamestnancov. Funguje bez prihlásenia, je určený pre ľudí mimo organizácie.",
+      empty: "Zatiaľ žiadne odkazy SAL + Indirect. Vytvorte prvý nižšie.",
+      create: "+ Vytvoriť odkaz SAL + Indirect",
+      defaultLabel: "Verejný náhľad (SAL + Indirect)",
+    };
+  }
+  return {
+    button: "Verejný náhľad (SAL)",
+    title: "Verejný náhľad organigramu",
+    description:
+      "Odkaz zobrazuje iba aktívnych SAL zamestnancov – vedenie a oddelenia. Funguje bez prihlásenia, je určený pre ľudí mimo organizácie.",
+    empty: "Zatiaľ žiadne odkazy SAL. Vytvorte prvý nižšie.",
+    create: "+ Vytvoriť nový odkaz",
+    defaultLabel: "Verejný náhľad (SAL)",
+  };
+}
+
+export function SharePublicLinkButton(props: SharePublicLinkButtonProps) {
+  const scope: PublicOrgScope = props.scope ?? "salaried";
+  const copy = copyForScope(scope);
   const [open, setOpen] = useState(false);
   const [links, setLinks] = useState<ShareLink[]>([]);
   const [busy, setBusy] = useState(false);
@@ -51,8 +82,14 @@ export function SharePublicLinkButton() {
       return;
     }
     const json = (await res.json()) as { links: ShareLink[] };
-    setLinks(json.links ?? []);
-  }, []);
+    const all = json.links ?? [];
+    setLinks(
+      all.filter((link) => {
+        const linkScope = link.scope ?? "salaried";
+        return linkScope === scope;
+      }),
+    );
+  }, [scope]);
 
   useEffect(() => {
     if (open) void load();
@@ -69,11 +106,16 @@ export function SharePublicLinkButton() {
     const res = await fetch("/api/org/share-links", {
       method: "POST",
       headers,
-      body: JSON.stringify({ label: "Verejný náhľad" }),
+      body: JSON.stringify({ label: copy.defaultLabel, scope }),
     });
     setBusy(false);
     if (!res.ok) {
-      setError("Vytvorenie odkazu zlyhalo (potrebné admin práva).");
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      setError(
+        json.error === "scope_column_missing"
+          ? "Chýba stĺpec scope v databáze – spustite migráciu 011_org_share_links_scope.sql."
+          : "Vytvorenie odkazu zlyhalo (potrebné admin práva).",
+      );
       return;
     }
     await load();
@@ -121,7 +163,7 @@ export function SharePublicLinkButton() {
         <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
         </svg>
-        Verejný náhľad (SAL)
+        {copy.button}
       </button>
 
       {open ? (
@@ -132,11 +174,8 @@ export function SharePublicLinkButton() {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-[var(--artifex-navy)]">Verejný náhľad organigramu</h2>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  Odkaz zobrazuje iba aktívnych SAL zamestnancov – vedenie a oddelenia. Funguje bez
-                  prihlásenia, je určený pre ľudí mimo organizácie.
-                </p>
+                <h2 className="text-lg font-bold text-[var(--artifex-navy)]">{copy.title}</h2>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">{copy.description}</p>
               </div>
               <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600" aria-label="Zavrieť">
                 ✕
@@ -146,7 +185,7 @@ export function SharePublicLinkButton() {
             <div className="mt-4 space-y-2">
               {links.length === 0 ? (
                 <p className="rounded-lg bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">
-                  Zatiaľ žiadne odkazy. Vytvorte prvý nižšie.
+                  {copy.empty}
                 </p>
               ) : (
                 links.map((link) => (
@@ -196,7 +235,7 @@ export function SharePublicLinkButton() {
               disabled={busy}
               className="mt-4 w-full rounded-xl bg-[var(--artifex-olive)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
             >
-              {busy ? "Vytváram…" : "+ Vytvoriť nový odkaz"}
+              {busy ? "Vytváram…" : copy.create}
             </button>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Verejný náhľad organizačnej štruktúry (iba aktívni SAL zamestnanci).
+ * Verejný náhľad organizačnej štruktúry (SAL, alebo SAL + Indirect podľa odkazu).
  * Prístup cez zdieľateľný odkaz /share/org/[token] – bez prihlásenia.
  */
 
@@ -28,6 +28,8 @@ const L: Record<Lang, Record<string, string>> = {
     generated: "Vygenerované",
     confidential:
       "Tento náhľad je určený na zdieľanie mimo organizácie a obsahuje iba aktívnych THP (salaried) zamestnancov.",
+    confidentialMixed:
+      "Tento náhľad je určený na zdieľanie mimo organizácie a obsahuje aktívnych THP (salaried) aj indirect zamestnancov.",
     loading: "Načítavam organizačnú štruktúru…",
     errTitle: "Odkaz nie je platný",
     errBody:
@@ -36,6 +38,8 @@ const L: Record<Lang, Record<string, string>> = {
     legendSolid: "priama línia riadenia",
     legendDashed: "nepriama (prerušovaná) línia",
     vacancy: "Voľná pozícia",
+    typeSalaried: "SAL",
+    typeIndirect: "Indirect",
   },
   en: {
     title: "Organization Structure",
@@ -49,6 +53,8 @@ const L: Record<Lang, Record<string, string>> = {
     generated: "Generated",
     confidential:
       "This view is intended for sharing outside the organization and contains active salaried employees only.",
+    confidentialMixed:
+      "This view is intended for sharing outside the organization and contains active salaried and indirect employees.",
     loading: "Loading organization structure…",
     errTitle: "Link is not valid",
     errBody:
@@ -57,6 +63,8 @@ const L: Record<Lang, Record<string, string>> = {
     legendSolid: "direct reporting line",
     legendDashed: "indirect (dotted) line",
     vacancy: "Open position",
+    typeSalaried: "SAL",
+    typeIndirect: "Indirect",
   },
 };
 
@@ -291,11 +299,13 @@ function PersonCard({
   color,
   size = "md",
   deptBadge,
+  typeBadge,
 }: {
   person: PublicOrgPerson;
   color: string;
   size?: "xl" | "lg" | "md";
   deptBadge?: string | null;
+  typeBadge?: string | null;
 }) {
   const dims =
     size === "xl"
@@ -344,6 +354,19 @@ function PersonCard({
           {deptBadge}
         </span>
       ) : null}
+      {typeBadge ? (
+        <span
+          className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+            deptBadge ? "mt-1" : "mt-2"
+          }`}
+          style={{
+            background: person.personType === "indirect" ? "#75909C22" : "#21394F14",
+            color: person.personType === "indirect" ? "#4d6570" : "#21394F",
+          }}
+        >
+          {typeBadge}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -375,8 +398,24 @@ function VacancyCard({ person, label }: { person: PublicOrgPerson; label: string
   );
 }
 
+function typeLabelFor(
+  person: PublicOrgPerson,
+  labels: { salaried: string; indirect: string } | null,
+): string | null {
+  if (!labels || person.isVacancy) return null;
+  return person.personType === "indirect" ? labels.indirect : labels.salaried;
+}
+
 /** Kompaktný stĺpec radových členov (bez podriadených) – šetrí šírku stromu. */
-function StackColumn({ nodes, color }: { nodes: TreeNode[]; color: string }) {
+function StackColumn({
+  nodes,
+  color,
+  typeLabels,
+}: {
+  nodes: TreeNode[];
+  color: string;
+  typeLabels: { salaried: string; indirect: string } | null;
+}) {
   return (
     <div className="flex flex-col gap-2">
       {nodes.map((n) => (
@@ -397,6 +436,14 @@ function StackColumn({ nodes, color }: { nodes: TreeNode[]; color: string }) {
             <p className="truncate text-[10.5px] text-slate-500" title={n.person.position}>
               {n.person.position}
             </p>
+            {typeLabelFor(n.person, typeLabels) ? (
+              <p
+                className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                style={{ color: n.person.personType === "indirect" ? "#75909C" : "#21394F" }}
+              >
+                {typeLabelFor(n.person, typeLabels)}
+              </p>
+            ) : null}
           </div>
         </div>
       ))}
@@ -409,11 +456,13 @@ function OrgTree({
   color,
   depth = 0,
   rootBadge,
+  typeLabels,
 }: {
   node: TreeNode;
   color: string;
   depth?: number;
   rootBadge?: string | null;
+  typeLabels: { salaried: string; indirect: string } | null;
 }) {
   const branches = node.children.filter((c) => c.children.length > 0);
   const leaves = node.children.filter((c) => c.children.length === 0);
@@ -426,19 +475,32 @@ function OrgTree({
         color={color}
         size={depth === 0 ? "lg" : "md"}
         deptBadge={depth === 0 ? rootBadge : undefined}
+        typeBadge={typeLabelFor(node.person, typeLabels)}
       />
       {node.children.length > 0 ? (
         <ul>
           {branches.map((child) => (
-            <OrgTree key={child.person.id} node={child} color={color} depth={depth + 1} />
+            <OrgTree
+              key={child.person.id}
+              node={child}
+              color={color}
+              depth={depth + 1}
+              typeLabels={typeLabels}
+            />
           ))}
           {stackLeaves ? (
             <li>
-              <StackColumn nodes={leaves} color={color} />
+              <StackColumn nodes={leaves} color={color} typeLabels={typeLabels} />
             </li>
           ) : (
             leaves.map((child) => (
-              <OrgTree key={child.person.id} node={child} color={color} depth={depth + 1} />
+              <OrgTree
+                key={child.person.id}
+                node={child}
+                color={color}
+                depth={depth + 1}
+                typeLabels={typeLabels}
+              />
             ))
           )}
         </ul>
@@ -455,6 +517,7 @@ function DeptSection({
   lang,
   allById,
   globalRootId,
+  typeLabels,
 }: {
   code: string;
   name: string;
@@ -463,6 +526,7 @@ function DeptSection({
   lang: Lang;
   allById: Map<string, PublicOrgPerson>;
   globalRootId: string | null;
+  typeLabels: { salaried: string; indirect: string } | null;
 }) {
   const { lead, underLead, others } = useMemo(() => {
     const inDept = new Set(people.map((p) => p.id));
@@ -505,10 +569,17 @@ function DeptSection({
                   node={{ person: lead, children: underLead }}
                   color={color}
                   rootBadge={t.deptLead}
+                  typeLabels={typeLabels}
                 />
               ) : null}
               {others.map((root) => (
-                <OrgTree key={root.person.id} node={root} color={color} depth={lead ? 1 : 0} />
+                <OrgTree
+                  key={root.person.id}
+                  node={root}
+                  color={color}
+                  depth={lead ? 1 : 0}
+                  typeLabels={typeLabels}
+                />
               ))}
             </ul>
           </div>
@@ -686,6 +757,10 @@ export default function PublicOrgPage() {
   }, [departments, allById, mainRoot]);
 
   const t = L[lang];
+  const mixedScope = data?.scope === "salaried_indirect";
+  const typeLabels = mixedScope
+    ? { salaried: t.typeSalaried, indirect: t.typeIndirect }
+    : null;
 
   if (state === "loading") {
     return (
@@ -774,6 +849,13 @@ export default function PublicOrgPage() {
             <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur">
               {countEmployees(data.people)} {t.employees}
             </span>
+            {mixedScope ? (
+              <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur">
+                {data.people.filter((p) => !p.isVacancy && p.personType !== "indirect").length} SAL ·{" "}
+                {data.people.filter((p) => !p.isVacancy && p.personType === "indirect").length}{" "}
+                {t.typeIndirect}
+              </span>
+            ) : null}
             <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur">
               {departments.length} {t.departments.toLowerCase()}
             </span>
@@ -831,7 +913,12 @@ export default function PublicOrgPage() {
                 <div className="otree">
                   <ul>
                     <li>
-                      <PersonCard person={mainRoot.person} color="#21394F" size="xl" />
+                      <PersonCard
+                        person={mainRoot.person}
+                        color="#21394F"
+                        size="xl"
+                        typeBadge={typeLabelFor(mainRoot.person, typeLabels)}
+                      />
                       {leadership.solid.length + leadership.dashed.length > 0 ? (
                         <ul>
                           {leadership.solid.map((child, i) => {
@@ -853,7 +940,13 @@ export default function PublicOrgPage() {
                                           gc.person.department;
                                         return (
                                           <li key={gc.person.id}>
-                                            <PersonCard person={gc.person} color={color} size="lg" deptBadge={badge} />
+                                            <PersonCard
+                                              person={gc.person}
+                                              color={color}
+                                              size="lg"
+                                              deptBadge={badge}
+                                              typeBadge={typeLabelFor(gc.person, typeLabels)}
+                                            />
                                           </li>
                                         );
                                       })}
@@ -871,7 +964,13 @@ export default function PublicOrgPage() {
                               child.person.department;
                             return (
                               <li key={child.person.id}>
-                                <PersonCard person={child.person} color={color} size="lg" deptBadge={badge} />
+                                <PersonCard
+                                  person={child.person}
+                                  color={color}
+                                  size="lg"
+                                  deptBadge={badge}
+                                  typeBadge={typeLabelFor(child.person, typeLabels)}
+                                />
                               </li>
                             );
                           })}
@@ -885,7 +984,13 @@ export default function PublicOrgPage() {
                               child.person.department;
                             return (
                               <li key={child.person.id} className="otree-dashed-link">
-                                <PersonCard person={child.person} color={color} size="md" deptBadge={badge} />
+                                <PersonCard
+                                  person={child.person}
+                                  color={color}
+                                  size="md"
+                                  deptBadge={badge}
+                                  typeBadge={typeLabelFor(child.person, typeLabels)}
+                                />
                               </li>
                             );
                           })}
@@ -922,12 +1027,15 @@ export default function PublicOrgPage() {
             lang={lang}
             allById={allById}
             globalRootId={mainRoot?.person.id ?? null}
+            typeLabels={typeLabels}
           />
         ))}
 
         {/* ── Pätička ─────────────────────────────────────────── */}
         <footer className="rounded-3xl border border-slate-200/70 bg-white/60 px-6 py-5 text-center backdrop-blur-sm">
-          <p className="text-xs leading-relaxed text-slate-500">{t.confidential}</p>
+          <p className="text-xs leading-relaxed text-slate-500">
+            {mixedScope ? t.confidentialMixed : t.confidential}
+          </p>
           <p className="mt-1 text-xs text-slate-400">
             © {new Date().getFullYear()} {data.companyName} · {t.generated}{" "}
             {new Date(data.generatedAt).toLocaleString(lang === "sk" ? "sk-SK" : "en-GB")}

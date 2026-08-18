@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
+import { isPublicOrgScope, type PublicOrgScope } from "@/lib/org/public-org-types";
 import { createServerSupabaseClientWithUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +22,19 @@ export async function GET(request: NextRequest) {
   const supabase = getUserClient(request);
   if (!supabase) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("org_share_links")
-    .select("id, token, label, is_enabled, expires_at, created_at")
+    .select("id, token, label, is_enabled, expires_at, created_at, scope")
     .order("created_at", { ascending: false });
+
+  if (error && /scope/i.test(error.message)) {
+    const retry = await supabase
+      .from("org_share_links")
+      .select("id, token, label, is_enabled, expires_at, created_at")
+      .order("created_at", { ascending: false });
+    data = (retry.data ?? []).map((row) => ({ ...row, scope: "salaried" }));
+    error = retry.error;
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ links: data ?? [] });
@@ -34,8 +44,14 @@ export async function POST(request: NextRequest) {
   const supabase = getUserClient(request);
   if (!supabase) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const body = (await request.json().catch(() => ({}))) as { label?: string };
-  const label = String(body.label ?? "").trim() || "Verejný náhľad";
+  const body = (await request.json().catch(() => ({}))) as {
+    label?: string;
+    scope?: string;
+  };
+  const scope: PublicOrgScope = isPublicOrgScope(body.scope) ? body.scope : "salaried";
+  const defaultLabel =
+    scope === "salaried_indirect" ? "Verejný náhľad (SAL + Indirect)" : "Verejný náhľad (SAL)";
+  const label = String(body.label ?? "").trim() || defaultLabel;
 
   // Company id z RLS kontextu používateľa
   const { data: roleRow } = await supabase
@@ -49,11 +65,29 @@ export async function POST(request: NextRequest) {
 
   const token = randomBytes(24).toString("base64url");
 
-  const { data, error } = await supabase
+  const SHARE_LINK_COLUMNS = "id, token, label, is_enabled, expires_at, created_at, scope";
+
+  let { data, error } = await supabase
     .from("org_share_links")
-    .insert({ company_id: roleRow.company_id, token, label })
-    .select("id, token, label, is_enabled, expires_at, created_at")
+    .insert({ company_id: roleRow.company_id, token, label, scope })
+    .select(SHARE_LINK_COLUMNS)
     .single();
+
+  if (error && /scope/i.test(error.message)) {
+    if (scope !== "salaried") {
+      return NextResponse.json(
+        { error: "scope_column_missing", message: "Najprv spustite migráciu 011_org_share_links_scope.sql." },
+        { status: 503 },
+      );
+    }
+    const retry = await supabase
+      .from("org_share_links")
+      .insert({ company_id: roleRow.company_id, token, label })
+      .select("id, token, label, is_enabled, expires_at, created_at")
+      .single();
+    data = retry.data ? { ...retry.data, scope: "salaried" } : retry.data;
+    error = retry.error;
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ link: data }, { status: 201 });
