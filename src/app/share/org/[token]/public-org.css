@@ -162,19 +162,23 @@
     page-break-after: always;
   }
 
-  /* Vedenie – celá sekcia na jednej strane (škálovanie cez JS) */
-  #leadership {
+  /* Vedenie aj oddelenia – celá sekcia na jednej strane, škálovanie cez JS */
+  #leadership,
+  section[id^="dept-"] {
     break-before: page;
     page-break-before: always;
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  #leadership[data-print-fit] {
+  .pub-dept-section[data-print-fit] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
   }
 
-  #leadership[data-print-fit] .pub-dept-content {
+  .pub-dept-section[data-print-fit] .pub-dept-content {
     margin-inline: auto;
   }
 
@@ -182,15 +186,9 @@
     transform-origin: top left;
   }
 
-  /* Každé oddelenie na vlastnej strane */
-  section[id^="dept-"] {
-    break-before: page;
-    page-break-before: always;
-  }
-
   .pub-dept-section {
-    break-inside: auto;
-    page-break-inside: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   /* Hlavička + strom držia pokope na jednej strane */

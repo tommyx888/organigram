@@ -547,6 +547,7 @@ function DeptSection({
       style={{ boxShadow: "0 14px 40px rgba(33,57,79,0.07)" }}
     >
       <div className="pub-dept-content">
+        <div className="pub-print-scale-host">
         <header className="mb-2 flex flex-wrap items-center gap-3">
           <span
             className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black text-white"
@@ -584,6 +585,7 @@ function DeptSection({
             </ul>
           </div>
         </div>
+        </div>
       </div>
     </section>
   );
@@ -619,48 +621,32 @@ export default function PublicOrgPage() {
     };
   }, [token]);
 
-  /** Pred tlačou/PDF: vedenie na jeden slide, ostatné oddelenia len podľa šírky. */
+  /** Pred tlačou/PDF: každá sekcia (vedenie + oddelenia) sa zmestí na jednu A4 stranu. */
   const applyPrintScale = useCallback(() => {
     const { width: pageW, height: pageH } = getPrintArea();
     const sectionPad = 64;
     const availW = pageW - sectionPad;
     const availH = pageH - sectionPad;
 
-    const leadership = document.getElementById("leadership");
-    if (leadership) {
-      const clip = leadership.querySelector<HTMLElement>(".pub-dept-content");
-      const host = leadership.querySelector<HTMLElement>(".pub-print-scale-host");
-      if (clip && host) {
-        const scaledH = scaleToFit(clip, host, availW, availH);
-        leadership.style.height = `${scaledH + sectionPad}px`;
-        leadership.style.overflow = "hidden";
-        leadership.dataset.printFit = "1";
-      }
-    }
-
-    document.querySelectorAll<HTMLElement>('section[id^="dept-"] .otree-scroll').forEach((scroll) => {
-      const otree = scroll.querySelector<HTMLElement>(".otree");
-      if (!otree) return;
-      if (otree.scrollWidth <= availW) return;
-      scaleToFit(scroll, otree, availW);
+    document.querySelectorAll<HTMLElement>("section.pub-dept-section").forEach((section) => {
+      const clip = section.querySelector<HTMLElement>(".pub-dept-content");
+      const host = section.querySelector<HTMLElement>(".pub-print-scale-host");
+      if (!clip || !host) return;
+      scaleToFit(clip, host, availW, availH);
+      section.style.height = `${availH + sectionPad}px`;
+      section.style.overflow = "hidden";
+      section.dataset.printFit = "1";
     });
   }, []);
 
   const resetPrintScale = useCallback(() => {
-    const leadership = document.getElementById("leadership");
-    if (leadership) {
-      const clip = leadership.querySelector<HTMLElement>(".pub-dept-content");
-      const host = leadership.querySelector<HTMLElement>(".pub-print-scale-host");
+    document.querySelectorAll<HTMLElement>("section.pub-dept-section").forEach((section) => {
+      const clip = section.querySelector<HTMLElement>(".pub-dept-content");
+      const host = section.querySelector<HTMLElement>(".pub-print-scale-host");
       if (clip && host) resetScaleFit(clip, host);
-      leadership.style.height = "";
-      leadership.style.overflow = "";
-      delete leadership.dataset.printFit;
-    }
-
-    document.querySelectorAll<HTMLElement>(".otree-scroll").forEach((scroll) => {
-      const otree = scroll.querySelector<HTMLElement>(".otree");
-      if (!otree || !scroll.dataset.printScaled) return;
-      resetScaleFit(scroll, otree);
+      section.style.height = "";
+      section.style.overflow = "";
+      delete section.dataset.printFit;
     });
   }, []);
 
