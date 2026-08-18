@@ -2387,7 +2387,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
       const captureCurrentView = async (): Promise<HTMLCanvasElement> => {
         // maxZoom: 0.8 zabraňuje aby malé oddelenia (2-3 ľudia) boli príliš priblížené
-        rfInstance.fitView({ padding: 0.08, duration: 0 });
+        rfInstance.fitView({ padding: 0.12, duration: 0 });
         await new Promise((r) => setTimeout(r, 180));
         const hideForExport = container.querySelectorAll(".react-flow__controls, .react-flow__minimap");
         const hiddenEls: { el: Element; prev: string }[] = [];
@@ -2546,8 +2546,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       container.style.borderRadius = "0";
       container.style.border = "none";
 
-      // 2. FitView - zobrazi cely orgchart, padding 0 = ziadne extra miesto
-      rfInstance.fitView({ padding: 0.02, duration: 0 });
+      // 2. Fit to window – celý organigram sa zmestí na stranu bez posúvania
+      rfInstance.fitView({ padding: 0.12, duration: 0 });
       await new Promise((r) => setTimeout(r, 120));
 
       // 3. Skry UI elementy

@@ -708,25 +708,20 @@ export default function PublicOrgPage() {
     const sections = [...document.querySelectorAll<HTMLElement>("section.pub-dept-section")];
     if (sections.length === 0 || pdfBusy) return;
     setPdfBusy(true);
-    const restored: { el: HTMLElement; overflow: string; width: string }[] = [];
     try {
-      resetWindowFit();
+      applyPrintScale();
+      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => requestAnimationFrame(r));
+
       const { toCanvas } = await import("html-to-image");
       const { jsPDF } = await import("jspdf");
       const { canvasToFitJpeg } = await import("@/lib/org/pdf-image");
 
-      sections.forEach((section) => {
-        section.querySelectorAll<HTMLElement>(".otree-scroll").forEach((s) => {
-          restored.push({ el: s, overflow: s.style.overflow, width: s.style.width });
-          s.style.overflow = "visible";
-          s.style.width = "max-content";
-        });
-      });
-
       const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
       let first = true;
       for (const section of sections) {
-        const canvas = await toCanvas(section, {
+        const target = section.querySelector<HTMLElement>(".pub-dept-content") ?? section;
+        const canvas = await toCanvas(target, {
           pixelRatio: 2,
           cacheBust: true,
           backgroundColor: "#ffffff",
@@ -751,14 +746,11 @@ export default function PublicOrgPage() {
         requestAnimationFrame(() => window.print());
       });
     } finally {
-      restored.forEach(({ el, overflow, width }) => {
-        el.style.overflow = overflow;
-        el.style.width = width;
-      });
+      resetPrintScale();
       if (fitToWindow) applyWindowFit();
       setPdfBusy(false);
     }
-  }, [applyPrintScale, applyWindowFit, resetWindowFit, fitToWindow, pdfBusy]);
+  }, [applyPrintScale, applyWindowFit, resetPrintScale, fitToWindow, pdfBusy]);
 
   const departments = useMemo(() => {
     if (!data) return [];
