@@ -241,6 +241,8 @@
     "showDepartment": "Zobraziť oddelenie",
     "departmentAll": "Všetky",
     "lockPositions": "Zamknúť pozície",
+    "fitToWindow": "Prispôsobiť oknu",
+    "fitToWindowTitle": "Zmenšiť organigram tak, aby sa zmestil do okna bez posúvania",
     "showRoot": "Zobraziť vrchol",
     "gridTechnicalDetails": "Technické detaily mriežky",
     "gridGapPx": "Rozostup (px)",

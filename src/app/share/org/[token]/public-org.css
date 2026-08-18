@@ -125,6 +125,10 @@
   background: transparent;
 }
 
+.pub-dept-section[data-window-fit] .otree-scroll {
+  overflow: hidden;
+}
+
 /* ── Jemný nástup sekcií ─────────────────────────────────────── */
 @keyframes pub-org-rise {
   from {

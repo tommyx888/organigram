@@ -26,6 +26,7 @@ const L: Record<Lang, Record<string, string>> = {
     people: "ľudí",
     print: "Stiahnuť PDF",
     preparingPdf: "Pripravujem PDF…",
+    fitToWindow: "Prispôsobiť oknu",
     generated: "Vygenerované",
     confidential:
       "Tento náhľad je určený na zdieľanie mimo organizácie a obsahuje iba aktívnych THP (salaried) zamestnancov.",
@@ -52,6 +53,7 @@ const L: Record<Lang, Record<string, string>> = {
     people: "people",
     print: "Download PDF",
     preparingPdf: "Preparing PDF…",
+    fitToWindow: "Fit to window",
     generated: "Generated",
     confidential:
       "This view is intended for sharing outside the organization and contains active salaried employees only.",
@@ -602,6 +604,7 @@ export default function PublicOrgPage() {
   const [data, setData] = useState<PublicOrgPayload | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [fitToWindow, setFitToWindow] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -642,6 +645,27 @@ export default function PublicOrgPage() {
     });
   }, []);
 
+  const applyWindowFit = useCallback(() => {
+    document.querySelectorAll<HTMLElement>("section.pub-dept-section").forEach((section) => {
+      const clip = section.querySelector<HTMLElement>(".pub-dept-content");
+      const host = section.querySelector<HTMLElement>(".pub-print-scale-host");
+      if (!clip || !host) return;
+      resetScaleFit(clip, host);
+      const availW = Math.max(220, section.clientWidth - 48);
+      scaleToFit(clip, host, availW);
+      section.dataset.windowFit = "1";
+    });
+  }, []);
+
+  const resetWindowFit = useCallback(() => {
+    document.querySelectorAll<HTMLElement>("section.pub-dept-section").forEach((section) => {
+      const clip = section.querySelector<HTMLElement>(".pub-dept-content");
+      const host = section.querySelector<HTMLElement>(".pub-print-scale-host");
+      if (clip && host) resetScaleFit(clip, host);
+      delete section.dataset.windowFit;
+    });
+  }, []);
+
   const resetPrintScale = useCallback(() => {
     document.querySelectorAll<HTMLElement>("section.pub-dept-section").forEach((section) => {
       const clip = section.querySelector<HTMLElement>(".pub-dept-content");
@@ -655,12 +679,30 @@ export default function PublicOrgPage() {
 
   useEffect(() => {
     window.addEventListener("beforeprint", applyPrintScale);
-    window.addEventListener("afterprint", resetPrintScale);
+    const onAfterPrint = () => {
+      resetPrintScale();
+      if (fitToWindow) applyWindowFit();
+    };
+    window.addEventListener("afterprint", onAfterPrint);
     return () => {
       window.removeEventListener("beforeprint", applyPrintScale);
-      window.removeEventListener("afterprint", resetPrintScale);
+      window.removeEventListener("afterprint", onAfterPrint);
     };
-  }, [applyPrintScale, resetPrintScale]);
+  }, [applyPrintScale, resetPrintScale, fitToWindow, applyWindowFit]);
+
+  useEffect(() => {
+    if (!fitToWindow || state !== "ready") {
+      if (!fitToWindow) resetWindowFit();
+      return;
+    }
+    const id = requestAnimationFrame(() => applyWindowFit());
+    const onResize = () => applyWindowFit();
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [fitToWindow, state, data, applyWindowFit, resetWindowFit]);
 
   const handlePrint = useCallback(async () => {
     const sections = [...document.querySelectorAll<HTMLElement>("section.pub-dept-section")];
@@ -668,6 +710,7 @@ export default function PublicOrgPage() {
     setPdfBusy(true);
     const restored: { el: HTMLElement; overflow: string; width: string }[] = [];
     try {
+      resetWindowFit();
       const { toCanvas } = await import("html-to-image");
       const { jsPDF } = await import("jspdf");
       const { canvasToFitJpeg } = await import("@/lib/org/pdf-image");
@@ -712,9 +755,10 @@ export default function PublicOrgPage() {
         el.style.overflow = overflow;
         el.style.width = width;
       });
+      if (fitToWindow) applyWindowFit();
       setPdfBusy(false);
     }
-  }, [applyPrintScale, pdfBusy]);
+  }, [applyPrintScale, applyWindowFit, resetWindowFit, fitToWindow, pdfBusy]);
 
   const departments = useMemo(() => {
     if (!data) return [];
@@ -871,6 +915,17 @@ export default function PublicOrgPage() {
                   </button>
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={() => setFitToWindow((v) => !v)}
+                className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
+                  fitToWindow
+                    ? "border-white bg-white text-[var(--artifex-navy)]"
+                    : "border-white/25 text-white/90 hover:bg-white/10"
+                }`}
+              >
+                {t.fitToWindow}
+              </button>
               <button
                 type="button"
                 onClick={() => void handlePrint()}

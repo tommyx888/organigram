@@ -241,6 +241,8 @@
     "showDepartment": "Show department",
     "departmentAll": "All",
     "lockPositions": "Lock positions",
+    "fitToWindow": "Fit to window",
+    "fitToWindowTitle": "Scale the org chart to fit the window without panning",
     "showRoot": "Show root",
     "gridTechnicalDetails": "Grid technical details",
     "gridGapPx": "Gap (px)",

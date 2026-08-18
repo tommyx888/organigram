@@ -988,6 +988,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   );
   /** Mriežka na zarovnanie – štandardne vypnutá. */
   const [showGrid, setShowGrid] = useState(false);
+  const [fitToWindow, setFitToWindow] = useState(false);
   const [gridSettings, setGridSettings] = useState<GridSettings>(() => ({
     gap: DEFAULT_GRID_GAP,
     lineWidth: DEFAULT_GRID_LINE_WIDTH,
@@ -1697,6 +1698,23 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       reactFlowInstanceRef.current?.fitView({ padding: 0.25, duration: 300 });
     });
   }, [orderedHierarchyChildren, effectiveRootId, setCollapsedNodeIds]);
+
+  const fitChartToWindow = useCallback((duration = 250) => {
+    reactFlowInstanceRef.current?.fitView({ padding: 0.12, duration });
+  }, []);
+
+  useEffect(() => {
+    if (!fitToWindow) return;
+    const id = requestAnimationFrame(() => fitChartToWindow());
+    return () => cancelAnimationFrame(id);
+  }, [fitToWindow, selectedDepartment, collapsedNodeIds.size, expansionStyle, fitChartToWindow]);
+
+  useEffect(() => {
+    if (!fitToWindow) return;
+    const onResize = () => fitChartToWindow(0);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [fitToWindow, fitChartToWindow]);
 
   const nodes = useMemo((): OrgFlowNode[] => {
     const list: OrgFlowNode[] = [];
@@ -2681,6 +2699,24 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             />
             {t("orgChart.lockPositions")}
           </label>
+          <button
+            type="button"
+            onClick={() => {
+              setFitToWindow((on) => {
+                const next = !on;
+                if (next) requestAnimationFrame(() => fitChartToWindow(300));
+                return next;
+              });
+            }}
+            className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
+              fitToWindow
+                ? "border-[var(--artifex-navy)] bg-[var(--artifex-navy)] text-white"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+            title={t("orgChart.fitToWindowTitle")}
+          >
+            {t("orgChart.fitToWindow")}
+          </button>
           <button
             type="button"
             onClick={() => setShowGrid((v) => !v)}
