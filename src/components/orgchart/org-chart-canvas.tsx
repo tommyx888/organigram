@@ -86,6 +86,7 @@ import { subscribePersistStatus, type PersistStatus } from "@/lib/org/persist-st
 import { DEFAULT_CHART_APPEARANCE } from "@/lib/org/chart-appearance";
 import { DISPLAY_KAT_CATEGORIES, type EmployeeRecord, type VacancyPlaceholder, type SectionGroup } from "@/lib/org/types";
 import { findEmployeeByEmail } from "@/lib/org/people-search";
+import { collectReachable, stripHierarchyCycles } from "@/lib/org/hierarchy-cycles";
 import { getDisplayKat, normalizeKat } from "@/lib/org/position-type";
 import { supabaseClient } from "@/lib/supabase/client";
 import { brandTokens } from "@/styles/tokens";
@@ -302,9 +303,11 @@ function layoutTreeUnderParent(
    * w = sirka (horizontalny priestor ktory zabera podstrom)
    * h = vyska (vertikalny priestor ktory zabera podstrom vcetane samotneho uzla)
    */
-  function subtreeSize(id: string): { w: number; h: number } {
+  function subtreeSize(id: string, stack: Set<string> = new Set()): { w: number; h: number } {
     const cached = sizeCache.get(id);
     if (cached) return cached;
+    if (stack.has(id)) return { w: nodeWidth, h: nodeHeight };
+    stack.add(id);
 
     const children = getChildren(id);
     if (children.length === 0) {
@@ -324,10 +327,10 @@ function layoutTreeUnderParent(
       while (idx < children.length) {
         const rowKids = children.slice(idx, idx + perRow);
         // Sirka riadku = suma W subtrees + medzery
-        const rowW = rowKids.reduce((sum, k) => sum + subtreeSize(k).w, 0) + (rowKids.length - 1) * nodeGapX;
+        const rowW = rowKids.reduce((sum, k) => sum + subtreeSize(k, stack).w, 0) + (rowKids.length - 1) * nodeGapX;
         maxRowW = Math.max(maxRowW, rowW);
         // Vyska riadku = max H subtrees v tom riadku
-        const rowH = Math.max(...rowKids.map((k) => subtreeSize(k).h));
+        const rowH = Math.max(...rowKids.map((k) => subtreeSize(k, stack).h));
         totalH += rowH + rowGap;
         idx += rowKids.length;
       }
@@ -338,9 +341,9 @@ function layoutTreeUnderParent(
 
     // row: deti vedla seba
     // Sirka = suma W subtrees + medzery
-    const totalW = children.reduce((sum, k) => sum + subtreeSize(k).w, 0) + (children.length - 1) * nodeGapX;
+    const totalW = children.reduce((sum, k) => sum + subtreeSize(k, stack).w, 0) + (children.length - 1) * nodeGapX;
     // Vyska = vyska uzla + medzera + max vyska child subtrees
-    const maxChildH = Math.max(...children.map((k) => subtreeSize(k).h));
+    const maxChildH = Math.max(...children.map((k) => subtreeSize(k, stack).h));
     const result = { w: Math.max(nodeWidth, totalW), h: nodeHeight + childGap + maxChildH };
     sizeCache.set(id, result);
     return result;
@@ -351,7 +354,9 @@ function layoutTreeUnderParent(
    * left = lava hrana bounding boxu uzla
    * top  = horna hrana bounding boxu uzla (= Y pozicia karty uzla)
    */
-  function placeSubtree(id: string, left: number, top: number): void {
+  function placeSubtree(id: string, left: number, top: number, stack: Set<string> = new Set()): void {
+    if (stack.has(id)) return;
+    stack.add(id);
     // Pozicia karty samotneho uzla (horizontalne centrovana v bounding boxe)
     const { w: myW } = subtreeSize(id);
     const cardX = left + (myW - nodeWidth) / 2;
@@ -376,7 +381,7 @@ function layoutTreeUnderParent(
         let kidLeft = left + (myW - rowTotalW) / 2;
         rowKids.forEach((kid) => {
           const kidSize = subtreeSize(kid);
-          placeSubtree(kid, kidLeft, currentTop);
+          placeSubtree(kid, kidLeft, currentTop, stack);
           kidLeft += kidSize.w + nodeGapX;
         });
         // Nasledujuci riadok za maximom H tohto riadku
@@ -392,7 +397,7 @@ function layoutTreeUnderParent(
     let kidLeft = left + (myW - totalChildW) / 2;
     children.forEach((kid) => {
       const kidSize = subtreeSize(kid);
-      placeSubtree(kid, kidLeft, childrenTop);
+      placeSubtree(kid, kidLeft, childrenTop, stack);
       kidLeft += kidSize.w + nodeGapX;
     });
   }
@@ -1244,7 +1249,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       list.push(s.id);
       map.set(parentId, list);
     });
-    return map;
+    return stripHierarchyCycles(map);
   }, [rawRecords, vacancies, sectionGroups, sectionMembers]);
 
   const [childOrderByParent, setChildOrderByParentState] = useState<Record<string, string[]>>(() => {
@@ -1494,19 +1499,23 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       list.push(s.id);
       map.set(parentId, list);
     });
-    return map;
+    return stripHierarchyCycles(map);
   }, [rawRecords, vacancies, sectionGroups, sectionMembers]);
 
   /** Celkový počet ľudí (zamestnancov) pod daným uzlom – rekurzívne z celej hierarchie (vrátane DIR, INDIR1). */
   const totalSubordinateCountByNodeId = useMemo(() => {
     const countCache = new Map<string, number>();
+    const visiting = new Set<string>();
     const isEmployee = (id: string) => !isVacancyId(id) && !isSectionId(id);
     function countInSubtree(id: string): number {
       const cached = countCache.get(id);
       if (cached !== undefined) return cached;
+      if (visiting.has(id)) return 0;
+      visiting.add(id);
       const children = hierarchyChildrenAll.get(id) ?? [];
       let n = isEmployee(id) ? 1 : 0;
       for (const c of children) n += countInSubtree(c);
+      visiting.delete(id);
       countCache.set(id, n);
       return n;
     }
@@ -3348,10 +3357,31 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                 if (!sec) { setSelectedSectionId(null); return null; }
                 const secIndex = sectionGroups.findIndex((s) => s.id === selectedSectionId);
                 const color = sec.color ?? getDefaultSectionColor(secIndex);
-                // Clenovia = zamestnanci ktori maju section override v sectionMembers state
-                const members = rawRecords.filter((r) =>
-                  sectionMembers.some((m) => m.employee_id === r.employeeId && m.section_id === sec.id)
+                // Clenovia = zamestnanci s override na tuto sekciu, v ulozenom poradí
+                const memberIdSet = new Set(
+                  sectionMembers.filter((m) => m.section_id === sec.id).map((m) => m.employee_id),
                 );
+                const orderedChildIds = orderedHierarchyChildren.get(sec.id) ?? [];
+                const orderedMemberIds = [
+                  ...orderedChildIds.filter((id) => memberIdSet.has(id)),
+                  ...[...memberIdSet].filter((id) => !orderedChildIds.includes(id)),
+                ];
+                const members = orderedMemberIds
+                  .map((id) => rawRecords.find((r) => r.employeeId === id))
+                  .filter((r): r is EmployeeRecord => Boolean(r));
+                const moveSectionMember = (index: number, direction: "up" | "down") => {
+                  const target = direction === "up" ? index - 1 : index + 1;
+                  if (target < 0 || target >= members.length) return;
+                  const memberOrder = members.map((r) => r.employeeId);
+                  [memberOrder[index], memberOrder[target]] = [memberOrder[target], memberOrder[index]];
+                  const memberSet = new Set(memberOrder);
+                  let empIdx = 0;
+                  const next = orderedChildIds.map((id) => (memberSet.has(id) ? memberOrder[empIdx++] : id));
+                  for (const id of memberOrder) {
+                    if (!next.includes(id)) next.push(id);
+                  }
+                  setChildOrderByParent((prev) => ({ ...prev, [sec.id]: next }));
+                };
                 // Pridatelni = zamestnanci pod rovnakym nadriadenim, ktori nie su v tejto sekcii
                 const addable = sec.parentId
                   ? rawRecords.filter((r) => {
@@ -3362,6 +3392,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                   : [];
                 const COLORS = ["#21394F","#949C58","#F06909","#2563EB","#7C3AED","#059669","#DC2626","#0891B2"];
                 const secChildLayout = (childLayoutByNodeId[sec.id] ?? "row") as "row" | "pairs" | "fours";
+                const sectionReachable = collectReachable(sec.id, hierarchyChildren);
                 return (
                   <div className="flex h-full flex-col overflow-hidden">
                     {/* Farebny header */}
@@ -3429,10 +3460,19 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                         <div>
                           <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Nadriadený sekcie</label>
                           <select key={sec.id + "-p"} value={sec.parentId ?? ""}
-                            onChange={(e) => setSectionGroups((prev) => prev.map((s) => s.id === sec.id ? { ...s, parentId: e.target.value || null } : s))}
+                            onChange={(e) => {
+                              const nextParent = e.target.value || null;
+                              if (nextParent && sectionReachable.has(nextParent)) {
+                                window.alert(t("orgChart.sectionParentCycle"));
+                                return;
+                              }
+                              setSectionGroups((prev) => prev.map((s) => s.id === sec.id ? { ...s, parentId: nextParent } : s));
+                            }}
                             className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none">
                             <option value="">— bez nadriadeného —</option>
-                            {rawRecords.map((r) => <option key={r.employeeId} value={r.employeeId}>{r.fullName}</option>)}
+                            {rawRecords
+                              .filter((r) => r.employeeId === sec.parentId || !sectionReachable.has(r.employeeId))
+                              .map((r) => <option key={r.employeeId} value={r.employeeId}>{r.fullName}</option>)}
                           </select>
                         </div>
                       )}
@@ -3463,27 +3503,54 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
                       {/* Clenovia */}
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Členovia sekcie</label>
+                        <div className="flex items-center gap-2 mb-1">
+                          <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t("orgChart.sectionMemberOrder")}</label>
                           <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white" style={{ backgroundColor: color }}>{members.length}</span>
                         </div>
+                        {onSettingsChange && members.length > 1 && (
+                          <p className="text-[10px] text-slate-400 mb-2">{t("orgChart.sectionMemberOrderHint")}</p>
+                        )}
                         {members.length === 0 ? (
                           <p className="text-xs text-slate-400 italic">Žiadni členovia. Pridaj ich nižšie.</p>
                         ) : (
                           <ul className="space-y-1">
-                            {members.map((r) => (
-                              <li key={r.employeeId} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
-                                <div className="min-w-0">
+                            {members.map((r, index) => (
+                              <li key={r.employeeId} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+                                <div className="min-w-0 flex-1">
                                   <p className="text-xs font-medium text-slate-800 truncate">{r.fullName}</p>
                                   <p className="text-[10px] text-slate-400 truncate">{r.positionName}</p>
                                 </div>
+                                {onSettingsChange && members.length > 1 && (
+                                  <div className="flex shrink-0 gap-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => moveSectionMember(index, "up")}
+                                      disabled={index === 0}
+                                      className="rounded p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none"
+                                      title={t("common.moveUp")}
+                                      aria-label={t("common.moveUp")}
+                                    >
+                                      ▲
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => moveSectionMember(index, "down")}
+                                      disabled={index === members.length - 1}
+                                      className="rounded p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none"
+                                      title={t("common.moveDown")}
+                                      aria-label={t("common.moveDown")}
+                                    >
+                                      ▼
+                                    </button>
+                                  </div>
+                                )}
                                 {onSettingsChange && (
                                   <button type="button"
                                     onClick={() => {
                                       removeEmployeeFromSection(r.employeeId, sectionMembers)
                                         .then(setSectionMembers);
                                     }}
-                                    className="ml-2 shrink-0 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-100">odobrať</button>
+                                    className="shrink-0 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-100">odobrať</button>
                                 )}
                               </li>
                             ))}
@@ -3505,6 +3572,10 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                                 </div>
                                 <button type="button"
                                   onClick={() => {
+                                    if (collectReachable(r.employeeId, hierarchyChildren).has(sec.id)) {
+                                      window.alert(t("orgChart.sectionParentCycle"));
+                                      return;
+                                    }
                                     addEmployeeToSection(r.employeeId, sec.id, sectionMembers)
                                       .then(setSectionMembers);
                                   }}

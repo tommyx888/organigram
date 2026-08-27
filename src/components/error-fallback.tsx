@@ -31,6 +31,13 @@ export class ErrorFallback extends Component<Props, State> {
               {this.state.error.message}
             </pre>
           )}
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-4 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-semibold text-red-800 hover:bg-red-100"
+          >
+            Obnoviť stránku
+          </button>
         </div>
       );
     }
