@@ -5,26 +5,7 @@ import { createPortal } from "react-dom";
 import { MAIN_DEPARTMENTS } from "@/lib/org/departments";
 import type { EmployeeRecord } from "@/lib/org/types";
 import { useTranslation } from "@/lib/i18n/context";
-
-/** Odstrani diakritiku pre vyhladavanie (napr. "lubica" -> "lubica"). */
-function normalizeForSearch(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
-
-function filterEmployees(employees: EmployeeRecord[], query: string): EmployeeRecord[] {
-  const trimmed = query.trim();
-  if (!trimmed) return employees;
-  const q = normalizeForSearch(trimmed);
-  return employees.filter(
-    (e) =>
-      normalizeForSearch(e.fullName).includes(q) ||
-      normalizeForSearch(e.employeeId).includes(q) ||
-      (e.positionName && normalizeForSearch(e.positionName).includes(q)),
-  );
-}
+import { searchEmployees } from "@/lib/org/people-search";
 
 type DepartmentBarProps = {
   selectedDepartment: string;
@@ -86,7 +67,9 @@ export function DepartmentBar({
     if (openManagerFor !== null) searchInputRef.current?.focus();
   }, [openManagerFor]);
 
-  const filteredEmployees = filterEmployees(employees, searchQuery);
+  const filteredEmployees = searchQuery.trim()
+    ? searchEmployees(employees, searchQuery, 80).map((h) => h.employee)
+    : employees;
 
   const handleSelectManager = useCallback(
     (dep: string, employeeId: string | null) => {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { mergeSettingsPartial } from "@/lib/org/merge-org-chart-settings";
 import type { OrgChartSettingsPayload } from "@/lib/org/org-chart-settings-types";
 import { createServerSupabaseClientWithUser } from "@/lib/supabase/server";
 
@@ -74,7 +75,7 @@ export async function PATCH(request: NextRequest) {
   const currentPayload = (existing?.payload as OrgChartSettingsPayload) ?? {};
   const mergedPayload: OrgChartSettingsPayload = replaceEntire
     ? (partial as OrgChartSettingsPayload)
-    : { ...currentPayload, ...partial };
+    : mergeSettingsPartial(currentPayload, partial);
 
   const authRes = await supabase.auth.getUser();
   const updatedBy =

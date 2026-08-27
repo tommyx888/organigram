@@ -34,6 +34,8 @@ type EmployeeDetailProps = {
   /** Zoznam priamych podriadených v aktuálnom poradí (pre zmenu poradia v líniách). */
   directReportOrder?: { id: string; label: string }[];
   onReorderDirectReports?: (orderedIds: string[]) => void;
+  /** Zobraziť organigram ako keby bol tento človek prihlásený. */
+  onViewAsPerson?: () => void;
 };
 
 const DEFAULT_COLORS = CARD_COLOR_PALETTE.map((c) => c.hex);
@@ -60,6 +62,7 @@ export function EmployeeDetailPanel(props: EmployeeDetailProps) {
     onChildLayoutChange,
     directReportOrder = [],
     onReorderDirectReports,
+    onViewAsPerson,
   } = props;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -220,6 +223,15 @@ export function EmployeeDetailPanel(props: EmployeeDetailProps) {
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("orgChart.osCislo")}</p>
           <p className="mt-0.5 font-mono text-sm text-slate-700">{record.employeeId}</p>
         </div>
+        {onViewAsPerson ? (
+          <button
+            type="button"
+            onClick={onViewAsPerson}
+            className="w-full rounded-lg border border-[var(--artifex-navy)] bg-white px-3 py-2 text-xs font-semibold text-[var(--artifex-navy)] hover:bg-slate-50"
+          >
+            {t("orgChart.viewAsThisPerson")}
+          </button>
+        ) : null}
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("orgChart.type")}</p>
           <p className="mt-0.5 text-sm text-slate-700">
@@ -401,6 +413,7 @@ type CellDetailPanelProps = {
   /** Zoznam priamych podriadených v aktuálnom poradí (pre zmenu poradia v líniách). */
   directReportOrder?: { id: string; label: string }[];
   onReorderDirectReports?: (orderedIds: string[]) => void;
+  onViewAsPerson?: () => void;
 };
 
 export function CellDetailPanel(props: CellDetailPanelProps) {
@@ -429,6 +442,7 @@ export function CellDetailPanel(props: CellDetailPanelProps) {
     onChildLayoutChange,
     directReportOrder,
     onReorderDirectReports,
+    onViewAsPerson,
   } = props;
 
   if (strediskoContent) {
@@ -462,6 +476,7 @@ export function CellDetailPanel(props: CellDetailPanelProps) {
         onChildLayoutChange={onChildLayoutChange}
         directReportOrder={directReportOrder}
         onReorderDirectReports={onReorderDirectReports}
+        onViewAsPerson={onViewAsPerson}
       />
     );
   }

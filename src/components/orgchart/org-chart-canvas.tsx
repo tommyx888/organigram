@@ -29,6 +29,7 @@ import { ExpandCollapseButton } from "@/components/orgchart/expand-collapse-butt
 import { HierarchySidebar } from "@/components/orgchart/hierarchy-sidebar";
 import { DepartmentBar } from "@/components/orgchart/department-bar";
 import { CellDetailPanel } from "@/components/orgchart/cell-detail-panel";
+import { PeopleSearchBar } from "@/components/orgchart/people-search-bar";
 import {
   CARD_COLOR_PALETTE,
   getNodeAccent,
@@ -61,6 +62,8 @@ import {
   removeEmployeeFromSection,
   removeSectionAllMembers,
   setEmployeeParentOverride,
+  subscribeSectionMembers,
+  isOverridePersistPending,
   type SectionMemberRow,
 } from "@/lib/org/section-members-client";
 import {
@@ -79,8 +82,10 @@ import {
   type MaxVisibleLayers,
 } from "@/lib/org/hierarchy-settings";
 import type { OrgChartSettingsPayload } from "@/lib/org/org-chart-settings-types";
+import { subscribePersistStatus, type PersistStatus } from "@/lib/org/persist-status";
 import { DEFAULT_CHART_APPEARANCE } from "@/lib/org/chart-appearance";
 import { DISPLAY_KAT_CATEGORIES, type EmployeeRecord, type VacancyPlaceholder, type SectionGroup } from "@/lib/org/types";
+import { findEmployeeByEmail } from "@/lib/org/people-search";
 import { getDisplayKat, normalizeKat } from "@/lib/org/position-type";
 import { supabaseClient } from "@/lib/supabase/client";
 import { brandTokens } from "@/styles/tokens";
@@ -126,6 +131,10 @@ type OrgChartCanvasProps = {
   onPhotoChanged?: () => void;
   /** Zo zdieľateľného linku (?v=…): viewport a zbalené uzly na aplikovanie pri prvom načítaní. */
   initialShareableViewState?: ShareableViewState | null;
+  /** E-mail prihláseného používateľa – na spárovanie s kartou zamestnanca. */
+  userEmail?: string | null;
+  /** Admin / HR môže vyhľadať hocikoho a vidieť štruktúru ako on. */
+  canViewAsAnyone?: boolean;
 };
 
 type OrgNodeData = {
@@ -798,7 +807,19 @@ const EXPORT_QUALITY: Record<ExportQuality, { label: string; desc: string; badge
 
 export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const { t } = useTranslation();
-  const { records: rawRecords, allowEdit = false, onRecordsChange, initialSettings, onSettingsChange, onResetToDefaults, useDbPhotos = false, onPhotoChanged, initialShareableViewState } = props;
+  const {
+    records: rawRecords,
+    allowEdit = false,
+    onRecordsChange,
+    initialSettings,
+    onSettingsChange,
+    onResetToDefaults,
+    useDbPhotos = false,
+    onPhotoChanged,
+    initialShareableViewState,
+    userEmail = null,
+    canViewAsAnyone = true,
+  } = props;
   const useDbSettings = initialSettings != null && onSettingsChange != null;
 
   const onSettingsChangeRef = useRef(onSettingsChange);
@@ -850,6 +871,12 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     },
     [onSettingsChange],
   );
+  const matchedSelf = useMemo(
+    () => findEmployeeByEmail(rawRecords, userEmail),
+    [rawRecords, userEmail],
+  );
+  const viewAsLocked = Boolean(matchedSelf) && !canViewAsAnyone;
+  const [viewAsEmployeeId, setViewAsEmployeeId] = useState<string | null>(null);
   const [selectedDepartment, setSelectedDepartmentState] = useState<string>(() =>
     getInitialFromSettings(initialSettings, "selectedDepartment", loadSelectedDepartment) ?? "all",
   );
@@ -909,14 +936,23 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     const fromSettings = getInitialFromSettings(initialSettings, "vacancies", loadVacancies);
     return fromSettings;
   });
+  const queuedVacanciesRef = useRef<VacancyPlaceholder[] | null>(null);
   const setVacancies = useCallback(
-    (next: VacancyPlaceholder[]) => {
-      setVacanciesState(next);
-      // Vacancy sa ukladaju do DB aj do settings pre backward compat
-      if (onSettingsChange) onSettingsChange({ vacancies: next });
-      else saveVacancies(next);
+    (next: VacancyPlaceholder[] | ((prev: VacancyPlaceholder[]) => VacancyPlaceholder[])) => {
+      setVacanciesState((prev) => {
+        const nextVal = typeof next === "function" ? next(prev) : next;
+        queuedVacanciesRef.current = nextVal;
+        return nextVal;
+      });
+      queueMicrotask(() => {
+        const nextVal = queuedVacanciesRef.current;
+        if (!nextVal) return;
+        const cb = onSettingsChangeRef.current;
+        if (cb) cb({ vacancies: nextVal });
+        else saveVacancies(nextVal);
+      });
     },
-    [onSettingsChange],
+    [],
   );
 
   // Nacitaj vacancies z org_vacancies tabulky pri starte - pre VSETKYCH pouzivatelov
@@ -932,16 +968,30 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const [sectionGroups, setSectionGroupsState] = useState<SectionGroup[]>(() =>
     getInitialFromSettings(initialSettings, "sectionGroups", () => []) ?? [],
   );
+  const lastSgFromDbRef = useRef<string>("");
+  const sectionGroupsDirtyRef = useRef(false);
+  const queuedSectionGroupsRef = useRef<SectionGroup[] | null>(null);
   const setSectionGroups = useCallback(
-    (next: SectionGroup[]) => {
-      setSectionGroupsState(next);
-      lastSgFromDbRef.current = JSON.stringify(next); // aktualizuj ref aby loop nezacal
-      if (onSettingsChange) onSettingsChange({ sectionGroups: next });
+    (next: SectionGroup[] | ((prev: SectionGroup[]) => SectionGroup[])) => {
+      setSectionGroupsState((prev) => {
+        const nextVal = typeof next === "function" ? next(prev) : next;
+        lastSgFromDbRef.current = JSON.stringify(nextVal);
+        sectionGroupsDirtyRef.current = true;
+        queuedSectionGroupsRef.current = nextVal;
+        return nextVal;
+      });
+      queueMicrotask(() => {
+        const nextVal = queuedSectionGroupsRef.current;
+        if (!nextVal) return;
+        const cb = onSettingsChangeRef.current;
+        if (cb) cb({ sectionGroups: nextVal });
+      });
     },
-    [onSettingsChange],
+    [],
   );
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [sectionMembers, setSectionMembers] = useState<SectionMemberRow[]>([]);
+  const [persistStatus, setPersistStatus] = useState<PersistStatus>("idle");
   // Nacitaj section members + Realtime subscription
   useEffect(() => {
     let cancelled = false;
@@ -949,14 +999,32 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       if (!cancelled) setSectionMembers(members);
     }).catch(() => {});
 
-    if (!supabaseClient) return;
+    const unsubMembers = subscribeSectionMembers((rows) => {
+      if (!cancelled) setSectionMembers(rows);
+    });
+    const unsubPersist = subscribePersistStatus((status) => {
+      if (!cancelled) setPersistStatus(status);
+    });
+
+    if (!supabaseClient) {
+      return () => {
+        cancelled = true;
+        unsubMembers();
+        unsubPersist();
+      };
+    }
     const client = supabaseClient;
 
     const overridesChannel = client
       .channel("org-chart-overrides-realtime")
       .on("postgres_changes",
         { event: "*", schema: "public", table: "org_chart_overrides" },
-        () => { fetchSectionMembers().then(setSectionMembers).catch(() => {}); },
+        () => {
+          if (isOverridePersistPending()) return;
+          fetchSectionMembers().then((rows) => {
+            if (!cancelled && !isOverridePersistPending()) setSectionMembers(rows);
+          }).catch(() => {});
+        },
       )
       .subscribe();
 
@@ -970,6 +1038,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
     return () => {
       cancelled = true;
+      unsubMembers();
+      unsubPersist();
       void client.removeChannel(overridesChannel);
       void client.removeChannel(vacanciesChannel);
     };
@@ -1091,10 +1161,36 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     },
     [onSettingsChange],
   );
+  const enterViewAs = useCallback((employeeId: string) => {
+    setViewAsEmployeeId(employeeId);
+    setSelectedEmployeeId(employeeId);
+    setSelectedVacancyId(null);
+    setRightPanelCollapsed(false);
+  }, []);
+  const clearViewAs = useCallback(() => {
+    if (viewAsLocked) return;
+    setViewAsEmployeeId(null);
+  }, [viewAsLocked]);
+
+  useEffect(() => {
+    if (!matchedSelf) return;
+    if (viewAsLocked) {
+      setViewAsEmployeeId(matchedSelf.employeeId);
+      return;
+    }
+    setViewAsEmployeeId((current) => current ?? null);
+  }, [matchedSelf, viewAsLocked]);
+
   const nodesRef = useRef<OrgFlowNode[]>([]);
 
-  /** Pri zobrazení oddelenia: koreň stromu je manažér oddelenia; inak GM. */
+  /** Pri zobrazení oddelenia: koreň stromu je manažér oddelenia; inak GM. Náhľad ako osoba má prednosť. */
   const effectiveRootId = useMemo(() => {
+    if (viewAsEmployeeId) {
+      const exists =
+        rawRecords.some((r) => r.employeeId === viewAsEmployeeId) ||
+        vacancies.some((v) => v.id === viewAsEmployeeId);
+      if (exists) return viewAsEmployeeId;
+    }
     const gmId = generalManagerId ?? FALLBACK_GM_EMPLOYEE_ID;
     if (selectedDepartment === "all" || !selectedDepartment) return gmId;
     const deptManagerId = departmentManagers[selectedDepartment];
@@ -1104,6 +1200,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       vacancies.some((v) => v.id === deptManagerId);
     return exists ? deptManagerId : gmId;
   }, [
+    viewAsEmployeeId,
     generalManagerId,
     selectedDepartment,
     departmentManagers,
@@ -1251,13 +1348,16 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     setSelectedDepartmentState(dept);
   }, [initialSettings?.selectedDepartment]);
 
-  // Sync sectionGroups z DB - pouzivame JSON porovnanie aby sme predisli infinite loop
-  const lastSgFromDbRef = useRef<string>("");
+  // Sync sectionGroups z DB - neprepíš novší lokálny stav, kým prebieha uloženie
   useEffect(() => {
     const sg = initialSettings?.sectionGroups;
     if (!Array.isArray(sg)) return;
     const json = JSON.stringify(sg);
-    if (json === lastSgFromDbRef.current) return; // nezmenilo sa, skip
+    if (json === lastSgFromDbRef.current) {
+      sectionGroupsDirtyRef.current = false;
+      return;
+    }
+    if (sectionGroupsDirtyRef.current) return;
     lastSgFromDbRef.current = json;
     setSectionGroupsState(sg);
   }, [initialSettings?.sectionGroups]);
@@ -1702,6 +1802,12 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const fitChartToWindow = useCallback((duration = 250) => {
     reactFlowInstanceRef.current?.fitView({ padding: 0.12, duration });
   }, []);
+
+  useEffect(() => {
+    if (!viewAsEmployeeId) return;
+    const id = requestAnimationFrame(() => fitChartToWindow(350));
+    return () => cancelAnimationFrame(id);
+  }, [viewAsEmployeeId, fitChartToWindow]);
 
   useEffect(() => {
     if (!fitToWindow) return;
@@ -2688,7 +2794,27 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-slate-700">{t("orgChart.displayControls")}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-slate-700">{t("orgChart.displayControls")}</h2>
+          {onSettingsChange && persistStatus !== "idle" && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                persistStatus === "saving"
+                  ? "bg-amber-50 text-amber-700"
+                  : persistStatus === "error"
+                    ? "bg-red-50 text-red-700"
+                    : "bg-emerald-50 text-emerald-700"
+              }`}
+              title={persistStatus === "error" ? t("orgChart.saveStatusError") : undefined}
+            >
+              {persistStatus === "saving"
+                ? t("orgChart.saveStatusSaving")
+                : persistStatus === "error"
+                  ? t("orgChart.saveStatusError")
+                  : t("orgChart.saveStatusSaved")}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
@@ -2835,7 +2961,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                   parentId: effectiveRootId ?? null,
                   color: getDefaultSectionColor(sectionGroups.length),
                 };
-                setSectionGroups([...sectionGroups, newSection]);
+                setSectionGroups((prev) => [...prev, newSection]);
                 setSelectedSectionId(id);
                 setSelectedEmployeeId(null);
                 setSelectedVacancyId(null);
@@ -3054,6 +3180,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         </div>
       )}
 
+      <PeopleSearchBar
+        employees={rawRecords}
+        viewAsEmployeeId={viewAsEmployeeId}
+        viewAsLocked={viewAsLocked}
+        onViewAs={enterViewAs}
+        onClearViewAs={clearViewAs}
+      />
+
       <DepartmentBar
         selectedDepartment={selectedDepartment}
         onSelectDepartment={setSelectedDepartment}
@@ -3080,7 +3214,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           onAddVacancy={(title, parentId) => {
             const id = generateVacancyId();
             const v: VacancyPlaceholder = { id, title, parentId };
-            setVacancies([...vacancies, v]);
+            setVacancies((prev) => [...prev, v]);
             // Uloz do DB (org_vacancies tabulka)
             if (onSettingsChange) createVacancyInDb(v).catch(() => {});
           }}
@@ -3255,7 +3389,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                         <div>
                           <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Názov sekcie</label>
                           <input key={sec.id + "-n"} type="text" defaultValue={sec.name}
-                            onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== sec.name) setSectionGroups(sectionGroups.map((s) => s.id === sec.id ? { ...s, name: v } : s)); }}
+                            onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== sec.name) setSectionGroups((prev) => prev.map((s) => s.id === sec.id ? { ...s, name: v } : s)); }}
                             className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400" />
                         </div>
                       ) : (
@@ -3270,7 +3404,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                         <div>
                           <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Emoji ikona</label>
                           <input key={sec.id + "-i"} type="text" defaultValue={sec.icon ?? ""} placeholder="🏭 ⚙️ 📦 🔧"
-                            onBlur={(e) => { const v = e.target.value.trim() || undefined; setSectionGroups(sectionGroups.map((s) => s.id === sec.id ? { ...s, icon: v } : s)); }}
+                            onBlur={(e) => { const v = e.target.value.trim() || undefined; setSectionGroups((prev) => prev.map((s) => s.id === sec.id ? { ...s, icon: v } : s)); }}
                             className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400" />
                         </div>
                       )}
@@ -3282,7 +3416,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                           <div className="flex flex-wrap gap-2">
                             {COLORS.map((c) => (
                               <button key={c} type="button"
-                                onClick={() => setSectionGroups(sectionGroups.map((s) => s.id === sec.id ? { ...s, color: c } : s))}
+                                onClick={() => setSectionGroups((prev) => prev.map((s) => s.id === sec.id ? { ...s, color: c } : s))}
                                 className="h-7 w-7 rounded-full transition-all hover:scale-110"
                                 style={{ backgroundColor: c, boxShadow: color === c ? `0 0 0 2px white, 0 0 0 4px ${c}` : "none", transform: color === c ? "scale(1.15)" : undefined }} />
                             ))}
@@ -3295,7 +3429,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                         <div>
                           <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Nadriadený sekcie</label>
                           <select key={sec.id + "-p"} value={sec.parentId ?? ""}
-                            onChange={(e) => setSectionGroups(sectionGroups.map((s) => s.id === sec.id ? { ...s, parentId: e.target.value || null } : s))}
+                            onChange={(e) => setSectionGroups((prev) => prev.map((s) => s.id === sec.id ? { ...s, parentId: e.target.value || null } : s))}
                             className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none">
                             <option value="">— bez nadriadeného —</option>
                             {rawRecords.map((r) => <option key={r.employeeId} value={r.employeeId}>{r.fullName}</option>)}
@@ -3389,7 +3523,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                             onClick={() => {
                               removeSectionAllMembers(sec.id, sectionMembers)
                                 .then(setSectionMembers);
-                              setSectionGroups(sectionGroups.filter((s) => s.id !== sec.id));
+                              setSectionGroups((prev) => prev.filter((s) => s.id !== sec.id));
                               setSelectedSectionId(null);
                             }}
                             className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100"
@@ -3487,6 +3621,11 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                         ...rawRecords.map((e) => ({ value: e.employeeId, label: `${e.fullName} (#${e.employeeId})` })),
                         ...vacancies.map((v) => ({ value: v.id, label: `[Voľná] ${v.title}` })),
                       ]
+                    : undefined
+                }
+                onViewAsPerson={
+                  canViewAsAnyone && selectedEmployeeId && selectedEmployeeId !== viewAsEmployeeId
+                    ? () => enterViewAs(selectedEmployeeId)
                     : undefined
                 }
                 employeePhotoOffset={
@@ -3608,7 +3747,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
                   function saveVacancyField(patch: Partial<Omit<VacancyPlaceholder, 'id'>>) {
                   const updated: VacancyPlaceholder = { ...vac, ...patch } as VacancyPlaceholder;
-                  setVacancies(vacancies.map((v) => v.id === vac.id ? updated : v));
+                  setVacancies((prev) => prev.map((v) => v.id === vac.id ? updated : v));
                   if (onSettingsChange) updateVacancyInDb(updated).catch(() => {});
                   }
 
@@ -3786,8 +3925,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const next = vacancies.filter((v) => v.id !== vac.id);
-                                  setVacancies(next);
+                                  setVacancies((prev) => prev.filter((v) => v.id !== vac.id));
                                   setSelectedVacancyId(null);
                                   if (onSettingsChange) deleteVacancyFromDb(vac.id).catch(() => {});
                                 }}

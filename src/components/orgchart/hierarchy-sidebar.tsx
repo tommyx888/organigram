@@ -6,25 +6,15 @@ import type { MaxVisibleLayers } from "@/lib/org/hierarchy-settings";
 import type { EmployeeRecord } from "@/lib/org/types";
 import type { VacancyPlaceholder } from "@/lib/org/types";
 import { useTranslation } from "@/lib/i18n/context";
+import { matchesSearchHaystack } from "@/lib/org/people-search";
 
-type Option = { value: string; label: string; isVacancy: boolean };
-
-/** Odstráni diakritiku pre porovnanie (napr. "ľubica" → "lubica"), aby vyhľadávanie fungovalo aj bez diakritiky. */
-function normalizeForSearch(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
+type Option = { value: string; label: string; isVacancy: boolean; haystack?: string };
 
 function filterOptions(options: Option[], query: string): Option[] {
   const trimmed = query.trim();
   if (!trimmed) return options;
-  const q = normalizeForSearch(trimmed);
-  return options.filter(
-    (o) =>
-      normalizeForSearch(o.label).includes(q) ||
-      normalizeForSearch(o.value).includes(q),
+  return options.filter((o) =>
+    matchesSearchHaystack(`${o.label} ${o.value} ${o.haystack ?? ""}`, trimmed),
   );
 }
 
@@ -124,7 +114,7 @@ function SearchableSelect({
               aria-label={searchAriaLabel ?? "Hľadať"}
             />
           </div>
-          <div className="max-h-48 overflow-y-auto py-1">
+          <div className="max-h-64 overflow-y-auto py-1">
             <button
               type="button"
               role="option"
@@ -239,8 +229,13 @@ export function HierarchySidebar(props: HierarchySidebarProps) {
     });
   };
 
-  const options: { value: string; label: string; isVacancy: boolean }[] = [
-    ...employees.map((e) => ({ value: e.employeeId, label: `${e.fullName} (#${e.employeeId})`, isVacancy: false })),
+  const options: { value: string; label: string; isVacancy: boolean; haystack?: string }[] = [
+    ...employees.map((e) => ({
+      value: e.employeeId,
+      label: `${e.fullName} (#${e.employeeId})`,
+      isVacancy: false,
+      haystack: `${e.positionName} ${e.department} ${e.departmentName ?? ""} ${e.oddelenie ?? ""} ${e.kat ?? ""} ${e.email ?? ""}`,
+    })),
     ...vacancies.map((v) => ({ value: v.id, label: `[Voľná] ${v.title}`, isVacancy: true })),
   ];
 

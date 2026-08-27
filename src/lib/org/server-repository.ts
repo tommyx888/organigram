@@ -265,6 +265,10 @@ async function loadFromIacEmployees(
 
     seenIds.add(employeeId);
     sourceRowsForRecords.push(row);
+    const email =
+      String(row.email ?? "").trim() ||
+      String(row.preferable_email ?? "").trim() ||
+      undefined;
     records.push({
       employeeId,
       fullName,
@@ -275,6 +279,7 @@ async function loadFromIacEmployees(
       positionName,
       managerEmployeeId: null,
       kat: kat ?? undefined,
+      email,
     });
   });
 

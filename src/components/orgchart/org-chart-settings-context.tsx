@@ -11,7 +11,9 @@ import {
 } from "react";
 
 import { useAuthContext } from "@/components/auth/auth-context";
+import { mergeSettingsPartial } from "@/lib/org/merge-org-chart-settings";
 import type { OrgChartSettingsPayload } from "@/lib/org/org-chart-settings-types";
+import { beginPersist, endPersist } from "@/lib/org/persist-status";
 import { isSupabasePublicConfigured, supabaseClient } from "@/lib/supabase/client";
 
 const LOCAL_OVERRIDES_KEY = "org-chart-local-overrides";
@@ -138,41 +140,46 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
     };
   }, [useDb]);
 
-  // Ref pre in-flight save — zabraňuje race condition
+  // Ref pre in-flight save — zabraňuje race condition. Musí byť true PRED akýmkoľvek await.
   const saveInFlightRef = useRef(false);
   // Queue pre zmeny ktore prisli pocas in-flight save
   const pendingPartialRef = useRef<Partial<OrgChartSettingsPayload> | null>(null);
 
-  const saveSettings = useCallback(
-    async (partial: Partial<OrgChartSettingsPayload>) => {
+  const drainSaves = useCallback(
+    async (opts?: { keepalive?: boolean }) => {
       const client = supabaseClient;
-      const currentMerged = mergedSettingsRef.current;
-      const currentLocal = localOverridesRef.current;
-      if (isAdmin && useDb && client) {
-        // Ak prebieha save, zluc zmeny do queue
-        if (saveInFlightRef.current) {
-          pendingPartialRef.current = { ...pendingPartialRef.current, ...partial };
-          return;
-        }
+      if (!isAdmin || !useDb || !client) return;
+      if (saveInFlightRef.current) return;
+      if (!pendingPartialRef.current) return;
 
-        const {
-          data: { session },
-        } = await client.auth.getSession();
-        const token = session?.access_token;
-        if (!token) return;
+      saveInFlightRef.current = true;
+      beginPersist();
+      let succeeded = false;
+      try {
+        while (pendingPartialRef.current) {
+          const currentMerged = mergedSettingsRef.current;
+          let body = pendingPartialRef.current;
+          pendingPartialRef.current = null;
 
-        let body = partial;
-        if (partial.childOrderByParent != null && typeof partial.childOrderByParent === "object") {
-          const existing = currentMerged?.childOrderByParent;
-          const merged =
-            existing && typeof existing === "object"
-              ? { ...existing, ...partial.childOrderByParent }
-              : { ...partial.childOrderByParent };
-          body = { ...partial, childOrderByParent: merged };
-        }
+          if (body.childOrderByParent != null && typeof body.childOrderByParent === "object") {
+            const existing = currentMerged?.childOrderByParent;
+            const merged =
+              existing && typeof existing === "object"
+                ? { ...existing, ...body.childOrderByParent }
+                : { ...body.childOrderByParent };
+            body = { ...body, childOrderByParent: merged };
+          }
 
-        saveInFlightRef.current = true;
-        try {
+          const {
+            data: { session },
+          } = await client.auth.getSession();
+          const token = session?.access_token;
+          if (!token) {
+            pendingPartialRef.current = mergeSettingsPartial(body, pendingPartialRef.current ?? {});
+            endPersist(false, "Not signed in");
+            return;
+          }
+
           const res = await fetch("/api/org-chart-settings", {
             method: "PATCH",
             headers: {
@@ -180,6 +187,7 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(body),
+            keepalive: opts?.keepalive === true,
           });
           if (res.ok) {
             const payload = (await res.json()) as OrgChartSettingsPayload;
@@ -189,28 +197,57 @@ export function OrgChartSettingsProvider({ children }: { children: React.ReactNo
               console.info("[Org chart] Poradie podriadených bolo úspešne uložené do Supabase. Počet riadkov (nadriadených):", n);
             }
           } else {
+            pendingPartialRef.current = mergeSettingsPartial(body, pendingPartialRef.current ?? {});
+            const text = await res.text().catch(() => "");
             if (process.env.NODE_ENV === "development") {
-              const text = await res.text();
               console.warn("[Org chart] Uloženie nastavení zlyhalo:", res.status, res.statusText, text || "");
             }
-          }
-        } finally {
-          saveInFlightRef.current = false;
-          // Spracuj pending zmeny ak existuju
-          const pending = pendingPartialRef.current;
-          if (pending) {
-            pendingPartialRef.current = null;
-            void saveSettings(pending);
+            endPersist(false, "Save failed");
+            return;
           }
         }
-      } else {
-        const next = { ...currentLocal, ...partial };
-        setLocalOverrides(next);
-        saveLocalOverrides(next);
+        endPersist(true);
+        succeeded = true;
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[Org chart] Uloženie nastavení zlyhalo:", error);
+        }
+        endPersist(false, "Save failed");
+      } finally {
+        saveInFlightRef.current = false;
+        if (succeeded && pendingPartialRef.current) {
+          void drainSaves(opts);
+        }
       }
     },
     [isAdmin, useDb],
   );
+
+  const saveSettings = useCallback(
+    async (partial: Partial<OrgChartSettingsPayload>) => {
+      const client = supabaseClient;
+      const currentLocal = localOverridesRef.current;
+      if (isAdmin && useDb && client) {
+        pendingPartialRef.current = mergeSettingsPartial(pendingPartialRef.current, partial);
+        await drainSaves();
+      } else {
+        const next = mergeSettingsPartial(currentLocal, partial);
+        setLocalOverrides(next);
+        saveLocalOverrides(next);
+      }
+    },
+    [drainSaves, isAdmin, useDb],
+  );
+
+  useEffect(() => {
+    const flushOnHide = () => {
+      if (document.visibilityState !== "hidden") return;
+      if (!pendingPartialRef.current && !saveInFlightRef.current) return;
+      void drainSaves({ keepalive: true });
+    };
+    document.addEventListener("visibilitychange", flushOnHide);
+    return () => document.removeEventListener("visibilitychange", flushOnHide);
+  }, [drainSaves]);
 
   const clearLocalOverrides = useCallback(() => {
     setLocalOverrides({});

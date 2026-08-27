@@ -29,6 +29,8 @@ export type EmployeeRecord = {
   kat?: KatType | null;
   /** URL fotky (z Supabase Storage alebo lokálne); trvalo uložené pri zdroji employees. */
   photoUrl?: string | null;
+  /** Pracovný e-mail (na spárovanie prihláseného používateľa). */
+  email?: string | null;
 };
 
 export type ImportIssue = {

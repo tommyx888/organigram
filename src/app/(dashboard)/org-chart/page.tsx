@@ -125,6 +125,8 @@ function OrgChartContent({
       useDbPhotos={useDbPhotos}
       onPhotoChanged={onPhotoChanged}
       initialShareableViewState={initialShareableViewState}
+      userEmail={auth.userEmail}
+      canViewAsAnyone={allowEdit}
     />
   );
 }

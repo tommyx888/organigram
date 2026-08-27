@@ -41,6 +41,62 @@ export async function GET(req: NextRequest) {
 }
 
 /**
+ * PATCH: inkrementálne upsert/remove podľa employee_id.
+ * Body: { upsert?: OverrideRow[], remove?: string[] }
+ * Neprepisuje celý zoznam — rýchle priradenia sa tak nestratia.
+ */
+export async function PATCH(req: NextRequest) {
+  const token = getToken(req);
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = createServerSupabaseClientWithUser(token);
+  if (!supabase) return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
+
+  if (!await checkAdmin(supabase)) {
+    return NextResponse.json({ error: "Only admin can update chart overrides" }, { status: 403 });
+  }
+
+  const companyId = await resolveCompanyId(supabase);
+  if (!companyId) return NextResponse.json({ error: "No company found" }, { status: 404 });
+
+  let body: { upsert?: OverrideRow[]; remove?: string[] };
+  try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+
+  const removeIds = Array.from(new Set((body.remove ?? []).filter((id) => typeof id === "string" && id.length > 0)));
+  const upsertRows = (body.upsert ?? []).filter(
+    (row) => row?.employee_id && row?.override_parent_id,
+  );
+
+  if (removeIds.length > 0) {
+    const { error: delError } = await supabase
+      .from("org_chart_overrides")
+      .delete()
+      .eq("company_id", companyId)
+      .in("employee_id", removeIds);
+    if (delError) return NextResponse.json({ error: delError.message }, { status: 500 });
+  }
+
+  if (upsertRows.length > 0) {
+    const upsertIds = Array.from(new Set(upsertRows.map((row) => row.employee_id)));
+    const { error: delError } = await supabase
+      .from("org_chart_overrides")
+      .delete()
+      .eq("company_id", companyId)
+      .in("employee_id", upsertIds);
+    if (delError) return NextResponse.json({ error: delError.message }, { status: 500 });
+
+    const rows = upsertRows.map((o) => ({
+      company_id: companyId,
+      employee_id: o.employee_id,
+      override_parent_id: o.override_parent_id,
+    }));
+    const { error: insError } = await supabase.from("org_chart_overrides").insert(rows);
+    if (insError) return NextResponse.json({ error: insError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, upserted: upsertRows.length, removed: removeIds.length });
+}
+
+/**
  * PUT: nahradi cely zoznam overrides pre company.
  * Body: { overrides: { employee_id: string, override_parent_id: string }[] }
  */
