@@ -85,7 +85,7 @@ import type { OrgChartSettingsPayload } from "@/lib/org/org-chart-settings-types
 import { subscribePersistStatus, type PersistStatus } from "@/lib/org/persist-status";
 import { DEFAULT_CHART_APPEARANCE } from "@/lib/org/chart-appearance";
 import { DISPLAY_KAT_CATEGORIES, type EmployeeRecord, type VacancyPlaceholder, type SectionGroup } from "@/lib/org/types";
-import { findDepartmentHeadEmployeeId } from "@/lib/org/departments";
+import { findDepartmentHeadEmployeeId, scopeHierarchyToDepartment } from "@/lib/org/departments";
 import { findEmployeeByEmail } from "@/lib/org/people-search";
 import { collectReachable, stripHierarchyCycles } from "@/lib/org/hierarchy-cycles";
 import { getDisplayKat, normalizeKat } from "@/lib/org/position-type";
@@ -1255,8 +1255,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       list.push(s.id);
       map.set(parentId, list);
     });
-    return stripHierarchyCycles(map);
-  }, [rawRecords, vacancies, sectionGroups, sectionMembers]);
+    const stripped = stripHierarchyCycles(map);
+    if (selectedDepartment && selectedDepartment !== "all" && effectiveRootId) {
+      return stripHierarchyCycles(
+        scopeHierarchyToDepartment(stripped, rawRecords, selectedDepartment, effectiveRootId),
+      );
+    }
+    return stripped;
+  }, [rawRecords, vacancies, sectionGroups, sectionMembers, selectedDepartment, effectiveRootId]);
 
   const [childOrderByParent, setChildOrderByParentState] = useState<Record<string, string[]>>(() => {
     const fromSettings = initialSettings?.childOrderByParent;
@@ -1506,8 +1512,14 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       list.push(s.id);
       map.set(parentId, list);
     });
-    return stripHierarchyCycles(map);
-  }, [rawRecords, vacancies, sectionGroups, sectionMembers]);
+    const stripped = stripHierarchyCycles(map);
+    if (selectedDepartment && selectedDepartment !== "all" && effectiveRootId) {
+      return stripHierarchyCycles(
+        scopeHierarchyToDepartment(stripped, rawRecords, selectedDepartment, effectiveRootId),
+      );
+    }
+    return stripped;
+  }, [rawRecords, vacancies, sectionGroups, sectionMembers, selectedDepartment, effectiveRootId]);
 
   /** Celkový počet ľudí (zamestnancov) pod daným uzlom – rekurzívne z celej hierarchie (vrátane DIR, INDIR1). */
   const totalSubordinateCountByNodeId = useMemo(() => {
