@@ -62,12 +62,31 @@ async function fetchOverridesFromNetwork(): Promise<SectionMemberRow[]> {
 
   if (error) {
     console.warn("[section-members] fetchSectionMembers error:", error.message);
-    return [];
   }
 
-  return (data ?? []).map((r) => ({
-    employee_id: r.employee_id,
-    section_id: r.override_parent_id,
+  const byEmployee = new Map<string, string>();
+  for (const row of data ?? []) {
+    if (row.employee_id && row.override_parent_id) {
+      byEmployee.set(row.employee_id, row.override_parent_id);
+    }
+  }
+
+  const { data: legacy, error: legacyError } = await supabaseClient
+    .from("org_section_members")
+    .select("employee_id, section_id");
+  if (legacyError) {
+    console.warn("[section-members] org_section_members fallback error:", legacyError.message);
+  } else {
+    for (const row of legacy ?? []) {
+      if (row.employee_id && row.section_id && !byEmployee.has(row.employee_id)) {
+        byEmployee.set(row.employee_id, row.section_id);
+      }
+    }
+  }
+
+  return [...byEmployee.entries()].map(([employee_id, section_id]) => ({
+    employee_id,
+    section_id,
   }));
 }
 

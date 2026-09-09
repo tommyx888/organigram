@@ -26,7 +26,6 @@ import { RootNode, type RootNodeData } from "@/components/orgchart/root-node";
 import { VacancyNode, vacancyHandleIds, type VacancyNodeData } from "@/components/orgchart/vacancy-node";
 import { SectionNode, sectionHandleIds, getDefaultSectionColor, type SectionNodeData } from "@/components/orgchart/section-node";
 import { ExpandCollapseButton } from "@/components/orgchart/expand-collapse-button";
-import { HierarchySidebar } from "@/components/orgchart/hierarchy-sidebar";
 import { DepartmentBar } from "@/components/orgchart/department-bar";
 import { CellDetailPanel } from "@/components/orgchart/cell-detail-panel";
 import { PeopleSearchBar } from "@/components/orgchart/people-search-bar";
@@ -47,7 +46,6 @@ import {
   saveChildLayout,
   type ChildLayoutStyle,
 } from "@/lib/org/employee-child-layout";
-import { resetOrgChartToTemplate } from "@/lib/org/org-chart-reset";
 import { buildShareUrl, type ShareableViewState } from "@/lib/org/shareable-view-state";
 import { useTranslation } from "@/lib/i18n/context";
 import {
@@ -67,8 +65,6 @@ import {
   type SectionMemberRow,
 } from "@/lib/org/section-members-client";
 import {
-  loadGeneralManagerId,
-  saveGeneralManagerId,
   loadMaxVisibleLayers,
   saveMaxVisibleLayers,
   loadVacancies,
@@ -86,6 +82,7 @@ import { subscribePersistStatus, type PersistStatus } from "@/lib/org/persist-st
 import { DEFAULT_CHART_APPEARANCE } from "@/lib/org/chart-appearance";
 import { DISPLAY_KAT_CATEGORIES, type EmployeeRecord, type VacancyPlaceholder, type SectionGroup } from "@/lib/org/types";
 import { findDepartmentHeadEmployeeId, scopeHierarchyToDepartment } from "@/lib/org/departments";
+import { mergeSectionGroupsWithOverrides } from "@/lib/org/reconstruct-sections";
 import { findEmployeeByEmail } from "@/lib/org/people-search";
 import { collectReachable, stripHierarchyCycles } from "@/lib/org/hierarchy-cycles";
 import { getDisplayKat, normalizeKat } from "@/lib/org/position-type";
@@ -867,17 +864,6 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   const effectiveHeightScale = Math.max(nodeScale * nodeHeightScale, autoScaleFromContent);
   const nodeWidth = Math.round(BASE_NODE_WIDTH * effectiveWidthScale);
   const nodeHeight = Math.round(BASE_NODE_HEIGHT * effectiveHeightScale);
-  const [generalManagerId, setGeneralManagerIdState] = useState<string | null>(() =>
-    getInitialFromSettings(initialSettings, "generalManagerId", loadGeneralManagerId) ?? FALLBACK_GM_EMPLOYEE_ID,
-  );
-  const setGeneralManagerId = useCallback(
-    (id: string | null) => {
-      setGeneralManagerIdState(id);
-      if (onSettingsChange) onSettingsChange({ generalManagerId: id });
-      else saveGeneralManagerId(id);
-    },
-    [onSettingsChange],
-  );
   const matchedSelf = useMemo(
     () => findEmployeeByEmail(rawRecords, userEmail),
     [rawRecords, userEmail],
@@ -1197,7 +1183,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
   /** Oddelenie má prednosť pred náhľadom osoby, inak sa prepínanie oddelení pri view-as vôbec neprejaví. */
   const effectiveRootId = useMemo(() => {
-    const gmId = generalManagerId ?? FALLBACK_GM_EMPLOYEE_ID;
+    const gmId = FALLBACK_GM_EMPLOYEE_ID;
     const idExists = (id: string) =>
       rawRecords.some((r) => r.employeeId === id) || vacancies.some((v) => v.id === id);
 
@@ -1212,7 +1198,6 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     return gmId;
   }, [
     viewAsEmployeeId,
-    generalManagerId,
     selectedDepartment,
     departmentManagers,
     rawRecords,
@@ -1228,6 +1213,22 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     layoutType === "horizontal" ? TREE_STEP_Y_HORIZ
     : layoutType === "compact" ? TREE_STEP_Y_COMPACT
     : TREE_STEP_Y;
+
+  const [childOrderByParent, setChildOrderByParentState] = useState<Record<string, string[]>>(() => {
+    const fromSettings = initialSettings?.childOrderByParent;
+    if (fromSettings && typeof fromSettings === "object") {
+      const out: Record<string, string[]> = {};
+      for (const [k, v] of Object.entries(fromSettings)) {
+        if (Array.isArray(v) && v.every((id) => typeof id === "string")) out[k] = v;
+      }
+      return out;
+    }
+    return loadChildOrderByParent();
+  });
+  const resolvedSectionGroups = useMemo(
+    () => mergeSectionGroupsWithOverrides(sectionGroups, sectionMembers, childOrderByParent),
+    [sectionGroups, sectionMembers, childOrderByParent],
+  );
 
   /** Mapovanie parentId -> deti. Používa všetkých zamestnancov (rawRecords), aby sa po výbere osoby zobrazila celá štruktúra pod ňou. */
   const hierarchyChildren = useMemo(() => {
@@ -1249,7 +1250,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       list.push(v.id);
       map.set(parentId, list);
     });
-    sectionGroups.forEach((s) => {
+    resolvedSectionGroups.forEach((s) => {
       const parentId = s.parentId ?? "__root";
       const list = map.get(parentId) ?? [];
       list.push(s.id);
@@ -1262,19 +1263,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       );
     }
     return stripped;
-  }, [rawRecords, vacancies, sectionGroups, sectionMembers, selectedDepartment, effectiveRootId]);
-
-  const [childOrderByParent, setChildOrderByParentState] = useState<Record<string, string[]>>(() => {
-    const fromSettings = initialSettings?.childOrderByParent;
-    if (fromSettings && typeof fromSettings === "object") {
-      const out: Record<string, string[]> = {};
-      for (const [k, v] of Object.entries(fromSettings)) {
-        if (Array.isArray(v) && v.every((id) => typeof id === "string")) out[k] = v;
-      }
-      return out;
-    }
-    return loadChildOrderByParent();
-  });
+  }, [rawRecords, vacancies, resolvedSectionGroups, sectionMembers, selectedDepartment, effectiveRootId]);
 
   /** Po načítaní zo servera aplikovať nastavenia z DB – useState lazy init ich nestihne ak Supabase
    *  odpovie až po prvom renderi. Každý blok sa aplikuje max raz (ref guard). */
@@ -1337,14 +1326,6 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     dbSettingsAppliedRef.current.maxVisibleLayers = true;
     setMaxVisibleLayersState(ml);
   }, [initialSettings?.maxVisibleLayers]);
-
-  useEffect(() => {
-    if (dbSettingsAppliedRef.current.generalManagerId) return;
-    const gm = initialSettings?.generalManagerId;
-    if (gm == null) return;
-    dbSettingsAppliedRef.current.generalManagerId = true;
-    setGeneralManagerIdState(gm);
-  }, [initialSettings?.generalManagerId]);
 
   const lastDeptManagersFromDbRef = useRef<string>("");
   useEffect(() => {
@@ -1506,7 +1487,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       list.push(v.id);
       map.set(parentId, list);
     });
-    sectionGroups.forEach((s) => {
+    resolvedSectionGroups.forEach((s) => {
       const parentId = s.parentId ?? "__root";
       const list = map.get(parentId) ?? [];
       list.push(s.id);
@@ -1519,7 +1500,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       );
     }
     return stripped;
-  }, [rawRecords, vacancies, sectionGroups, sectionMembers, selectedDepartment, effectiveRootId]);
+  }, [rawRecords, vacancies, resolvedSectionGroups, sectionMembers, selectedDepartment, effectiveRootId]);
 
   /** Celkový počet ľudí (zamestnancov) pod daným uzlom – rekurzívne z celej hierarchie (vrátane DIR, INDIR1). */
   const totalSubordinateCountByNodeId = useMemo(() => {
@@ -1987,12 +1968,12 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
           ?? defaultPositions.get(id)
           ?? { x: 0, y: 200 };
       if (isSectionId(id)) {
-        const sec = sectionGroups.find((s) => s.id === id);
+        const sec = resolvedSectionGroups.find((s) => s.id === id);
         if (!sec) return;
         const secChildren = orderedHierarchyChildren.get(sec.id) ?? [];
         // Pocet priamych clenov sekcie (len zamestnanci, nie pod-sekcie)
         const memberCount = secChildren.filter((cid) => !isSectionId(cid) && !isVacancyId(cid)).length;
-        const secIndex = sectionGroups.findIndex((s) => s.id === id);
+        const secIndex = resolvedSectionGroups.findIndex((s) => s.id === id);
         list.push({
           id: sec.id,
           type: "section",
@@ -2128,7 +2109,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     photoFrameBorderWidth,
     photoOffsetX,
     photoOffsetY,
-    sectionGroups,
+    resolvedSectionGroups,
     getVisibleKatChildren,
     getChildrenForLayout,
   ]);
@@ -2139,7 +2120,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     const childIds = orderedHierarchyChildren.get(selectedEmployeeId) ?? [];
     return childIds.map((id) => {
       if (isSectionId(id)) {
-        const s = sectionGroups.find((sec) => sec.id === id);
+        const s = resolvedSectionGroups.find((sec) => sec.id === id);
         return { id, label: s ? `[Sekcia] ${s.name}` : id };
       }
       if (isVacancyId(id)) {
@@ -2149,7 +2130,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
       const r = rawRecords.find((emp) => emp.employeeId === id);
       return { id, label: r ? r.fullName : id };
     });
-  }, [selectedEmployeeId, orderedHierarchyChildren, rawRecords, vacancies, sectionGroups]);
+  }, [selectedEmployeeId, orderedHierarchyChildren, rawRecords, vacancies, resolvedSectionGroups]);
 
   /** Pre vybranú vacancy: zoznam priamych podriadených v aktuálnom poradí. */
   const selectedVacancyDirectReportOrder = useMemo((): { id: string; label: string }[] => {
@@ -2982,6 +2963,29 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             <button
               type="button"
               onClick={() => {
+                const id = generateVacancyId();
+                const v: VacancyPlaceholder = {
+                  id,
+                  title: "Voľná pozícia",
+                  parentId: selectedEmployeeId ?? effectiveRootId ?? null,
+                };
+                setVacancies((prev) => [...prev, v]);
+                void createVacancyInDb(v).catch(() => {});
+                setSelectedVacancyId(id);
+                setSelectedEmployeeId(null);
+                setSelectedSectionId(null);
+                setRightPanelCollapsedAndSave(false);
+              }}
+              className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+              title={t("orgChart.addVacancy")}
+            >
+              + Voľná pozícia
+            </button>
+          )}
+          {onSettingsChange && (
+            <button
+              type="button"
+              onClick={() => {
                 const id = generateSectionId();
                 const newSection: SectionGroup = {
                   id,
@@ -3227,37 +3231,35 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
         isExportingAllPdf={isExportingAllPdf}
       />
 
+      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <p className="mb-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-normal text-slate-500">
+          {t("orgChart.visibleLayers")}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {([1, 2, 3, 4, 5, 6] as const).map((layer) => (
+            <button
+              key={layer}
+              type="button"
+              onClick={() => setMaxVisibleLayers(layer)}
+              title={t(`orgChart.layer${layer}`)}
+              className={`rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                maxVisibleLayers === layer
+                  ? "bg-[var(--artifex-navy)] text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              {layer}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex items-stretch gap-4">
-        <HierarchySidebar
-          generalManagerId={generalManagerId}
-          onGeneralManagerChange={setGeneralManagerId}
-          employees={rawRecords}
-          vacancies={vacancies}
-          maxVisibleLayers={maxVisibleLayers}
-          onMaxVisibleLayersChange={setMaxVisibleLayers}
-          expansionStyle={chartAppearance.expansionStyle ?? "tree"}
-          onExpansionStyleChange={(style) =>
-            setChartAppearance({ ...chartAppearance, expansionStyle: style })
-          }
-          onAddVacancy={(title, parentId) => {
-            const id = generateVacancyId();
-            const v: VacancyPlaceholder = { id, title, parentId };
-            setVacancies((prev) => [...prev, v]);
-            // Uloz do DB (org_vacancies tabulka)
-            if (onSettingsChange) createVacancyInDb(v).catch(() => {});
-          }}
-          onResetTemplate={async () => {
-            if (onResetToDefaults) await onResetToDefaults();
-            resetOrgChartToTemplate();
-            window.location.reload();
-          }}
-          contentHeight="72vh"
-        />
-        <div
-          ref={chartContainerRef}
-          className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[#f8fafc]"
-          style={{ height: "72vh" }}
-        >
+      <div
+        ref={chartContainerRef}
+        className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[#f8fafc]"
+        style={{ height: "72vh" }}
+      >
           {/* Logo header — nad orgchartom, karty ho neprekriju */}
           <div className="pointer-events-none flex shrink-0 flex-col items-center gap-1 py-3 bg-[#f8fafc]" style={{ zIndex: 20 }}>
             <img src="/artifex-logo.png" alt="Artifex" style={{ height: 40, width: "auto", objectFit: "contain" }} />
@@ -3372,9 +3374,9 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
             <div className="min-h-0 flex-1 overflow-hidden">
               {/* ===== SEKCIA DETAIL ===== */}
               {selectedSectionId ? (() => {
-                const sec = sectionGroups.find((s) => s.id === selectedSectionId);
+                const sec = resolvedSectionGroups.find((s) => s.id === selectedSectionId);
                 if (!sec) { setSelectedSectionId(null); return null; }
-                const secIndex = sectionGroups.findIndex((s) => s.id === selectedSectionId);
+                const secIndex = resolvedSectionGroups.findIndex((s) => s.id === selectedSectionId);
                 const color = sec.color ?? getDefaultSectionColor(secIndex);
                 // Clenovia = zamestnanci s override na tuto sekciu, v ulozenom poradí
                 const memberIdSet = new Set(

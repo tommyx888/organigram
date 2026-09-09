@@ -72,10 +72,27 @@ export async function PATCH(request: NextRequest) {
     .limit(1)
     .maybeSingle();
 
+  if (!existing?.payload && !replaceEntire) {
+    return NextResponse.json(
+      { error: "Org chart settings row missing; refusing to overwrite with a partial payload" },
+      { status: 500 },
+    );
+  }
+
   const currentPayload = (existing?.payload as OrgChartSettingsPayload) ?? {};
+  const incoming = { ...partial };
+  if (
+    Array.isArray(incoming.sectionGroups) &&
+    incoming.sectionGroups.length === 0 &&
+    Array.isArray(currentPayload.sectionGroups) &&
+    currentPayload.sectionGroups.length > 0 &&
+    !replaceEntire
+  ) {
+    delete incoming.sectionGroups;
+  }
   const mergedPayload: OrgChartSettingsPayload = replaceEntire
-    ? (partial as OrgChartSettingsPayload)
-    : mergeSettingsPartial(currentPayload, partial);
+    ? (incoming as OrgChartSettingsPayload)
+    : mergeSettingsPartial(currentPayload, incoming);
 
   const authRes = await supabase.auth.getUser();
   const updatedBy =
