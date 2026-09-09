@@ -105,9 +105,8 @@ function OrgChartContent({
 
   const isAdmin = settingsCtx?.isAdmin ?? false;
 
-  // Admin: vsetky zmeny idu do DB a vsetci ich vidia
-  // Non-admin: onSettingsChange=undefined - cita nastavenia z DB (initialSettings)
-  //            ale nemoze ich menit; drag/collapse stav sa neuklada (read-only session)
+  // Admin: zmeny idú do DB. Viewer číta tie isté nastavenia (oddelenia, vzhľad, GM)
+  // a filter oddelení mení len lokálne — onSettingsChange ostáva undefined.
   const settingsChangeHandler = useDbSettings && settingsCtx && isAdmin
     ? wrappedOnSettingsChange
     : undefined;

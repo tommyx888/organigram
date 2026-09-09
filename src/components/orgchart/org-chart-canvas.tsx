@@ -85,6 +85,7 @@ import type { OrgChartSettingsPayload } from "@/lib/org/org-chart-settings-types
 import { subscribePersistStatus, type PersistStatus } from "@/lib/org/persist-status";
 import { DEFAULT_CHART_APPEARANCE } from "@/lib/org/chart-appearance";
 import { DISPLAY_KAT_CATEGORIES, type EmployeeRecord, type VacancyPlaceholder, type SectionGroup } from "@/lib/org/types";
+import { findDepartmentHeadEmployeeId } from "@/lib/org/departments";
 import { findEmployeeByEmail } from "@/lib/org/people-search";
 import { collectReachable, stripHierarchyCycles } from "@/lib/org/hierarchy-cycles";
 import { getDisplayKat, normalizeKat } from "@/lib/org/position-type";
@@ -825,7 +826,8 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
     userEmail = null,
     canViewAsAnyone = true,
   } = props;
-  const useDbSettings = initialSettings != null && onSettingsChange != null;
+  // Viewer dostane rovnaký východzí pohľad z DB ako admin; bez onSettingsChange sa zmeny neukladajú.
+  const useDbSettings = initialSettings != null;
 
   const onSettingsChangeRef = useRef(onSettingsChange);
   onSettingsChangeRef.current = onSettingsChange;
@@ -891,6 +893,7 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   });
   const setSelectedDepartment = useCallback(
     (value: string) => {
+      setViewAsEmployeeId(null);
       setSelectedDepartmentState(value);
       if (onSettingsChange) onSettingsChange({ selectedDepartment: value });
       else if (typeof window !== "undefined") {
@@ -1192,22 +1195,21 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
 
   const nodesRef = useRef<OrgFlowNode[]>([]);
 
-  /** Pri zobrazení oddelenia: koreň stromu je manažér oddelenia; inak GM. Náhľad ako osoba má prednosť. */
+  /** Oddelenie má prednosť pred náhľadom osoby, inak sa prepínanie oddelení pri view-as vôbec neprejaví. */
   const effectiveRootId = useMemo(() => {
-    if (viewAsEmployeeId) {
-      const exists =
-        rawRecords.some((r) => r.employeeId === viewAsEmployeeId) ||
-        vacancies.some((v) => v.id === viewAsEmployeeId);
-      if (exists) return viewAsEmployeeId;
-    }
     const gmId = generalManagerId ?? FALLBACK_GM_EMPLOYEE_ID;
-    if (selectedDepartment === "all" || !selectedDepartment) return gmId;
-    const deptManagerId = departmentManagers[selectedDepartment];
-    if (!deptManagerId) return gmId;
-    const exists =
-      rawRecords.some((r) => r.employeeId === deptManagerId) ||
-      vacancies.some((v) => v.id === deptManagerId);
-    return exists ? deptManagerId : gmId;
+    const idExists = (id: string) =>
+      rawRecords.some((r) => r.employeeId === id) || vacancies.some((v) => v.id === id);
+
+    if (selectedDepartment && selectedDepartment !== "all") {
+      const deptManagerId = departmentManagers[selectedDepartment];
+      if (deptManagerId && idExists(deptManagerId)) return deptManagerId;
+      const fallbackHead = findDepartmentHeadEmployeeId(rawRecords, selectedDepartment);
+      if (fallbackHead) return fallbackHead;
+    }
+
+    if (viewAsEmployeeId && idExists(viewAsEmployeeId)) return viewAsEmployeeId;
+    return gmId;
   }, [
     viewAsEmployeeId,
     generalManagerId,
