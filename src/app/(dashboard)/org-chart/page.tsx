@@ -126,7 +126,8 @@ function OrgChartContent({
       onPhotoChanged={onPhotoChanged}
       initialShareableViewState={initialShareableViewState}
       userEmail={auth.userEmail}
-      canViewAsAnyone={allowEdit}
+      // Viewer must see the full tree from GM, not be locked to their own card.
+      canViewAsAnyone={true}
     />
   );
 }

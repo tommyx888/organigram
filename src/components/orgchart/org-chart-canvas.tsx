@@ -882,9 +882,13 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   );
   const viewAsLocked = Boolean(matchedSelf) && !canViewAsAnyone;
   const [viewAsEmployeeId, setViewAsEmployeeId] = useState<string | null>(null);
-  const [selectedDepartment, setSelectedDepartmentState] = useState<string>(() =>
-    getInitialFromSettings(initialSettings, "selectedDepartment", loadSelectedDepartment) ?? "all",
-  );
+  const [selectedDepartment, setSelectedDepartmentState] = useState<string>(() => {
+    // Globálne vybrané oddelenie z DB platí len pre admina; viewer má celú štruktúru.
+    if (onSettingsChange) {
+      return getInitialFromSettings(initialSettings, "selectedDepartment", loadSelectedDepartment) ?? "all";
+    }
+    return loadSelectedDepartment() ?? "all";
+  });
   const setSelectedDepartment = useCallback(
     (value: string) => {
       setSelectedDepartmentState(value);
@@ -1346,12 +1350,13 @@ export function OrgChartCanvas(props: OrgChartCanvasProps) {
   }, [initialSettings?.departmentManagers]);
 
   useEffect(() => {
+    if (!onSettingsChange) return;
     if (dbSettingsAppliedRef.current.selectedDepartment) return;
     const dept = initialSettings?.selectedDepartment;
     if (!dept || typeof dept !== "string") return;
     dbSettingsAppliedRef.current.selectedDepartment = true;
     setSelectedDepartmentState(dept);
-  }, [initialSettings?.selectedDepartment]);
+  }, [initialSettings?.selectedDepartment, onSettingsChange]);
 
   // Sync sectionGroups z DB - neprepíš novší lokálny stav, kým prebieha uloženie
   useEffect(() => {
